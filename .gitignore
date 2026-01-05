@@ -1,0 +1,46 @@
+# Environment variables (QUAN TRỌNG - KHÔNG commit file .env!)
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Downloads
+downloads/
+*.xlsx
+*.xls
+*.csv
+
+# OTP logs
+otp/
+otp_logs.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Backup files
+*.bak
+*_backup*

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(/tmp/process_hoan_cong.txt)",
+      "Bash(/tmp/create_thuc_tang.txt)",
+      "Bash(/tmp/process_mytv_ngung.txt)",
+      "Bash(/tmp/process_mytv_hoan_cong.txt)",
+      "Bash(cat:*)",
+      "Bash(/tmp/all_thuc_tang_functions.txt)",
+      "Bash(/tmp/vattu_download.txt)",
+      "Bash(chmod:*)",
+      "Bash(/home/vtst/baocaohanoi/venv/bin/python:*)",
+      "Bash(/home/vtst/baocaohanoi/venv/bin/playwright install:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(sqlite3:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

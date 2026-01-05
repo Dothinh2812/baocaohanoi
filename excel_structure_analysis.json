@@ -1,0 +1,4085 @@
+[
+  {
+    "file_name": "hoan_cong_20112025.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/hoan_cong_20112025.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Data",
+        "num_rows": 158,
+        "num_cols": 13,
+        "columns": [
+          "STT",
+          "Mã TB",
+          "Ngày nghiệm thu",
+          "Ngày yêu cầu",
+          "Đội",
+          "Nhóm địa bàn",
+          "Tên TTVT",
+          "Trạng thái phiếu",
+          "HDTB_ID",
+          "Nhân viên KT",
+          "Mã GD",
+          "NVKT",
+          "Đơn vị"
+        ],
+        "sample_data": [
+          {
+            "STT": 1,
+            "Mã TB": "hni0058000073807",
+            "Ngày nghiệm thu": "11/13/2025 8:09:24 AM",
+            "Ngày yêu cầu": "11/13/2025 7:19:25 AM",
+            "Đội": NaN,
+            "Nhóm địa bàn": "PCT1- Nguyễn Huy Tuyến(TML)",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Trạng thái phiếu": "Đã hoàn thành",
+            "HDTB_ID": 20880140,
+            "Nhân viên KT": "VNPT016771-Nguyễn Huy Tuyến",
+            "Mã GD": "ST9/LD/251113/01920",
+            "NVKT": "Nguyễn Huy Tuyến",
+            "Đơn vị": "Tổ Phúc Thọ"
+          },
+          {
+            "STT": 2,
+            "Mã TB": "hni0058000076574",
+            "Ngày nghiệm thu": "11/14/2025 1:00:26 PM",
+            "Ngày yêu cầu": "11/14/2025 11:37:53 AM",
+            "Đội": NaN,
+            "Nhóm địa bàn": "TMH4-Bùi Văn Duẩn(PGT)",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Trạng thái phiếu": "Đã hoàn thành",
+            "HDTB_ID": 20898892,
+            "Nhân viên KT": "VNPT016776-Bùi Văn Duẩn",
+            "Mã GD": "TA4/LD/251114/04129",
+            "NVKT": "Bùi Văn Duẩn",
+            "Đơn vị": "Tổ Phúc Thọ"
+          },
+          {
+            "STT": 3,
+            "Mã TB": "hni0058000075364",
+            "Ngày nghiệm thu": "11/14/2025 7:48:42 AM",
+            "Ngày yêu cầu": "11/13/2025 4:28:43 PM",
+            "Đội": NaN,
+            "Nhóm địa bàn": "Suối Hai 02 - Đỗ Anh Mẫn",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Trạng thái phiếu": "Đã hoàn thành",
+            "HDTB_ID": 20889419,
+            "Nhân viên KT": "CTV083885-Đỗ Anh Mẫn",
+            "Mã GD": "ST9/LD/251113/06655",
+            "NVKT": "Đỗ Anh Mẫn",
+            "Đơn vị": "Tổ Quảng oai"
+          }
+        ]
+      },
+      {
+        "sheet_name": "hoan-cong-theo-to",
+        "num_rows": 5,
+        "num_cols": 2,
+        "columns": [
+          "Đơn vị",
+          "Số lượng TB"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Sơn Tây",
+            "Số lượng TB": 52
+          },
+          {
+            "Đơn vị": "Tổ Suối hai",
+            "Số lượng TB": 38
+          },
+          {
+            "Đơn vị": "Tổ Quảng oai",
+            "Số lượng TB": 36
+          }
+        ]
+      },
+      {
+        "sheet_name": "hoan-cong-theo-NVKT",
+        "num_rows": 36,
+        "num_cols": 3,
+        "columns": [
+          "Đơn vị",
+          "NVKT",
+          "Số lượng TB"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Phúc Thọ",
+            "NVKT": "Hoàng Tung",
+            "Số lượng TB": 10
+          },
+          {
+            "Đơn vị": "Tổ Phúc Thọ",
+            "NVKT": "Bùi Văn Duẩn",
+            "Số lượng TB": 7
+          },
+          {
+            "Đơn vị": "Tổ Phúc Thọ",
+            "NVKT": "Nguyễn Mạnh Hùng",
+            "Số lượng TB": 6
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "ngung_psc_20112025.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/ngung_psc_20112025.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Data",
+        "num_rows": 275,
+        "num_cols": 20,
+        "columns": [
+          "STT",
+          "Mã TB",
+          "Số máy",
+          "Tên TB",
+          "Loại dịch vụ",
+          "Địa chỉ LĐ",
+          "Ngày tạm dừng",
+          "Ngày khôi phục",
+          "Ngày hủy",
+          "Nhóm địa bàn",
+          "Tên Tổ",
+          "Tên TTVT",
+          "Tên KH",
+          "Điện thoại LH",
+          "Trạng thái TB",
+          "Lý do hủy tạm dừng",
+          "TTVT xác minh huỷ",
+          "Đối tượng",
+          "NVKT",
+          "Đơn vị"
+        ],
+        "sample_data": [
+          {
+            "STT": 1,
+            "Mã TB": "vantinh93793762.fb.hni",
+            "Số máy": "005948357MEN",
+            "Tên TB": "Trần Văn Tình",
+            "Loại dịch vụ": "FIBER",
+            "Địa chỉ LĐ": "409 đường, Tân Phú, Xã Đoài Phương, Hà Nội",
+            "Ngày tạm dừng": "20/09/2025 10:19:00",
+            "Ngày khôi phục": NaN,
+            "Ngày hủy": NaN,
+            "Nhóm địa bàn": "Đồng Mô 2 - Phùng Tuấn Anh",
+            "Tên Tổ": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Tên KH": NaN,
+            "Điện thoại LH": NaN,
+            "Trạng thái TB": "Khoá 2 chiều do nợ cước",
+            "Lý do hủy tạm dừng": NaN,
+            "TTVT xác minh huỷ": NaN,
+            "Đối tượng": NaN,
+            "NVKT": "Phùng Tuấn Anh",
+            "Đơn vị": "Tổ Sơn Tây"
+          },
+          {
+            "STT": 2,
+            "Mã TB": "thihuong2651443.fb.hni",
+            "Số máy": "005613546MEN",
+            "Tên TB": "Phí Thị Hương",
+            "Loại dịch vụ": "FIBER",
+            "Địa chỉ LĐ": "Cụm 6, Xã Sen chiểu, Huyện Phúc Thọ, Hà Nội",
+            "Ngày tạm dừng": "18/09/2025 09:48:08",
+            "Ngày khôi phục": NaN,
+            "Ngày hủy": NaN,
+            "Nhóm địa bàn": "VNM3- Khuất Duy Hiệp(SNP)",
+            "Tên Tổ": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Tên KH": NaN,
+            "Điện thoại LH": NaN,
+            "Trạng thái TB": "Khoá 2 chiều do nợ cước",
+            "Lý do hủy tạm dừng": NaN,
+            "TTVT xác minh huỷ": NaN,
+            "Đối tượng": NaN,
+            "NVKT": "Khuất Duy Hiệp",
+            "Đơn vị": "Tổ Phúc Thọ"
+          },
+          {
+            "STT": 3,
+            "Mã TB": "phong0832892222",
+            "Số máy": "005543505MEN",
+            "Tên TB": "Chu Thị Phượng",
+            "Loại dịch vụ": "FIBER",
+            "Địa chỉ LĐ": "Cổng Chính Ngô Quyền, Chợ mơ, Xã Cổ Đô, Hà Nội",
+            "Ngày tạm dừng": "27/09/2025 15:02:37",
+            "Ngày khôi phục": NaN,
+            "Ngày hủy": NaN,
+            "Nhóm địa bàn": "Vạn Thắng 07 - Lê Mạnh Huân",
+            "Tên Tổ": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Tên KH": NaN,
+            "Điện thoại LH": NaN,
+            "Trạng thái TB": "Khoá 2 chiều do nợ cước",
+            "Lý do hủy tạm dừng": NaN,
+            "TTVT xác minh huỷ": NaN,
+            "Đối tượng": NaN,
+            "NVKT": "Lê Mạnh Huân",
+            "Đơn vị": "Tổ Quảng oai"
+          }
+        ]
+      },
+      {
+        "sheet_name": "ngung-psc-theo-to",
+        "num_rows": 5,
+        "num_cols": 2,
+        "columns": [
+          "Đơn vị",
+          "Số lượng TB"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Sơn Tây",
+            "Số lượng TB": 87
+          },
+          {
+            "Đơn vị": "Tổ Quảng oai",
+            "Số lượng TB": 74
+          },
+          {
+            "Đơn vị": "Tổ Suối hai",
+            "Số lượng TB": 62
+          }
+        ]
+      },
+      {
+        "sheet_name": "ngung-psc-theo-NVKT",
+        "num_rows": 35,
+        "num_cols": 3,
+        "columns": [
+          "Đơn vị",
+          "NVKT",
+          "Số lượng TB"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Phúc Thọ",
+            "NVKT": "Nguyễn Mạnh Hùng",
+            "Số lượng TB": 13
+          },
+          {
+            "Đơn vị": "Tổ Phúc Thọ",
+            "NVKT": "Khuất Anh Chiến",
+            "Số lượng TB": 10
+          },
+          {
+            "Đơn vị": "Tổ Phúc Thọ",
+            "NVKT": "Nguyễn Huy Tuyến",
+            "Số lượng TB": 8
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "thuc_tang_20112025.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/thuc_tang_20112025.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "thuc_tang_theo_to",
+        "num_rows": 5,
+        "num_cols": 5,
+        "columns": [
+          "Đơn vị",
+          "Hoàn công",
+          "Ngưng PSC",
+          "Thực tăng",
+          "Tỷ lệ ngưng/psc"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Phúc Thọ",
+            "Hoàn công": 32,
+            "Ngưng PSC": 52,
+            "Thực tăng": -20,
+            "Tỷ lệ ngưng/psc": 162.5
+          },
+          {
+            "Đơn vị": "Tổ Suối hai",
+            "Hoàn công": 38,
+            "Ngưng PSC": 62,
+            "Thực tăng": -24,
+            "Tỷ lệ ngưng/psc": 163.16
+          },
+          {
+            "Đơn vị": "Tổ Sơn Tây",
+            "Hoàn công": 52,
+            "Ngưng PSC": 87,
+            "Thực tăng": -35,
+            "Tỷ lệ ngưng/psc": 167.31
+          }
+        ]
+      },
+      {
+        "sheet_name": "thuc_tang_theo_NVKT",
+        "num_rows": 36,
+        "num_cols": 6,
+        "columns": [
+          "Đơn vị",
+          "NVKT",
+          "Hoàn công",
+          "Ngưng PSC",
+          "Thực tăng",
+          "Tỷ lệ ngưng/psc"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Quảng oai",
+            "NVKT": "Bùi Văn Biên",
+            "Hoàn công": 7,
+            "Ngưng PSC": 0,
+            "Thực tăng": 7,
+            "Tỷ lệ ngưng/psc": 0.0
+          },
+          {
+            "Đơn vị": "Tổ Phúc Thọ",
+            "NVKT": "Hoàng Tung",
+            "Hoàn công": 10,
+            "Ngưng PSC": 5,
+            "Thực tăng": 5,
+            "Tỷ lệ ngưng/psc": 50.0
+          },
+          {
+            "Đơn vị": "Tổ Sơn Tây",
+            "NVKT": "Đỗ Huy Thông",
+            "Hoàn công": 10,
+            "Ngưng PSC": 6,
+            "Thực tăng": 4,
+            "Tỷ lệ ngưng/psc": 60.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "mytv_hoan_cong_20112025.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/mytv_hoan_cong_20112025.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 74,
+        "num_cols": 11,
+        "columns": [
+          "STT",
+          "Mã TB",
+          "Ngày nghiệm thu",
+          "Ngày yêu cầu",
+          "Đội",
+          "Nhóm địa bàn",
+          "Tên TTVT",
+          "Trạng thái phiếu",
+          "HDTB_ID",
+          "Nhân viên KT",
+          "Mã GD"
+        ],
+        "sample_data": [
+          {
+            "STT": 1,
+            "Mã TB": "HNI0061000058538",
+            "Ngày nghiệm thu": "11/4/2025 5:38:50 PM",
+            "Ngày yêu cầu": "11/4/2025 8:44:00 AM",
+            "Đội": NaN,
+            "Nhóm địa bàn": "Đồng Mô 2 - Phùng Tuấn Anh",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Trạng thái phiếu": "Đã hoàn thành",
+            "HDTB_ID": 20738678,
+            "Nhân viên KT": "VNPT016758-Phùng Tuấn Anh",
+            "Mã GD": "ST5/LD/251104/02418"
+          },
+          {
+            "STT": 2,
+            "Mã TB": "HNI0061000077375",
+            "Ngày nghiệm thu": "11/14/2025 6:48:45 PM",
+            "Ngày yêu cầu": "11/14/2025 4:47:11 PM",
+            "Đội": NaN,
+            "Nhóm địa bàn": "TMH4-Bùi Văn Duẩn(PGT)",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Trạng thái phiếu": "Đã hoàn thành",
+            "HDTB_ID": 20903851,
+            "Nhân viên KT": "VNPT016776-Bùi Văn Duẩn",
+            "Mã GD": "TA4/LD/251114/06549"
+          },
+          {
+            "STT": 3,
+            "Mã TB": "HNI0061000079089",
+            "Ngày nghiệm thu": "11/16/2025 12:26:42 PM",
+            "Ngày yêu cầu": "11/15/2025 7:55:11 PM",
+            "Đội": NaN,
+            "Nhóm địa bàn": "TMH4-Bùi Văn Duẩn(PGT)",
+            "Tên TTVT": "TTVT Sơn Tây",
+            "Trạng thái phiếu": "Đã hoàn thành",
+            "HDTB_ID": 20914813,
+            "Nhân viên KT": "VNPT016776-Bùi Văn Duẩn",
+            "Mã GD": "HNI/LD/251115/07078"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "Bao_cao_tuan_47_2025.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/Bao_cao_tuan_47_2025.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Tong_hop",
+        "num_rows": 33,
+        "num_cols": 6,
+        "columns": [
+          "Đơn vị",
+          "NVKT_DB",
+          "Tuần này",
+          "Tuần trước",
+          "Tăng/Giảm",
+          "% Thay đổi"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Bùi Văn Duẩn",
+            "Tuần này": 0,
+            "Tuần trước": 19,
+            "Tăng/Giảm": -19,
+            "% Thay đổi": -100
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Dương Văn Dũng",
+            "Tuần này": 0,
+            "Tuần trước": 12,
+            "Tăng/Giảm": -12,
+            "% Thay đổi": -100
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Hoàng Tung",
+            "Tuần này": 0,
+            "Tuần trước": 3,
+            "Tăng/Giảm": -3,
+            "% Thay đổi": -100
+          }
+        ]
+      },
+      {
+        "sheet_name": "Giam_het",
+        "num_rows": 395,
+        "num_cols": 5,
+        "columns": [
+          "account_cts",
+          "ten_tb_one",
+          "doi_one",
+          "nvkt_db_normalized",
+          "sa"
+        ],
+        "sample_data": [
+          {
+            "account_cts": "01629863709",
+            "ten_tb_one": "Doãn Văn Tuất",
+            "doi_one": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "nvkt_db_normalized": "Dương Văn Dũng",
+            "sa": "VNM.G41_2/6"
+          },
+          {
+            "account_cts": "01677124769",
+            "ten_tb_one": "Lê Ánh Dương",
+            "doi_one": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "nvkt_db_normalized": "Đào Ngọc Hải",
+            "sa": "TLH.G41_1/12"
+          },
+          {
+            "account_cts": "0365666122",
+            "ten_tb_one": "Đinh Văn Đoàn",
+            "doi_one": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "nvkt_db_normalized": "Trịnh Xuân Bách",
+            "sa": "KTG.G51_2/3"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "Bao_cao_thang_11_2025.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/Bao_cao_thang_11_2025.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Tong_hop",
+        "num_rows": 35,
+        "num_cols": 6,
+        "columns": [
+          "Đơn vị",
+          "NVKT_DB",
+          "Tháng này",
+          "Tháng trước",
+          "Tăng/Giảm",
+          "% Thay đổi"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Bùi Văn Duẩn",
+            "Tháng này": 37,
+            "Tháng trước": 0,
+            "Tăng/Giảm": 37,
+            "% Thay đổi": 0
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Dương Văn Dũng",
+            "Tháng này": 31,
+            "Tháng trước": 0,
+            "Tăng/Giảm": 31,
+            "% Thay đổi": 0
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Hoàng Tung",
+            "Tháng này": 20,
+            "Tháng trước": 0,
+            "Tăng/Giảm": 20,
+            "% Thay đổi": 0
+          }
+        ]
+      },
+      {
+        "sheet_name": "Xu_huong_theo_ngay",
+        "num_rows": 18,
+        "num_cols": 2,
+        "columns": [
+          "Ngày",
+          "Số lượng TB suy hao"
+        ],
+        "sample_data": [
+          {
+            "Ngày": "02/11",
+            "Số lượng TB suy hao": 296
+          },
+          {
+            "Ngày": "03/11",
+            "Số lượng TB suy hao": 302
+          },
+          {
+            "Ngày": "04/11",
+            "Số lượng TB suy hao": 292
+          }
+        ]
+      },
+      {
+        "sheet_name": "Tang_moi",
+        "num_rows": 800,
+        "num_cols": 5,
+        "columns": [
+          "account_cts",
+          "ten_tb_one",
+          "doi_one",
+          "nvkt_db_normalized",
+          "sa"
+        ],
+        "sample_data": [
+          {
+            "account_cts": "0335500865",
+            "ten_tb_one": "Nguyễn Văn Sinh",
+            "doi_one": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "nvkt_db_normalized": "Trịnh Xuân Bách",
+            "sa": "MOC.G51_1/6"
+          },
+          {
+            "account_cts": "0373835634",
+            "ten_tb_one": "Phan Thành Lâm",
+            "doi_one": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "nvkt_db_normalized": "Bùi Văn Biên",
+            "sa": "VTG.G42_1/16"
+          },
+          {
+            "account_cts": "0379115855",
+            "ten_tb_one": "Nguyễn Văn Tình",
+            "doi_one": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "nvkt_db_normalized": "Trần Thành",
+            "sa": "VMG.G41_1/13"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "Bao_cao_xu_huong_20251101_20251119.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/Bao_cao_xu_huong_20251101_20251119.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Xu_huong_theo_don_vi",
+        "num_rows": 18,
+        "num_cols": 5,
+        "columns": [
+          "Ngày",
+          "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+          "Tổ Kỹ thuật Địa bàn Quảng Oai",
+          "Tổ Kỹ thuật Địa bàn Suối hai",
+          "Tổ Kỹ thuật Địa bàn Sơn Tây"
+        ],
+        "sample_data": [
+          {
+            "Ngày": "02/11/2025",
+            "Tổ Kỹ thuật Địa bàn Phúc Thọ": 62,
+            "Tổ Kỹ thuật Địa bàn Quảng Oai": 35,
+            "Tổ Kỹ thuật Địa bàn Suối hai": 58,
+            "Tổ Kỹ thuật Địa bàn Sơn Tây": 141
+          },
+          {
+            "Ngày": "03/11/2025",
+            "Tổ Kỹ thuật Địa bàn Phúc Thọ": 63,
+            "Tổ Kỹ thuật Địa bàn Quảng Oai": 37,
+            "Tổ Kỹ thuật Địa bàn Suối hai": 59,
+            "Tổ Kỹ thuật Địa bàn Sơn Tây": 143
+          },
+          {
+            "Ngày": "04/11/2025",
+            "Tổ Kỹ thuật Địa bàn Phúc Thọ": 60,
+            "Tổ Kỹ thuật Địa bàn Quảng Oai": 38,
+            "Tổ Kỹ thuật Địa bàn Suối hai": 55,
+            "Tổ Kỹ thuật Địa bàn Sơn Tây": 139
+          }
+        ]
+      },
+      {
+        "sheet_name": "Xu_huong_theo_NVKT",
+        "num_rows": 18,
+        "num_cols": 36,
+        "columns": [
+          "ngay_bao_cao",
+          "Bùi Văn Biên",
+          "Bùi Văn Cường",
+          "Bùi Văn Duẩn",
+          "Chu Minh Tám",
+          "Chu Văn Hùng",
+          "Dương Văn Dũng",
+          "Hoàng Trung Dũng",
+          "Hoàng Tung",
+          "Khuất Anh Chiến",
+          "Khuất Duy Hiệp",
+          "Khuất Duy Kết",
+          "Lê Mạnh Huân",
+          "Lê Phương Thuyết",
+          "Lê Quyết Tiến",
+          "Lê Văn Hoàng Anh",
+          "Lê Văn Tuấn",
+          "Nguyễn Chí Công",
+          "Nguyễn Huy Tuyến",
+          "Nguyễn Mạnh Hùng",
+          "Nguyễn Quảng Ba",
+          "Nguyễn Thành Sơn",
+          "Nguyễn Văn Minh",
+          "Nguyễn Văn Thanh",
+          "Phùng Công Vinh",
+          "Phùng Tuấn Anh",
+          "Phạm Anh Tuấn",
+          "Trần Thành",
+          "Trịnh Thanh Quang",
+          "Trịnh Xuân Bách",
+          "Đào Ngọc Hải",
+          "Đỗ Anh Mẫn",
+          "Đỗ Huy Thông",
+          "Đỗ Minh Thăng",
+          "Đỗ Mạnh Hùng",
+          "Đỗ Đức Trí"
+        ],
+        "sample_data": [
+          {
+            "ngay_bao_cao": "02/11/2025",
+            "Bùi Văn Biên": 3,
+            "Bùi Văn Cường": 1,
+            "Bùi Văn Duẩn": 11,
+            "Chu Minh Tám": 2,
+            "Chu Văn Hùng": 1,
+            "Dương Văn Dũng": 16,
+            "Hoàng Trung Dũng": 7,
+            "Hoàng Tung": 10,
+            "Khuất Anh Chiến": 6,
+            "Khuất Duy Hiệp": 6,
+            "Khuất Duy Kết": 5,
+            "Lê Mạnh Huân": 1,
+            "Lê Phương Thuyết": 9,
+            "Lê Quyết Tiến": 0,
+            "Lê Văn Hoàng Anh": 12,
+            "Lê Văn Tuấn": 9,
+            "Nguyễn Chí Công": 2,
+            "Nguyễn Huy Tuyến": 7,
+            "Nguyễn Mạnh Hùng": 6,
+            "Nguyễn Quảng Ba": 5,
+            "Nguyễn Thành Sơn": 14,
+            "Nguyễn Văn Minh": 38,
+            "Nguyễn Văn Thanh": 6,
+            "Phùng Công Vinh": 0,
+            "Phùng Tuấn Anh": 25,
+            "Phạm Anh Tuấn": 12,
+            "Trần Thành": 14,
+            "Trịnh Thanh Quang": 3,
+            "Trịnh Xuân Bách": 13,
+            "Đào Ngọc Hải": 7,
+            "Đỗ Anh Mẫn": 8,
+            "Đỗ Huy Thông": 10,
+            "Đỗ Minh Thăng": 13,
+            "Đỗ Mạnh Hùng": 8,
+            "Đỗ Đức Trí": 6
+          },
+          {
+            "ngay_bao_cao": "03/11/2025",
+            "Bùi Văn Biên": 4,
+            "Bùi Văn Cường": 1,
+            "Bùi Văn Duẩn": 12,
+            "Chu Minh Tám": 1,
+            "Chu Văn Hùng": 1,
+            "Dương Văn Dũng": 15,
+            "Hoàng Trung Dũng": 7,
+            "Hoàng Tung": 8,
+            "Khuất Anh Chiến": 6,
+            "Khuất Duy Hiệp": 8,
+            "Khuất Duy Kết": 5,
+            "Lê Mạnh Huân": 1,
+            "Lê Phương Thuyết": 9,
+            "Lê Quyết Tiến": 0,
+            "Lê Văn Hoàng Anh": 14,
+            "Lê Văn Tuấn": 9,
+            "Nguyễn Chí Công": 2,
+            "Nguyễn Huy Tuyến": 8,
+            "Nguyễn Mạnh Hùng": 6,
+            "Nguyễn Quảng Ba": 5,
+            "Nguyễn Thành Sơn": 17,
+            "Nguyễn Văn Minh": 40,
+            "Nguyễn Văn Thanh": 7,
+            "Phùng Công Vinh": 0,
+            "Phùng Tuấn Anh": 21,
+            "Phạm Anh Tuấn": 11,
+            "Trần Thành": 14,
+            "Trịnh Thanh Quang": 4,
+            "Trịnh Xuân Bách": 8,
+            "Đào Ngọc Hải": 10,
+            "Đỗ Anh Mẫn": 9,
+            "Đỗ Huy Thông": 12,
+            "Đỗ Minh Thăng": 13,
+            "Đỗ Mạnh Hùng": 8,
+            "Đỗ Đức Trí": 6
+          },
+          {
+            "ngay_bao_cao": "04/11/2025",
+            "Bùi Văn Biên": 4,
+            "Bùi Văn Cường": 0,
+            "Bùi Văn Duẩn": 12,
+            "Chu Minh Tám": 0,
+            "Chu Văn Hùng": 0,
+            "Dương Văn Dũng": 16,
+            "Hoàng Trung Dũng": 6,
+            "Hoàng Tung": 5,
+            "Khuất Anh Chiến": 6,
+            "Khuất Duy Hiệp": 7,
+            "Khuất Duy Kết": 4,
+            "Lê Mạnh Huân": 1,
+            "Lê Phương Thuyết": 9,
+            "Lê Quyết Tiến": 0,
+            "Lê Văn Hoàng Anh": 12,
+            "Lê Văn Tuấn": 9,
+            "Nguyễn Chí Công": 2,
+            "Nguyễn Huy Tuyến": 8,
+            "Nguyễn Mạnh Hùng": 6,
+            "Nguyễn Quảng Ba": 5,
+            "Nguyễn Thành Sơn": 17,
+            "Nguyễn Văn Minh": 41,
+            "Nguyễn Văn Thanh": 5,
+            "Phùng Công Vinh": 1,
+            "Phùng Tuấn Anh": 19,
+            "Phạm Anh Tuấn": 12,
+            "Trần Thành": 14,
+            "Trịnh Thanh Quang": 3,
+            "Trịnh Xuân Bách": 11,
+            "Đào Ngọc Hải": 9,
+            "Đỗ Anh Mẫn": 9,
+            "Đỗ Huy Thông": 10,
+            "Đỗ Minh Thăng": 12,
+            "Đỗ Mạnh Hùng": 9,
+            "Đỗ Đức Trí": 8
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "c1.1 report.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/c1.1 report.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 8,
+        "num_cols": 20,
+        "columns": [
+          "Đơn vị",
+          "Tổng",
+          "Unnamed: 2",
+          "Unnamed: 3",
+          "Unnamed: 4",
+          "Unnamed: 5",
+          "Unnamed: 6",
+          "Unnamed: 7",
+          "CCCO",
+          "Unnamed: 9",
+          "Unnamed: 10",
+          "Unnamed: 11",
+          "Unnamed: 12",
+          "Unnamed: 13",
+          "Không CCCO",
+          "Unnamed: 15",
+          "Unnamed: 16",
+          "Unnamed: 17",
+          "Unnamed: 18",
+          "Unnamed: 19"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": NaN,
+            "Tổng": "SM1",
+            "Unnamed: 2": "SM2",
+            "Unnamed: 3": "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu",
+            "Unnamed: 4": "SM3",
+            "Unnamed: 5": "SM4",
+            "Unnamed: 6": "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn",
+            "Unnamed: 7": "Chỉ tiêu BSC",
+            "CCCO": "SM1",
+            "Unnamed: 9": "SM2",
+            "Unnamed: 10": "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu",
+            "Unnamed: 11": "SM3",
+            "Unnamed: 12": "SM4",
+            "Unnamed: 13": "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn",
+            "Không CCCO": "SM1",
+            "Unnamed: 15": "SM2",
+            "Unnamed: 16": "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu",
+            "Unnamed: 17": "SM3",
+            "Unnamed: 18": "SM4",
+            "Unnamed: 19": "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn"
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Bất Bạt",
+            "Tổng": "0",
+            "Unnamed: 2": "0",
+            "Unnamed: 3": "100",
+            "Unnamed: 4": "0",
+            "Unnamed: 5": "0",
+            "Unnamed: 6": "100",
+            "Unnamed: 7": "5",
+            "CCCO": "0",
+            "Unnamed: 9": "0",
+            "Unnamed: 10": "100",
+            "Unnamed: 11": "0",
+            "Unnamed: 12": "0",
+            "Unnamed: 13": "100",
+            "Không CCCO": "0",
+            "Unnamed: 15": "0",
+            "Unnamed: 16": "100",
+            "Unnamed: 17": "0",
+            "Unnamed: 18": "0",
+            "Unnamed: 19": "100"
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "Tổng": "115",
+            "Unnamed: 2": "116",
+            "Unnamed: 3": "99.14",
+            "Unnamed: 4": "156",
+            "Unnamed: 5": "197",
+            "Unnamed: 6": "79.19",
+            "Unnamed: 7": "3.64",
+            "CCCO": "0",
+            "Unnamed: 9": "0",
+            "Unnamed: 10": "100",
+            "Unnamed: 11": "0",
+            "Unnamed: 12": "0",
+            "Unnamed: 13": "100",
+            "Không CCCO": "115",
+            "Unnamed: 15": "116",
+            "Unnamed: 16": "99.14",
+            "Unnamed: 17": "156",
+            "Unnamed: 18": "197",
+            "Unnamed: 19": "79.19"
+          }
+        ]
+      },
+      {
+        "sheet_name": "TH_C1.1",
+        "num_rows": 5,
+        "num_cols": 8,
+        "columns": [
+          "Đơn vị",
+          "SM1",
+          "SM2",
+          "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu",
+          "SM3",
+          "SM4",
+          "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn",
+          "Chỉ tiêu BSC"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "SM1": 115,
+            "SM2": 116,
+            "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu": 99.14,
+            "SM3": 156,
+            "SM4": 197,
+            "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn": 79.19,
+            "Chỉ tiêu BSC": 3.64
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "SM1": 321,
+            "SM2": 321,
+            "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu": 100.0,
+            "SM3": 143,
+            "SM4": 187,
+            "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn": 76.47,
+            "Chỉ tiêu BSC": 2.9
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "SM1": 266,
+            "SM2": 304,
+            "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu": 87.5,
+            "SM3": 428,
+            "SM4": 623,
+            "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn": 68.7,
+            "Chỉ tiêu BSC": 1.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "c1.2 report.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/c1.2 report.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 8,
+        "num_cols": 20,
+        "columns": [
+          "Đơn vị",
+          "Tổng",
+          "Unnamed: 2",
+          "Unnamed: 3",
+          "Unnamed: 4",
+          "Unnamed: 5",
+          "Unnamed: 6",
+          "Unnamed: 7",
+          "CCCO",
+          "Unnamed: 9",
+          "Unnamed: 10",
+          "Unnamed: 11",
+          "Unnamed: 12",
+          "Unnamed: 13",
+          "Không CCCO",
+          "Unnamed: 15",
+          "Unnamed: 16",
+          "Unnamed: 17",
+          "Unnamed: 18",
+          "Unnamed: 19"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": NaN,
+            "Tổng": "SM1",
+            "Unnamed: 2": "SM2",
+            "Unnamed: 3": "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại",
+            "Unnamed: 4": "SM3",
+            "Unnamed: 5": "SM4",
+            "Unnamed: 6": "Tỷ lệ sự cố dịch vụ BRCĐ",
+            "Unnamed: 7": "Chỉ tiêu BSC",
+            "CCCO": "SM1",
+            "Unnamed: 9": "SM2",
+            "Unnamed: 10": "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại",
+            "Unnamed: 11": "SM3",
+            "Unnamed: 12": "SM4",
+            "Unnamed: 13": "Tỷ lệ sự cố dịch vụ BRCĐ",
+            "Không CCCO": "SM1",
+            "Unnamed: 15": "SM2",
+            "Unnamed: 16": "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại",
+            "Unnamed: 17": "SM3",
+            "Unnamed: 18": "SM4",
+            "Unnamed: 19": "Tỷ lệ sự cố dịch vụ BRCĐ"
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Bất Bạt",
+            "Tổng": "0",
+            "Unnamed: 2": "0",
+            "Unnamed: 3": "0",
+            "Unnamed: 4": "0",
+            "Unnamed: 5": "0",
+            "Unnamed: 6": "0",
+            "Unnamed: 7": "5",
+            "CCCO": NaN,
+            "Unnamed: 9": NaN,
+            "Unnamed: 10": "0",
+            "Unnamed: 11": NaN,
+            "Unnamed: 12": NaN,
+            "Unnamed: 13": "0",
+            "Không CCCO": NaN,
+            "Unnamed: 15": NaN,
+            "Unnamed: 16": "0",
+            "Unnamed: 17": NaN,
+            "Unnamed: 18": NaN,
+            "Unnamed: 19": "0"
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "Tổng": "2",
+            "Unnamed: 2": "194",
+            "Unnamed: 3": "1.03",
+            "Unnamed: 4": "197",
+            "Unnamed: 5": "10771",
+            "Unnamed: 6": "1.83",
+            "Unnamed: 7": "5",
+            "CCCO": "0",
+            "Unnamed: 9": "0",
+            "Unnamed: 10": "0",
+            "Unnamed: 11": "0",
+            "Unnamed: 12": "0",
+            "Unnamed: 13": "0",
+            "Không CCCO": "2",
+            "Unnamed: 15": "194",
+            "Unnamed: 16": "1.03",
+            "Unnamed: 17": "197",
+            "Unnamed: 18": "10771",
+            "Unnamed: 19": "1.83"
+          }
+        ]
+      },
+      {
+        "sheet_name": "TH_C1.2",
+        "num_rows": 5,
+        "num_cols": 8,
+        "columns": [
+          "Đơn vị",
+          "SM1",
+          "SM2",
+          "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại",
+          "SM3",
+          "SM4",
+          "Tỷ lệ sự cố dịch vụ BRCĐ",
+          "Chỉ tiêu BSC"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "SM1": 2,
+            "SM2": 194,
+            "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại": 1.03,
+            "SM3": 197,
+            "SM4": 10771,
+            "Tỷ lệ sự cố dịch vụ BRCĐ": 1.83,
+            "Chỉ tiêu BSC": 5.0
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "SM1": 4,
+            "SM2": 178,
+            "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại": 2.25,
+            "SM3": 187,
+            "SM4": 14775,
+            "Tỷ lệ sự cố dịch vụ BRCĐ": 1.27,
+            "Chỉ tiêu BSC": 5.0
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "SM1": 21,
+            "SM2": 577,
+            "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại": 3.64,
+            "SM3": 623,
+            "SM4": 16793,
+            "Tỷ lệ sự cố dịch vụ BRCĐ": 3.71,
+            "Chỉ tiêu BSC": 1.48
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "c1.5 report.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/c1.5 report.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 5,
+        "num_cols": 13,
+        "columns": [
+          "Đơn vị",
+          "Tổng",
+          "Unnamed: 2",
+          "Unnamed: 3",
+          "Unnamed: 4",
+          "CCCO",
+          "Unnamed: 6",
+          "Unnamed: 7",
+          "Unnamed: 8",
+          "Không CCCO",
+          "Unnamed: 10",
+          "Unnamed: 11",
+          "Unnamed: 12"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": NaN,
+            "Tổng": "SM1",
+            "Unnamed: 2": "SM2",
+            "Unnamed: 3": "KQ thực hiện chỉ tiêu",
+            "Unnamed: 4": "Điểm BSC",
+            "CCCO": "SM1",
+            "Unnamed: 6": "SM2",
+            "Unnamed: 7": "Tỷ lệ",
+            "Unnamed: 8": "Điểm BSC",
+            "Không CCCO": "SM1",
+            "Unnamed: 10": "SM2",
+            "Unnamed: 11": "Tỷ lệ",
+            "Unnamed: 12": "Điểm BSC"
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "Tổng": "98",
+            "Unnamed: 2": "101",
+            "Unnamed: 3": "97.03",
+            "Unnamed: 4": "4.01",
+            "CCCO": "0",
+            "Unnamed: 6": "0",
+            "Unnamed: 7": "0",
+            "Unnamed: 8": "0",
+            "Không CCCO": "98",
+            "Unnamed: 10": "101",
+            "Unnamed: 11": "97.03",
+            "Unnamed: 12": "4.01"
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "Tổng": "58",
+            "Unnamed: 2": "108",
+            "Unnamed: 3": "53.7",
+            "Unnamed: 4": "1",
+            "CCCO": "0",
+            "Unnamed: 6": "0",
+            "Unnamed: 7": "0",
+            "Unnamed: 8": "0",
+            "Không CCCO": "58",
+            "Unnamed: 10": "108",
+            "Unnamed: 11": "53.7",
+            "Unnamed: 12": "1"
+          }
+        ]
+      },
+      {
+        "sheet_name": "TH_C1.5",
+        "num_rows": 4,
+        "num_cols": 5,
+        "columns": [
+          "Đơn vị",
+          "SM1",
+          "SM2",
+          "KQ thực hiện chỉ tiêu",
+          "Điểm BSC"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "SM1": 98,
+            "SM2": 101,
+            "KQ thực hiện chỉ tiêu": 97.03,
+            "Điểm BSC": 4.01
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "SM1": 58,
+            "SM2": 108,
+            "KQ thực hiện chỉ tiêu": 53.7,
+            "Điểm BSC": 1.0
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "SM1": 68,
+            "SM2": 68,
+            "KQ thực hiện chỉ tiêu": 100.0,
+            "Điểm BSC": 5.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "I1.5 report.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/I1.5 report.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 303,
+        "num_cols": 35,
+        "columns": [
+          "TTVT_CTS",
+          "TTVT_ONE",
+          "DOI_ONE",
+          "TEN_KV",
+          "OLT_CTS",
+          "PORT_CTS",
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "DT_ONE",
+          "DIACHI_ONE",
+          "NGAY_SUYHAO",
+          "TRANGTHAI_TB",
+          "Mã module quang OLT",
+          "Chỉ số OLT RX",
+          "Chỉ số ONU RX",
+          "mã tủ/ hợp S2",
+          "Giá trị SH của S2_ONE",
+          "S2 Vị trí ONE/ Port",
+          "Chênh lệch (Không vượt quá <=1.5dB)",
+          "Độ dài dây thuê bao",
+          "DOWN",
+          "UP",
+          "Độ dài",
+          "Chỉ số kém-8362",
+          "Chỉ số kém-VTHN",
+          "Mô tả",
+          "So sánh cột X với phiếu đang tồn trên HT OneBSS đến 1 ngày trước",
+          "Mã tủ/hộp",
+          "địa chỉ lắp đặt",
+          "LOAI_KH",
+          "NVKT_DB",
+          "THIETBI",
+          "SA",
+          "KETCUOI",
+          "NVKT_DB_NORMALIZED"
+        ],
+        "sample_data": [
+          {
+            "TTVT_CTS": "Trung tâm Viễn thông 8",
+            "TTVT_ONE": "TTVT Sơn Tây",
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "TEN_KV": "Tản Lĩnh 03 - Đào Ngọc Hải",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.82/1/1/12:11",
+            "ACCOUNT_CTS": "01677124769",
+            "TEN_TB_ONE": "Lê Ánh Dương",
+            "DT_ONE": "0377124769",
+            "DIACHI_ONE": "Ngã 3 Cổng Vé Vườn Quốc Gia Ba Vì Thôn Nghe, Xã Suối Hai, Thành phố Hà Nội",
+            "NGAY_SUYHAO": "19/11/2025",
+            "TRANGTHAI_TB": "Hoạt động bình thường",
+            "Mã module quang OLT": "C+",
+            "Chỉ số OLT RX": -22.3,
+            "Chỉ số ONU RX": -27.42,
+            "mã tủ/ hợp S2": NaN,
+            "Giá trị SH của S2_ONE": 0,
+            "S2 Vị trí ONE/ Port": NaN,
+            "Chênh lệch (Không vượt quá <=1.5dB)": -27.42,
+            "Độ dài dây thuê bao": NaN,
+            "DOWN": 32.87,
+            "UP": 24.73,
+            "Độ dài": 5907.0,
+            "Chỉ số kém-8362": "ONU Rx",
+            "Chỉ số kém-VTHN": "OLT Rx",
+            "Mô tả": "ONU Rx -27.42 dBm (Cần đạt -27 ≤ ONU Rx ≤ -8 )",
+            "So sánh cột X với phiếu đang tồn trên HT OneBSS đến 1 ngày trước": 1.0,
+            "Mã tủ/hộp": NaN,
+            "địa chỉ lắp đặt": NaN,
+            "LOAI_KH": "KHCN",
+            "NVKT_DB": "VNPT016761-Đào Ngọc Hải",
+            "THIETBI": "TLH.G41",
+            "SA": "TLH.G41_1/12",
+            "KETCUOI": "S2.2/H-TLH/0308",
+            "NVKT_DB_NORMALIZED": "Đào Ngọc Hải"
+          },
+          {
+            "TTVT_CTS": "Trung tâm Viễn thông 8",
+            "TTVT_ONE": "TTVT Sơn Tây",
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "TEN_KV": "Tản Lĩnh 10 - Trịnh Xuân Bách",
+            "OLT_CTS": "HNI.BVI.KTG.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.206/1/2/3:5",
+            "ACCOUNT_CTS": "0365666122",
+            "TEN_TB_ONE": "Đinh Văn Đoàn",
+            "DT_ONE": "0365666112",
+            "DIACHI_ONE": "Mít, Xã Ba Vì, Thành phố Hà Nội",
+            "NGAY_SUYHAO": "19/11/2025",
+            "TRANGTHAI_TB": "Hoạt động bình thường",
+            "Mã module quang OLT": "C+",
+            "Chỉ số OLT RX": -28.24,
+            "Chỉ số ONU RX": -33.01,
+            "mã tủ/ hợp S2": NaN,
+            "Giá trị SH của S2_ONE": 0,
+            "S2 Vị trí ONE/ Port": NaN,
+            "Chênh lệch (Không vượt quá <=1.5dB)": -33.01,
+            "Độ dài dây thuê bao": 45.0,
+            "DOWN": 38.57,
+            "UP": 30.8,
+            "Độ dài": 6100.0,
+            "Chỉ số kém-8362": "ONU Rx",
+            "Chỉ số kém-VTHN": NaN,
+            "Mô tả": "ONU Rx -33.01 dBm (Cần đạt -27 ≤ ONU Rx ≤ -8 )",
+            "So sánh cột X với phiếu đang tồn trên HT OneBSS đến 1 ngày trước": 1.0,
+            "Mã tủ/hộp": NaN,
+            "địa chỉ lắp đặt": NaN,
+            "LOAI_KH": "KHCN",
+            "NVKT_DB": "VNPT016760-Trịnh Xuân Bách",
+            "THIETBI": "KTG.G51",
+            "SA": "KTG.G51_2/3",
+            "KETCUOI": "S2/H-MOC/0131",
+            "NVKT_DB_NORMALIZED": "Trịnh Xuân Bách"
+          },
+          {
+            "TTVT_CTS": "Trung tâm Viễn thông 8",
+            "TTVT_ONE": "TTVT Sơn Tây",
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "TEN_KV": "VNM5-Dương Văn Dũng(XND)",
+            "OLT_CTS": "HNI.PTO.VNM.OLT.ZT.1.3",
+            "PORT_CTS": "10.31.9.143/1/2/13:1",
+            "ACCOUNT_CTS": "0912833753",
+            "TEN_TB_ONE": "Khuất Duy Chinh",
+            "DT_ONE": "0912833753",
+            "DIACHI_ONE": "Thôn Đoài, Xã Xuân Phú, Huyện Phúc Thọ, Thành Phố Hà Nội",
+            "NGAY_SUYHAO": "19/11/2025",
+            "TRANGTHAI_TB": "Hoạt động bình thường",
+            "Mã module quang OLT": "OTHER",
+            "Chỉ số OLT RX": -33.69,
+            "Chỉ số ONU RX": -29.64,
+            "mã tủ/ hợp S2": NaN,
+            "Giá trị SH của S2_ONE": 0,
+            "S2 Vị trí ONE/ Port": NaN,
+            "Chênh lệch (Không vượt quá <=1.5dB)": -29.64,
+            "Độ dài dây thuê bao": 0.0,
+            "DOWN": 35.46,
+            "UP": 36.08,
+            "Độ dài": 3317.0,
+            "Chỉ số kém-8362": "ONU Rx",
+            "Chỉ số kém-VTHN": NaN,
+            "Mô tả": "ONU Rx -29.64 dBm (Cần đạt -27 ≤ ONU Rx ≤ -8 )",
+            "So sánh cột X với phiếu đang tồn trên HT OneBSS đến 1 ngày trước": NaN,
+            "Mã tủ/hộp": NaN,
+            "địa chỉ lắp đặt": NaN,
+            "LOAI_KH": "KHCN",
+            "NVKT_DB": "VNPT016778-Dương Văn Dũng",
+            "THIETBI": "VNM.G43",
+            "SA": "VNM.G43_2/13",
+            "KETCUOI": "S201/O-VNM/1702",
+            "NVKT_DB_NORMALIZED": "Dương Văn Dũng"
+          }
+        ]
+      },
+      {
+        "sheet_name": "TH_SHC_I15",
+        "num_rows": 32,
+        "num_cols": 3,
+        "columns": [
+          "Đơn vị",
+          "NVKT_DB",
+          "Số TB Suy hao cao K1"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Nguyễn Huy Tuyến",
+            "Số TB Suy hao cao K1": 1
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Bùi Văn Duẩn",
+            "Số TB Suy hao cao K1": 17
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Dương Văn Dũng",
+            "Số TB Suy hao cao K1": 10
+          }
+        ]
+      },
+      {
+        "sheet_name": "TH_SHC_theo_to",
+        "num_rows": 5,
+        "num_cols": 2,
+        "columns": [
+          "Đơn vị",
+          "Số TB Suy hao cao K1"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "Số TB Suy hao cao K1": 42
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "Số TB Suy hao cao K1": 84
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "Số TB Suy hao cao K1": 44
+          }
+        ]
+      },
+      {
+        "sheet_name": "shc_theo_SA",
+        "num_rows": 217,
+        "num_cols": 2,
+        "columns": [
+          "SA",
+          "Số lượng"
+        ],
+        "sample_data": [
+          {
+            "SA": "BVI.G43_4/4",
+            "Số lượng": 4
+          },
+          {
+            "SA": "DGM.G51_2/7",
+            "Số lượng": 4
+          },
+          {
+            "SA": "XSZ.G41_1/1",
+            "Số lượng": 3
+          }
+        ]
+      },
+      {
+        "sheet_name": "Bien_dong_tong_hop",
+        "num_rows": 33,
+        "num_cols": 6,
+        "columns": [
+          "Đơn vị",
+          "NVKT_DB",
+          "Tổng số hiện tại",
+          "Tăng mới",
+          "Giảm/Hết",
+          "Vẫn còn"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Bùi Văn Duẩn",
+            "Tổng số hiện tại": 17,
+            "Tăng mới": 2,
+            "Giảm/Hết": 1,
+            "Vẫn còn": 15
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Dương Văn Dũng",
+            "Tổng số hiện tại": 10,
+            "Tăng mới": 1,
+            "Giảm/Hết": 2,
+            "Vẫn còn": 9
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB": "Hoàng Tung",
+            "Tổng số hiện tại": 0,
+            "Tăng mới": 0,
+            "Giảm/Hết": 2,
+            "Vẫn còn": 0
+          }
+        ]
+      },
+      {
+        "sheet_name": "Tang_moi",
+        "num_rows": 40,
+        "num_cols": 10,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "DT_ONEDIACHI_ONE",
+          "DOI_ONE",
+          "NVKT_DB_NORMALIZED",
+          "SA",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "0973251200bv",
+            "TEN_TB_ONE": "Lê Văn Hào",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "NVKT_DB_NORMALIZED": "Nguyễn Chí Công",
+            "SA": "VTG.G43_1/14",
+            "OLT_CTS": "HNI.BVI.VTG.OLT.ZT.1.3",
+            "PORT_CTS": "10.31.20.20/1/1/14:24",
+            "THIETBI": "VTG.G43",
+            "KETCUOI": "S2/H-PCG/0725"
+          },
+          {
+            "ACCOUNT_CTS": "0975118902",
+            "TEN_TB_ONE": "Ngô Thị Lại",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "NVKT_DB_NORMALIZED": "Lê Văn Hoàng Anh",
+            "SA": "XSZ.G41_2/4",
+            "OLT_CTS": "HNI.STY.XSZ.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.69/1/2/4:21",
+            "THIETBI": "XSZ.G41",
+            "KETCUOI": "S2.1/H-XSZ/07/01"
+          },
+          {
+            "ACCOUNT_CTS": "0976249039",
+            "TEN_TB_ONE": "Triệu Đức Sự",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "NVKT_DB_NORMALIZED": "Trịnh Thanh Quang",
+            "SA": "MOC.G51_1/3",
+            "OLT_CTS": "HNI.BVI.MOC.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.203/1/1/3:12",
+            "THIETBI": "MOC.G51",
+            "KETCUOI": "S2/H-MOC/0952"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Giam_het",
+        "num_rows": 77,
+        "num_cols": 11,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "DT_ONEDIACHI_ONE",
+          "DOI_ONE",
+          "NVKT_DB_NORMALIZED",
+          "SA",
+          "Số ngày suy hao",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "01629863709",
+            "TEN_TB_ONE": "Doãn Văn Tuất",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB_NORMALIZED": "Dương Văn Dũng",
+            "SA": "VNM.G41_2/6",
+            "Số ngày suy hao": 4,
+            "OLT_CTS": "HNI.PTO.VNM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.39/1/2/6:40",
+            "THIETBI": "VNM.G41",
+            "KETCUOI": "S201/O-VNM/1165"
+          },
+          {
+            "ACCOUNT_CTS": "01658575757",
+            "TEN_TB_ONE": "Phùng Văn Dương",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "NVKT_DB_NORMALIZED": "Đỗ Anh Mẫn",
+            "SA": "SDA.G41_2/7",
+            "Số ngày suy hao": 1,
+            "OLT_CTS": "HNI.BVI.SDA.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.116/1/2/7:29",
+            "THIETBI": "SDA.G41",
+            "KETCUOI": "S2/H-SDA/3415"
+          },
+          {
+            "ACCOUNT_CTS": "01665517748",
+            "TEN_TB_ONE": "Vũ Văn Sơn",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "NVKT_DB_NORMALIZED": "Đỗ Anh Mẫn",
+            "SA": "SDA.G41_2/7",
+            "Số ngày suy hao": 1,
+            "OLT_CTS": "HNI.BVI.SDA.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.116/1/2/7:33",
+            "THIETBI": "SDA.G41",
+            "KETCUOI": "S2/H-SDA/3421"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Van_con",
+        "num_rows": 260,
+        "num_cols": 11,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "DT_ONEDIACHI_ONE",
+          "DOI_ONE",
+          "NVKT_DB_NORMALIZED",
+          "SA",
+          "Số ngày liên tục",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "01677124769",
+            "TEN_TB_ONE": "Lê Ánh Dương",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "NVKT_DB_NORMALIZED": "Đào Ngọc Hải",
+            "SA": "TLH.G41_1/12",
+            "Số ngày liên tục": 6,
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.82/1/1/12:11",
+            "THIETBI": "TLH.G41",
+            "KETCUOI": "S2.2/H-TLH/0308"
+          },
+          {
+            "ACCOUNT_CTS": "0365666122",
+            "TEN_TB_ONE": "Đinh Văn Đoàn",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Suối hai",
+            "NVKT_DB_NORMALIZED": "Trịnh Xuân Bách",
+            "SA": "KTG.G51_2/3",
+            "Số ngày liên tục": 10,
+            "OLT_CTS": "HNI.BVI.KTG.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.206/1/2/3:5",
+            "THIETBI": "KTG.G51",
+            "KETCUOI": "S2/H-MOC/0131"
+          },
+          {
+            "ACCOUNT_CTS": "0912833753",
+            "TEN_TB_ONE": "Khuất Duy Chinh",
+            "DT_ONEDIACHI_ONE": NaN,
+            "DOI_ONE": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT_DB_NORMALIZED": "Dương Văn Dũng",
+            "SA": "VNM.G43_2/13",
+            "Số ngày liên tục": 13,
+            "OLT_CTS": "HNI.PTO.VNM.OLT.ZT.1.3",
+            "PORT_CTS": "10.31.9.143/1/2/13:1",
+            "THIETBI": "VNM.G43",
+            "KETCUOI": "S201/O-VNM/1702"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Đào Ngọc Hải",
+        "num_rows": 5,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "01677124769",
+            "TEN_TB_ONE": "Lê Ánh Dương",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.82/1/1/12:11",
+            "THIETBI": "TLH.G41",
+            "SA": "TLH.G41_1/12",
+            "KETCUOI": "S2.2/H-TLH/0308"
+          },
+          {
+            "ACCOUNT_CTS": "my0913212509",
+            "TEN_TB_ONE": "Tạ Thị Ngọc Mỹ",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.8.83/1/2/2:19",
+            "THIETBI": "TLH.G42",
+            "SA": "TLH.G42_2/2",
+            "KETCUOI": "S2/H-TLH/0219"
+          },
+          {
+            "ACCOUNT_CTS": "thanh0987541661",
+            "TEN_TB_ONE": "Phạm Mạnh Thành",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.3",
+            "PORT_CTS": "10.31.8.84/1/1/2:48",
+            "THIETBI": "TLH.G43",
+            "SA": "TLH.G43_1/2",
+            "KETCUOI": "S2/H-TLH/0309"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Trịnh Xuân Bách",
+        "num_rows": 8,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "t0969468244",
+            "TEN_TB_ONE": "Nguyễn Thị Thúy",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.KTG.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.206/1/2/1:9",
+            "THIETBI": "KTG.G51",
+            "SA": "KTG.G51_2/1",
+            "KETCUOI": "S2/H-KTG/0999"
+          },
+          {
+            "ACCOUNT_CTS": "vangiang36",
+            "TEN_TB_ONE": "Nguyễn Văn Giang",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.KTG.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.206/1/2/1:19",
+            "THIETBI": "KTG.G51",
+            "SA": "KTG.G51_2/1",
+            "KETCUOI": "S2/H-KTG/0100"
+          },
+          {
+            "ACCOUNT_CTS": "0365666122",
+            "TEN_TB_ONE": "Đinh Văn Đoàn",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.KTG.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.206/1/2/3:5",
+            "THIETBI": "KTG.G51",
+            "SA": "KTG.G51_2/3",
+            "KETCUOI": "S2/H-MOC/0131"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Dương Văn Dũng",
+        "num_rows": 10,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "thuong09102019",
+            "TEN_TB_ONE": "Nguyễn Thị Thường",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VNM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.39/1/2/15:3",
+            "THIETBI": "VNM.G41",
+            "SA": "VNM.G41_2/15",
+            "KETCUOI": "S201/O-VNM/1541"
+          },
+          {
+            "ACCOUNT_CTS": "kxt.000950138men",
+            "TEN_TB_ONE": "Trung Tâm Tin Học Công Báo Thành Phố",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VNM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.39/1/2/7:60",
+            "THIETBI": "VNM.G41",
+            "SA": "VNM.G41_2/7",
+            "KETCUOI": "S201/O-VNM/1510"
+          },
+          {
+            "ACCOUNT_CTS": "ttvhxphucloc",
+            "TEN_TB_ONE": "Trung Tâm Văn Hóa Xã Phúc Lộc",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VNM.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.8.40/1/1/14:5",
+            "THIETBI": "VNM.G42",
+            "SA": "VNM.G42_1/14",
+            "KETCUOI": "S202/O-VNM/1510"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Đỗ Đức Trí",
+        "num_rows": 28,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "bac352",
+            "TEN_TB_ONE": "Nguyễn Văn Bắc",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/1/1:30",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_1/1",
+            "KETCUOI": "S2/H-BVI/0603"
+          },
+          {
+            "ACCOUNT_CTS": "dungpc672",
+            "TEN_TB_ONE": "Bùi Việt Dũng",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/1/1:24",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_1/1",
+            "KETCUOI": "S2/H-BVI/0607"
+          },
+          {
+            "ACCOUNT_CTS": "toan6331",
+            "TEN_TB_ONE": "Phùng Văn Toàn",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/2/10:32",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_2/10",
+            "KETCUOI": "S2/H-BVI/4104"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Lê Quyết Tiến",
+        "num_rows": 20,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "thiphuong68",
+            "TEN_TB_ONE": "Kiều Thị Phương",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/1/12:13",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_1/12",
+            "KETCUOI": "S1/H-BVI/0515"
+          },
+          {
+            "ACCOUNT_CTS": "van872",
+            "TEN_TB_ONE": "Khuất Văn Vạn",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/1/9:26",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_1/9",
+            "KETCUOI": "S2/H-BVI/0597"
+          },
+          {
+            "ACCOUNT_CTS": "hoangnam578",
+            "TEN_TB_ONE": "Hoàng Nam",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/1/9:1",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_1/9",
+            "KETCUOI": "S2/H-BVI/0587"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Đỗ Anh Mẫn",
+        "num_rows": 2,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "0968153368",
+            "TEN_TB_ONE": "Phùng Văn Thành",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.SDA.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.116/1/1/12:7",
+            "THIETBI": "SDA.G41",
+            "SA": "SDA.G41_1/12",
+            "KETCUOI": "S2/H-SDA/3502"
+          },
+          {
+            "ACCOUNT_CTS": "ngocson011990",
+            "TEN_TB_ONE": "Lương Ngọc Sơn",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TBT.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.118/1/1/2:48",
+            "THIETBI": "TBT.G41",
+            "SA": "TBT.G41_1/2",
+            "KETCUOI": "H-TBT/0127"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Nguyễn Chí Công",
+        "num_rows": 3,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "khanh0921059186",
+            "TEN_TB_ONE": "Khổng Văn Khanh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.PCG.OLT.HU.6.1",
+            "PORT_CTS": "10.10.60.114/0/1/4:7",
+            "THIETBI": "PCG.G29",
+            "SA": "PCG.G29_1/4",
+            "KETCUOI": "S2/H-PCG/0538"
+          },
+          {
+            "ACCOUNT_CTS": "nguyenbang-ly",
+            "TEN_TB_ONE": "Nguyễn Bằng Ly",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.VTG.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.20.19/1/1/9:4",
+            "THIETBI": "VTG.G42",
+            "SA": "VTG.G42_1/9",
+            "KETCUOI": "S2/H-VTG/0355"
+          },
+          {
+            "ACCOUNT_CTS": "0973251200bv",
+            "TEN_TB_ONE": "Lê Văn Hào",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.VTG.OLT.ZT.1.3",
+            "PORT_CTS": "10.31.20.20/1/1/14:24",
+            "THIETBI": "VTG.G43",
+            "SA": "VTG.G43_1/14",
+            "KETCUOI": "S2/H-PCG/0725"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Lê Văn Hoàng Anh",
+        "num_rows": 14,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "phoangthai0118",
+            "TEN_TB_ONE": "Phạm Hoàng Thái",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.XKH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.133/1/1/11:19",
+            "THIETBI": "XKH.G41",
+            "SA": "XKH.G41_1/11",
+            "KETCUOI": "H-XKH/3130"
+          },
+          {
+            "ACCOUNT_CTS": "quynh51838",
+            "TEN_TB_ONE": "Trương Văn quỳnh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.XKH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.133/1/1/12:1",
+            "THIETBI": "XKH.G41",
+            "SA": "XKH.G41_1/12",
+            "KETCUOI": "S2.1/H-XK/2803"
+          },
+          {
+            "ACCOUNT_CTS": "duonghoa62015",
+            "TEN_TB_ONE": "nguyễn thị hiền",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.XKH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.133/1/1/3:12",
+            "THIETBI": "XKH.G41",
+            "SA": "XKH.G41_1/3",
+            "KETCUOI": "S2.1/H-XK/2802"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Lê Phương Thuyết",
+        "num_rows": 7,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "thuhien996",
+            "TEN_TB_ONE": "Nguyễn Thu Hiền",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.8.102/1/1/4:5",
+            "THIETBI": "BVI.G42",
+            "SA": "BVI.G42_1/4",
+            "KETCUOI": "H(S2)-BVI/2226"
+          },
+          {
+            "ACCOUNT_CTS": "lich0987354758",
+            "TEN_TB_ONE": "Phùng Thị Lịch",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.2.3",
+            "PORT_CTS": "10.31.8.109/1/2/6:11",
+            "THIETBI": "BVI.G43",
+            "SA": "BVI.G43_2/6",
+            "KETCUOI": "S2/H-BVI/2141"
+          },
+          {
+            "ACCOUNT_CTS": "uyen170418",
+            "TEN_TB_ONE": "Vũ Xuân Uyển",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.2.3",
+            "PORT_CTS": "10.31.8.109/1/2/6:2",
+            "THIETBI": "BVI.G43",
+            "SA": "BVI.G43_2/6",
+            "KETCUOI": "S2/H-BVI/2140"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Trịnh Thanh Quang",
+        "num_rows": 3,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "0976249039",
+            "TEN_TB_ONE": "Triệu Đức Sự",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.MOC.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.203/1/1/3:12",
+            "THIETBI": "MOC.G51",
+            "SA": "MOC.G51_1/3",
+            "KETCUOI": "S2/H-MOC/0952"
+          },
+          {
+            "ACCOUNT_CTS": "t0395515660",
+            "TEN_TB_ONE": "Doãn Văn Tiến",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.MOC.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.203/1/1/3:47",
+            "THIETBI": "MOC.G51",
+            "SA": "MOC.G51_1/3",
+            "KETCUOI": "S1/H-MOC/0993"
+          },
+          {
+            "ACCOUNT_CTS": "quan4",
+            "TEN_TB_ONE": "Đinh Thị Dung ( Quân)",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.82/1/1/10:10",
+            "THIETBI": "TLH.G41",
+            "SA": "TLH.G41_1/10",
+            "KETCUOI": "S2/H-TLH/0622"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Khuất Duy Kết",
+        "num_rows": 6,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "hoangcuong5082679.fb.hni",
+            "TEN_TB_ONE": "Khuất Hoàng Cường",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/5/2:39",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_5/2",
+            "KETCUOI": "S2.1/H-STY/7802"
+          },
+          {
+            "ACCOUNT_CTS": "nguyenngoctuan1234",
+            "TEN_TB_ONE": "Đỗ Thu Hà",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/5/4:4",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_5/4",
+            "KETCUOI": "S2.1/H-STY/81100"
+          },
+          {
+            "ACCOUNT_CTS": "thanhtrung977",
+            "TEN_TB_ONE": "Nguyễn Thành Trung",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.AL.2.1",
+            "PORT_CTS": "10.31.10.250/1/2/5:28",
+            "THIETBI": "STY.G51",
+            "SA": "STY.G51_2/5",
+            "KETCUOI": "S2.1/H-STY/7810"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Bùi Văn Cường",
+        "num_rows": 14,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "cty-cnbavi",
+            "TEN_TB_ONE": "CÔNG TY TNHH MỘT THÀNH VIÊN DỊCH VỤ NHÀ Ở VÀ KHU ĐÔ THỊ",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/1/11:2",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_1/11",
+            "KETCUOI": "S2/H-BVI/2556"
+          },
+          {
+            "ACCOUNT_CTS": "hanhbv35",
+            "TEN_TB_ONE": "Nguyễn Thị Hồng Hạnh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/2/1:15",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_2/1",
+            "KETCUOI": "S2/H-BVI/2104"
+          },
+          {
+            "ACCOUNT_CTS": "ducthuy098",
+            "TEN_TB_ONE": "Đỗ Đức Thủy",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/2/13:31",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_2/13",
+            "KETCUOI": "S2/H-BVI/1514"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Phạm Anh Tuấn",
+        "num_rows": 11,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "trinh0944548875",
+            "TEN_TB_ONE": "Nguyễn Như Trình",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/1/7:1",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_1/7",
+            "KETCUOI": "S2.1/H-STY/8919"
+          },
+          {
+            "ACCOUNT_CTS": "ha300",
+            "TEN_TB_ONE": "Nguyễn Mạnh Hà",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/2/1:12",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_2/1",
+            "KETCUOI": "S2.2/H-STY/8204"
+          },
+          {
+            "ACCOUNT_CTS": "nguyet0977453119",
+            "TEN_TB_ONE": "Vũ Thị Thúy Nga( Nga Cường)",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/4/0:64",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_4/0",
+            "KETCUOI": "H-STY/7133"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Bùi Văn Duẩn",
+        "num_rows": 17,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "son240720",
+            "TEN_TB_ONE": "ĐỖ DOÃN SƠN",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VXN.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.139/1/1/16:39",
+            "THIETBI": "VXN.G41",
+            "SA": "VXN.G41_1/16",
+            "KETCUOI": "S201/O-VXN/5230"
+          },
+          {
+            "ACCOUNT_CTS": "diep07072015",
+            "TEN_TB_ONE": "Nguyễn Thị Điệp",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VXN.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.139/1/1/9:51",
+            "THIETBI": "VXN.G41",
+            "SA": "VXN.G41_1/9",
+            "KETCUOI": "S201/O-VXN/5212"
+          },
+          {
+            "ACCOUNT_CTS": "leduchuy98",
+            "TEN_TB_ONE": "Lê Đức Huy",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VXN.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.139/1/1/9:24",
+            "THIETBI": "VXN.G41",
+            "SA": "VXN.G41_1/9",
+            "KETCUOI": "S201/O-VXN/5215"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Hoàng Trung Dũng",
+        "num_rows": 8,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "xuanlapst",
+            "TEN_TB_ONE": "Bùi Xuân Lập",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/3/4:48",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_3/4",
+            "KETCUOI": "S2.1/H-STY/8005"
+          },
+          {
+            "ACCOUNT_CTS": "leha668",
+            "TEN_TB_ONE": "Lê Thị Thu Hà",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/4/1:57",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_4/1",
+            "KETCUOI": "S2.1/H-STY/8211"
+          },
+          {
+            "ACCOUNT_CTS": "tuananh9086462.fb.hni",
+            "TEN_TB_ONE": "Nguyễn Tuấn Anh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/5/0:60",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_5/0",
+            "KETCUOI": "S2.1/H-STY/8018"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Phùng Tuấn Anh",
+        "num_rows": 21,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "hien88140sd",
+            "TEN_TB_ONE": "Nguyễn Thị Hiền",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/11:7",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/11",
+            "KETCUOI": "S2.1/H-DGM/4103"
+          },
+          {
+            "ACCOUNT_CTS": "cq0981066669",
+            "TEN_TB_ONE": "Công Ty Cổ Phần Kính Xây Dựng Và Thương Mại Hoàng Minh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/15:5",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/15",
+            "KETCUOI": "S2.1/H-DGM/4135"
+          },
+          {
+            "ACCOUNT_CTS": "manh091990",
+            "TEN_TB_ONE": "Nguyễn Đức Mạnh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/7:6",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/7",
+            "KETCUOI": "S2.1/H-DGM/4319"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Nguyễn Mạnh Hùng",
+        "num_rows": 8,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "viet915840719",
+            "TEN_TB_ONE": "Nguyễn Hưng Việt",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.PCT.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.130/1/1/9:9",
+            "THIETBI": "PCT.G41",
+            "SA": "PCT.G41_1/9",
+            "KETCUOI": "S202/O-PCT/0234"
+          },
+          {
+            "ACCOUNT_CTS": "quynhtrai022016",
+            "TEN_TB_ONE": "Khuất Quỳnh Trai",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.PCT.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.130/1/2/7:1",
+            "THIETBI": "PCT.G41",
+            "SA": "PCT.G41_2/7",
+            "KETCUOI": "S201/O-PCT/0236"
+          },
+          {
+            "ACCOUNT_CTS": "binh0947204792",
+            "TEN_TB_ONE": "Đỗ Nghi Bình",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.PCT.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.9.131/1/1/12:43",
+            "THIETBI": "PCT.G42",
+            "SA": "PCT.G42_1/12",
+            "KETCUOI": "S201/O-PCT/0262"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Đỗ Minh Thăng",
+        "num_rows": 18,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "chinh01636994217",
+            "TEN_TB_ONE": "Nguyễn Văn Chính",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/12:5",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/12",
+            "KETCUOI": "S2.1/H-DGM/4411"
+          },
+          {
+            "ACCOUNT_CTS": "duy0974456856",
+            "TEN_TB_ONE": "Lữ Văn Duy",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/12:21",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/12",
+            "KETCUOI": "S2.1/H-DGM/4410"
+          },
+          {
+            "ACCOUNT_CTS": "luan0947684000",
+            "TEN_TB_ONE": "Phùng Văn Luân",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/14:53",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/14",
+            "KETCUOI": "S2.2/H-DGM/4201"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Nguyễn Văn Minh",
+        "num_rows": 32,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "cong01695224669",
+            "TEN_TB_ONE": "Nguyễn Đức Công",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/14:59",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/14",
+            "KETCUOI": "S2.1/H-DGM/4003"
+          },
+          {
+            "ACCOUNT_CTS": "tuanhung4833246.fb.hni",
+            "TEN_TB_ONE": "Kiều Tuấn Hưng",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/5:10",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/5",
+            "KETCUOI": "S2.1/H-DGM/4201"
+          },
+          {
+            "ACCOUNT_CTS": "vanchat7187",
+            "TEN_TB_ONE": "Tạ Văn Chất",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DGM.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.131/1/1/7:23",
+            "THIETBI": "DGM.G41",
+            "SA": "DGM.G41_1/7",
+            "KETCUOI": "S2.1/H-DGM/4308"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Đỗ Mạnh Hùng",
+        "num_rows": 9,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "thanhvan4298139",
+            "TEN_TB_ONE": "Nguyễn Thị Thanh Vân",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/3/5:32",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_3/5",
+            "KETCUOI": "S2.1/H-STY/8908"
+          },
+          {
+            "ACCOUNT_CTS": "vannghia10605398.fb.hni",
+            "TEN_TB_ONE": "Phùng Văn Nghĩa",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/5/1:20",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_5/1",
+            "KETCUOI": "S2.1/H-STY/8315"
+          },
+          {
+            "ACCOUNT_CTS": "manhhung93626348.fb.hni",
+            "TEN_TB_ONE": "Đào Mạnh Hùng",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.STY.OLT.HU.1.1",
+            "PORT_CTS": "10.31.17.162/0/5/11:33",
+            "THIETBI": "STY.G21",
+            "SA": "STY.G21_5/11",
+            "KETCUOI": "S2.1/H-STY/8532"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Trần Thành",
+        "num_rows": 7,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "thuong808",
+            "TEN_TB_ONE": "Nguyễn Chí Thương",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.VMG.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.85/1/1/13:13",
+            "THIETBI": "VMG.G41",
+            "SA": "VMG.G41_1/13",
+            "KETCUOI": "S2/H-VMG/4217"
+          },
+          {
+            "ACCOUNT_CTS": "lmhung2002",
+            "TEN_TB_ONE": "LÊ MẠNH HÙNG",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.VMG.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.8.87/1/1/9:14",
+            "THIETBI": "VMG.G42",
+            "SA": "VMG.G42_1/9",
+            "KETCUOI": "S2/H-VMG/0904"
+          },
+          {
+            "ACCOUNT_CTS": "ngocbv030",
+            "TEN_TB_ONE": "Nguyễn Văn Ngọc",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.VMG.OLT.AL.2.1",
+            "PORT_CTS": "10.31.21.204/1/1/6:3",
+            "THIETBI": "VMG.G51",
+            "SA": "VMG.G51_1/6",
+            "KETCUOI": "S2/H-VMG/0716"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Khuất Duy Hiệp",
+        "num_rows": 4,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "binh20042017",
+            "TEN_TB_ONE": "Nguyễn Văn Bình",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VXN.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.9.140/1/1/10:53",
+            "THIETBI": "VXN.G42",
+            "SA": "VXN.G42_1/10",
+            "KETCUOI": "S202/O-VXN/0904"
+          },
+          {
+            "ACCOUNT_CTS": "huy9316",
+            "TEN_TB_ONE": "Đàm Quang Huy",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VXN.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.9.140/1/1/11:14",
+            "THIETBI": "VXN.G42",
+            "SA": "VXN.G42_1/11",
+            "KETCUOI": "S201/O-VXN/0949"
+          },
+          {
+            "ACCOUNT_CTS": "thiphuong9947028.fb.hni",
+            "TEN_TB_ONE": "Bùi Thị Phương",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VXN.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.9.140/1/2/14:26",
+            "THIETBI": "VXN.G42",
+            "SA": "VXN.G42_2/14",
+            "KETCUOI": "S201/O-VXN/1643"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Nguyễn Thành Sơn",
+        "num_rows": 13,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "diep2028",
+            "TEN_TB_ONE": "Đoàn Thị Kim Điệp",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.SLC.OLT.HU.2.1",
+            "PORT_CTS": "10.31.17.114/0/0/3:50",
+            "THIETBI": "SLC.G21",
+            "SA": "SLC.G21_0/3",
+            "KETCUOI": "S2.1/H-SLC/3701"
+          },
+          {
+            "ACCOUNT_CTS": "vantrung384",
+            "TEN_TB_ONE": "PHÙNG VĂN TRUNG",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.SLC.OLT.HU.2.1",
+            "PORT_CTS": "10.31.17.114/0/1/14:8",
+            "THIETBI": "SLC.G21",
+            "SA": "SLC.G21_1/14",
+            "KETCUOI": "S2.1/H-SLC/3148"
+          },
+          {
+            "ACCOUNT_CTS": "cuong0975181789",
+            "TEN_TB_ONE": "Chu Văn Cường",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.SLC.OLT.HU.2.1",
+            "PORT_CTS": "10.31.17.114/0/1/15:6",
+            "THIETBI": "SLC.G21",
+            "SA": "SLC.G21_1/15",
+            "KETCUOI": "S2.2/H-SLC/3132"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Lê Văn Tuấn",
+        "num_rows": 9,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "son-35",
+            "TEN_TB_ONE": "Đỗ Ngọc Sơn",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DLM.OLT.HU.2.1",
+            "PORT_CTS": "10.31.17.164/0/0/11:3",
+            "THIETBI": "DLM.G21",
+            "SA": "DLM.G21_0/11",
+            "KETCUOI": "S2.1/H-DLM/1223"
+          },
+          {
+            "ACCOUNT_CTS": "yenbalach6688331",
+            "TEN_TB_ONE": "Nguyễn Thị Hải Yến(bà lách)",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DLM.OLT.HU.2.1",
+            "PORT_CTS": "10.31.17.164/0/0/5:25",
+            "THIETBI": "DLM.G21",
+            "SA": "DLM.G21_0/5",
+            "KETCUOI": "S2.2/H-DLM/1203"
+          },
+          {
+            "ACCOUNT_CTS": "trung1975",
+            "TEN_TB_ONE": "Tạ Quang Trung",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.DLM.OLT.HU.2.1",
+            "PORT_CTS": "10.31.17.164/0/0/9:19",
+            "THIETBI": "DLM.G21",
+            "SA": "DLM.G21_0/9",
+            "KETCUOI": "S2.1/H-DLM/1416"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Chu Văn Hùng",
+        "num_rows": 3,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "bang01652544811",
+            "TEN_TB_ONE": "Nguyễn Thị Bằng",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.82/1/1/1:64",
+            "THIETBI": "TLH.G41",
+            "SA": "TLH.G41_1/1",
+            "KETCUOI": "S2/H-TLH/0604"
+          },
+          {
+            "ACCOUNT_CTS": "tam309",
+            "TEN_TB_ONE": "Nguyễn Đức Tâm",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.82/1/2/9:13",
+            "THIETBI": "TLH.G41",
+            "SA": "TLH.G41_2/9",
+            "KETCUOI": "S2/H(S2)-TLH/2262"
+          },
+          {
+            "ACCOUNT_CTS": "linh0976746224",
+            "TEN_TB_ONE": "Phan Thị Mỹ Linh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.3",
+            "PORT_CTS": "10.31.8.84/1/2/7:1",
+            "THIETBI": "TLH.G43",
+            "SA": "TLH.G43_2/7",
+            "KETCUOI": "S2/H-TLH/0444"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Chu Minh Tám",
+        "num_rows": 3,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "vanyen251",
+            "TEN_TB_ONE": "Phùng Văn Yên",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.SDA.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.116/1/1/1:26",
+            "THIETBI": "SDA.G41",
+            "SA": "SDA.G41_1/1",
+            "KETCUOI": "S2/H-SDA/3125"
+          },
+          {
+            "ACCOUNT_CTS": "chinh0395238434",
+            "TEN_TB_ONE": "Phùng Văn Chính",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.SHI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.114/1/2/5:47",
+            "THIETBI": "SHI.G41",
+            "SA": "SHI.G41_2/5",
+            "KETCUOI": "S2(1)/H-SHI/1005"
+          },
+          {
+            "ACCOUNT_CTS": "minh57",
+            "TEN_TB_ONE": "Bùi Thị Minh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.SHI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.114/1/2/7:51",
+            "THIETBI": "SHI.G41",
+            "SA": "SHI.G41_2/7",
+            "KETCUOI": "S2/H-SHI/0902"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Đỗ Huy Thông",
+        "num_rows": 6,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "vuongbichnga",
+            "TEN_TB_ONE": "Vương Thị Bích Nga",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.KMS.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.134/1/1/1:30",
+            "THIETBI": "KMS.G41",
+            "SA": "KMS.G41_1/1",
+            "KETCUOI": "S2.1/H-KMS/1003"
+          },
+          {
+            "ACCOUNT_CTS": "thuha776",
+            "TEN_TB_ONE": "Nguyễn Thu Hà",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.KMS.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.134/1/1/14:16",
+            "THIETBI": "KMS.G41",
+            "SA": "KMS.G41_1/14",
+            "KETCUOI": "S2.1/H-KMS/1039"
+          },
+          {
+            "ACCOUNT_CTS": "ngoc0972906597",
+            "TEN_TB_ONE": "Giang Thị Ngọc",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.STY.KMS.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.134/1/2/1:7",
+            "THIETBI": "KMS.G41",
+            "SA": "KMS.G41_2/1",
+            "KETCUOI": "S2.1/H-KMS-/1244"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Nguyễn Quảng Ba",
+        "num_rows": 6,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "ngockhanh27",
+            "TEN_TB_ONE": "Phan Ngọc Khanh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.8.102/1/1/7:24",
+            "THIETBI": "BVI.G42",
+            "SA": "BVI.G42_1/7",
+            "KETCUOI": "S2/H-BVI/2016"
+          },
+          {
+            "ACCOUNT_CTS": "quynhbv88",
+            "TEN_TB_ONE": "Ngô Tiến Quỳnh",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.2.3",
+            "PORT_CTS": "10.31.8.109/1/2/12:1",
+            "THIETBI": "BVI.G43",
+            "SA": "BVI.G43_2/12",
+            "KETCUOI": "S2/H-BVI/0541"
+          },
+          {
+            "ACCOUNT_CTS": "dong0983759918",
+            "TEN_TB_ONE": "Nguyễn Văn Đông",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.2.3",
+            "PORT_CTS": "10.31.8.109/1/2/16:43",
+            "THIETBI": "BVI.G43",
+            "SA": "BVI.G43_2/16",
+            "KETCUOI": "S2/H-BVI/2041"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Khuất Anh Chiến",
+        "num_rows": 2,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "kimcuong9654459.fb.hni",
+            "TEN_TB_ONE": "KHUẤT KIM CƯƠNG",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VXN.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.9.139/1/1/11:42",
+            "THIETBI": "VXN.G41",
+            "SA": "VXN.G41_1/11",
+            "KETCUOI": "S201/O-VXN/0623"
+          },
+          {
+            "ACCOUNT_CTS": "hothilan112015",
+            "TEN_TB_ONE": "CÔNG TY TNHH XUẤT NHẬP KHẨU VÀ CHẾ BIẾN THỰC PHẨM VINABISCA",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.VXN.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.9.140/1/2/13:28",
+            "THIETBI": "VXN.G42",
+            "SA": "VXN.G42_2/13",
+            "KETCUOI": "S201/O-VXN/1640"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Nguyễn Huy Tuyến",
+        "num_rows": 1,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "khacnam782020",
+            "TEN_TB_ONE": "Khuất Khắc Nam",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.PTO.PCT.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.9.131/1/2/5:7",
+            "THIETBI": "PCT.G42",
+            "SA": "PCT.G42_2/5",
+            "KETCUOI": "S201/O-PCT/1021"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Lê Mạnh Huân",
+        "num_rows": 4,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "loanpc738",
+            "TEN_TB_ONE": "Đinh Thị Châu Loan",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.BVI.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.8.98/1/2/2:9",
+            "THIETBI": "BVI.G41",
+            "SA": "BVI.G41_2/2",
+            "KETCUOI": "S2/H-BVI/2107"
+          },
+          {
+            "ACCOUNT_CTS": "thuy600bv",
+            "TEN_TB_ONE": "Lê Thùy",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.PPG.OLT.ZT.1.1",
+            "PORT_CTS": "10.31.20.21/1/1/7:38",
+            "THIETBI": "PPG.G41",
+            "SA": "PPG.G41_1/7",
+            "KETCUOI": "H-VTG/0974"
+          },
+          {
+            "ACCOUNT_CTS": "muoi694",
+            "TEN_TB_ONE": "Lê Hữu Mười",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.VTG.OLT.ZT.1.2",
+            "PORT_CTS": "10.31.20.19/1/2/5:45",
+            "THIETBI": "VTG.G42",
+            "SA": "VTG.G42_2/5",
+            "KETCUOI": "S2.2/H-VTG/0702"
+          }
+        ]
+      },
+      {
+        "sheet_name": "Nguyễn Văn Thanh",
+        "num_rows": 1,
+        "num_cols": 8,
+        "columns": [
+          "ACCOUNT_CTS",
+          "TEN_TB_ONE",
+          "NGAY_SUYHAO",
+          "OLT_CTS",
+          "PORT_CTS",
+          "THIETBI",
+          "SA",
+          "KETCUOI"
+        ],
+        "sample_data": [
+          {
+            "ACCOUNT_CTS": "nghia253",
+            "TEN_TB_ONE": "Nguyễn Thị Minh Nghĩa",
+            "NGAY_SUYHAO": "19/11/2025",
+            "OLT_CTS": "HNI.BVI.TLH.OLT.ZT.1.3",
+            "PORT_CTS": "10.31.8.84/1/2/6:10",
+            "THIETBI": "TLH.G43",
+            "SA": "TLH.G43_2/6",
+            "KETCUOI": "S2/H-TLH/1015"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "download_KR6_report_tong_hop.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/download_KR6_report_tong_hop.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 4,
+        "num_cols": 9,
+        "columns": [
+          "Đơn vị",
+          "Số lượng KH hoàn thành gia hạn TTTC thành công tháng T",
+          "Số lượng KH giao về NVKT qua kênh OB CSKH có thời gian kết thúc đặt cọc tháng T",
+          "Tỷ lệ",
+          "Kế hoạch giao",
+          "Điểm OKR",
+          "Tồn chưa nghiệm thu",
+          "Tồn quá hạn chạm 72H",
+          "Tỷ lệ chạm quá 72H"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "Số lượng KH hoàn thành gia hạn TTTC thành công tháng T": 96,
+            "Số lượng KH giao về NVKT qua kênh OB CSKH có thời gian kết thúc đặt cọc tháng T": 329,
+            "Tỷ lệ": "29.18%",
+            "Kế hoạch giao": NaN,
+            "Điểm OKR": 1,
+            "Tồn chưa nghiệm thu": 394,
+            "Tồn quá hạn chạm 72H": 428,
+            "Tỷ lệ chạm quá 72H": "130.09%"
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "Số lượng KH hoàn thành gia hạn TTTC thành công tháng T": 103,
+            "Số lượng KH giao về NVKT qua kênh OB CSKH có thời gian kết thúc đặt cọc tháng T": 506,
+            "Tỷ lệ": "20.36%",
+            "Kế hoạch giao": NaN,
+            "Điểm OKR": 1,
+            "Tồn chưa nghiệm thu": 710,
+            "Tồn quá hạn chạm 72H": 407,
+            "Tỷ lệ chạm quá 72H": "80.43%"
+          },
+          {
+            "Đơn vị": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "Số lượng KH hoàn thành gia hạn TTTC thành công tháng T": 97,
+            "Số lượng KH giao về NVKT qua kênh OB CSKH có thời gian kết thúc đặt cọc tháng T": 558,
+            "Tỷ lệ": "17.38%",
+            "Kế hoạch giao": NaN,
+            "Điểm OKR": 1,
+            "Tồn chưa nghiệm thu": 880,
+            "Tồn quá hạn chạm 72H": 1024,
+            "Tỷ lệ chạm quá 72H": "183.51%"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "download_KR7_report_tong_hop.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/download_KR7_report_tong_hop.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 4,
+        "num_cols": 7,
+        "columns": [
+          "Đơn vị",
+          "Lũy kế SL KH KTĐC tháng T hoàn thành gia hạn TTTC đến tháng T+1",
+          "Tổng SL KH KTĐC tháng T giao về TTVT",
+          "Tỷ lệ",
+          "Kế hoạch giao",
+          "Điểm OKR",
+          "Tồn chưa nghiệm thu"
+        ],
+        "sample_data": [
+          {
+            "Đơn vị": "Tổ Kỹ Thuật Địa Bàn Phúc Thọ",
+            "Lũy kế SL KH KTĐC tháng T hoàn thành gia hạn TTTC đến tháng T+1": 380,
+            "Tổng SL KH KTĐC tháng T giao về TTVT": 446,
+            "Tỷ lệ": "85.2%",
+            "Kế hoạch giao": NaN,
+            "Điểm OKR": 4.8,
+            "Tồn chưa nghiệm thu": 41
+          },
+          {
+            "Đơn vị": "Tổ Kỹ Thuật Địa Bàn Quảng Oai",
+            "Lũy kế SL KH KTĐC tháng T hoàn thành gia hạn TTTC đến tháng T+1": 383,
+            "Tổng SL KH KTĐC tháng T giao về TTVT": 550,
+            "Tỷ lệ": "69.64%",
+            "Kế hoạch giao": NaN,
+            "Điểm OKR": 1.0,
+            "Tồn chưa nghiệm thu": 173
+          },
+          {
+            "Đơn vị": "Tổ Kỹ Thuật Địa Bàn Sơn Tây",
+            "Lũy kế SL KH KTĐC tháng T hoàn thành gia hạn TTTC đến tháng T+1": 494,
+            "Tổng SL KH KTĐC tháng T giao về TTVT": 667,
+            "Tỷ lệ": "74.06%",
+            "Kế hoạch giao": NaN,
+            "Điểm OKR": 2.02,
+            "Tồn chưa nghiệm thu": 160
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "bc_thu_hoi_vat_tu.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/bc_thu_hoi_vat_tu.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 50,
+        "num_cols": 50,
+        "columns": [
+          "MA_MEN",
+          "MA_TB",
+          "TEN_TB",
+          "DIACHI_KH",
+          "NHANVIEN_KHOA",
+          "NHANVIEN_THU",
+          "NHANVIEN_NHAPKHO",
+          "NGAY_KHOA",
+          "THANG_KHOA",
+          "NGAY_HOAN_CONG",
+          "NGAY_HOAN_UNG",
+          "THANG_HOANCONG",
+          "THANG_HOAN_UNG",
+          "NGAY_NHAP_HOAN_UNG",
+          "TEN_TBI",
+          "SERIAL",
+          "TINHTRANG_TBI",
+          "NGAY_GIAO",
+          "TEN_LOAIHD",
+          "TEN_KIEULD",
+          "TEN_TTVT",
+          "TEN_DOI",
+          "DIEMCHIA",
+          "USER_NV",
+          "MA_KHUVUC",
+          "KHUVUC",
+          "THU_TAI_QUAY",
+          "GIAO_THUHOI",
+          "QUAY",
+          "TRANGTHAI_THUHOI",
+          "TRANGTHAI_THIETBI_THU_HOI",
+          "LOAI_KH",
+          "LOAI_VT",
+          "LOAI_PHIEU",
+          "LOAI_NHANVIEN",
+          "TRANGTHAI_TB",
+          "TTKD",
+          "DUNG_THU",
+          "LYDO_KO_THU_HOI_DC",
+          "SO_DT",
+          "ND_THUCHIEN",
+          "MAY_CN_SUDUNG_VT",
+          "NGUOI_CN_SUDUNG_VT",
+          "GHICHU_SUDUNG_VT",
+          "ONT_TBDC_CHAT_LUONG_CAO",
+          "NVKT_DIABAN_GIAO",
+          "NVKT_DIABAN_THU",
+          "LOAI_GIAO_GIAMTRU_LAN_HAI",
+          "NGAY_SD_TB",
+          "TOANHA"
+        ],
+        "sample_data": [
+          {
+            "MA_MEN": "006004941MEN",
+            "MA_TB": "vancanh5092335",
+            "TEN_TB": "Nguyễn Văn Cảnh",
+            "DIACHI_KH": "số 04 ngõ 01 Võng Nội, Cụm 6, Xã Võng xuyên, Huyện Phúc Thọ, Hà Nội",
+            "NHANVIEN_KHOA": "hiepkd-Khuất Duy Hiệp",
+            "NHANVIEN_THU": "tuyennh8-Nguyễn Huy Tuyến;hiepkd-Khuất Duy Hiệp",
+            "NHANVIEN_NHAPKHO": "hiepkd-Khuất Duy Hiệp",
+            "NGAY_KHOA": "07/11/2025",
+            "THANG_KHOA": 202511.0,
+            "NGAY_HOAN_CONG": "07/11/2025",
+            "NGAY_HOAN_UNG": "07/11/2025",
+            "THANG_HOANCONG": 202511.0,
+            "THANG_HOAN_UNG": 202511.0,
+            "NGAY_NHAP_HOAN_UNG": "07/11/2025",
+            "TEN_TBI": "19.04.05.10.06-ONT GW020-H (Dualband AC)",
+            "SERIAL": "0452A25282409A0",
+            "TINHTRANG_TBI": "Sử dụng được",
+            "NGAY_GIAO": "05/11/2025",
+            "TEN_LOAIHD": "Thay đổi dịch vụ",
+            "TEN_KIEULD": "Tạm dừng sử dụng Internet",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "DIEMCHIA": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "USER_NV": "tuyennh8 - Nguyễn Huy Tuyến; hiepkd - Khuất Duy Hiệp",
+            "MA_KHUVUC": "PTO.VXN.02",
+            "KHUVUC": "VNM4-Khuất Duy Hiệp(VXN)",
+            "THU_TAI_QUAY": "TAI_TTVT",
+            "GIAO_THUHOI": "GIAO_THANG_TRUOC",
+            "QUAY": NaN,
+            "TRANGTHAI_THUHOI": "THU_HOI_DUOC_TRONG_THANG",
+            "TRANGTHAI_THIETBI_THU_HOI": "SU_DUNG_DUOC",
+            "LOAI_KH": "CN",
+            "LOAI_VT": "ONT",
+            "LOAI_PHIEU": "PTTB",
+            "LOAI_NHANVIEN": "KTV",
+            "TRANGTHAI_TB": "TAM_DUNG_YEU_CAU",
+            "TTKD": NaN,
+            "DUNG_THU": NaN,
+            "LYDO_KO_THU_HOI_DC": NaN,
+            "SO_DT": 936194666.0,
+            "ND_THUCHIEN": "-Yêu cầu kiểm tra, xác minh chính xác số lượng thiết bịcủa VNPTvà thực hiện thu hồi triệt để",
+            "MAY_CN_SUDUNG_VT": NaN,
+            "NGUOI_CN_SUDUNG_VT": NaN,
+            "GHICHU_SUDUNG_VT": NaN,
+            "ONT_TBDC_CHAT_LUONG_CAO": 1,
+            "NVKT_DIABAN_GIAO": "VNPT016775-Khuất Duy Hiệp",
+            "NVKT_DIABAN_THU": "VNPT016775-Khuất Duy Hiệp",
+            "LOAI_GIAO_GIAMTRU_LAN_HAI": 0,
+            "NGAY_SD_TB": "07/08/2023",
+            "TOANHA": NaN
+          },
+          {
+            "MA_MEN": "005346771MEN",
+            "MA_TB": "ngoc0339000777",
+            "TEN_TB": "Trần Thị Bích Ngọc",
+            "DIACHI_KH": "Ngã 3 Chợ Tản Lĩnh, Thôn An Hòa, Xã Suối Hai, Hà Nội",
+            "NHANVIEN_KHOA": NaN,
+            "NHANVIEN_THU": "luannt1-Ngô Thành Luân;thanhnv5-Nguyễn Văn Thanh",
+            "NHANVIEN_NHAPKHO": NaN,
+            "NGAY_KHOA": NaN,
+            "THANG_KHOA": NaN,
+            "NGAY_HOAN_CONG": NaN,
+            "NGAY_HOAN_UNG": NaN,
+            "THANG_HOANCONG": NaN,
+            "THANG_HOAN_UNG": NaN,
+            "NGAY_NHAP_HOAN_UNG": NaN,
+            "TEN_TBI": "19.04.01.10.06-ONT GW020",
+            "SERIAL": "313000100038",
+            "TINHTRANG_TBI": NaN,
+            "NGAY_GIAO": "26/10/2025",
+            "TEN_LOAIHD": "Thay đổi dịch vụ",
+            "TEN_KIEULD": "Mở khóa dịch vụ Internet",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Suối Hai",
+            "DIEMCHIA": "Tổ Kỹ thuật Địa bàn Suối Hai",
+            "USER_NV": "luannt1 - Ngô Thành Luân; thanhnv5 - Nguyễn Văn Thanh",
+            "MA_KHUVUC": "BVI.TLH.02",
+            "KHUVUC": "Tản Lĩnh 05 - Nguyễn Văn Thanh",
+            "THU_TAI_QUAY": "TAI_TTVT",
+            "GIAO_THUHOI": "GIAO_THANG_TRUOC",
+            "QUAY": NaN,
+            "TRANGTHAI_THUHOI": "CHUA_THU_HOI",
+            "TRANGTHAI_THIETBI_THU_HOI": NaN,
+            "LOAI_KH": "CN",
+            "LOAI_VT": "ONT",
+            "LOAI_PHIEU": "PTTB",
+            "LOAI_NHANVIEN": "KTV",
+            "TRANGTHAI_TB": "TAM_DUNG_NO_CUOC",
+            "TTKD": NaN,
+            "DUNG_THU": NaN,
+            "LYDO_KO_THU_HOI_DC": NaN,
+            "SO_DT": 913169198.0,
+            "ND_THUCHIEN": "-Yêu cầu kiểm tra, xác minh chính xác số lượng thiết bịcủa VNPTvà thực hiện thu hồi triệt để",
+            "MAY_CN_SUDUNG_VT": "CONVET_DL_TBI",
+            "NGUOI_CN_SUDUNG_VT": "CONVET_DL_TBI",
+            "GHICHU_SUDUNG_VT": NaN,
+            "ONT_TBDC_CHAT_LUONG_CAO": 0,
+            "NVKT_DIABAN_GIAO": "VNPT016762-Nguyễn Văn Thanh",
+            "NVKT_DIABAN_THU": "-",
+            "LOAI_GIAO_GIAMTRU_LAN_HAI": 0,
+            "NGAY_SD_TB": "13/06/2019",
+            "TOANHA": NaN
+          },
+          {
+            "MA_MEN": "005986967MEN",
+            "MA_TB": "xuanhah",
+            "TEN_TB": "Nguyễn Xuân Hanh",
+            "DIACHI_KH": "Tòng Lệnh, Xã Bất Bạt, Hà Nội",
+            "NHANVIEN_KHOA": NaN,
+            "NHANVIEN_THU": "tuannn.hni-Nguyễn Ngọc Tuấn;manda.hni-Đỗ Anh Mẫn",
+            "NHANVIEN_NHAPKHO": NaN,
+            "NGAY_KHOA": NaN,
+            "THANG_KHOA": NaN,
+            "NGAY_HOAN_CONG": NaN,
+            "NGAY_HOAN_UNG": NaN,
+            "THANG_HOANCONG": NaN,
+            "THANG_HOAN_UNG": NaN,
+            "NGAY_NHAP_HOAN_UNG": NaN,
+            "TEN_TBI": "19.04.04.10.06-ONT GW040-H (Dualband AC)",
+            "SERIAL": "0352A26381FDDB0",
+            "TINHTRANG_TBI": NaN,
+            "NGAY_GIAO": "05/11/2025",
+            "TEN_LOAIHD": "Chấm dứt sử dụng",
+            "TEN_KIEULD": "Thanh lý cưỡng bức thuê bao",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "DIEMCHIA": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "USER_NV": "tuannn.hni - Nguyễn Ngọc Tuấn; manda.hni - Đỗ Anh Mẫn",
+            "MA_KHUVUC": "BVI.TBT.01",
+            "KHUVUC": "Suối Hai 01 - Đỗ Anh Mẫn",
+            "THU_TAI_QUAY": "TAI_TTVT",
+            "GIAO_THUHOI": "GIAO_THANG_TRUOC",
+            "QUAY": NaN,
+            "TRANGTHAI_THUHOI": "CHUA_THU_HOI",
+            "TRANGTHAI_THIETBI_THU_HOI": NaN,
+            "LOAI_KH": "CN",
+            "LOAI_VT": "ONT",
+            "LOAI_PHIEU": "PTTB",
+            "LOAI_NHANVIEN": "KTV",
+            "TRANGTHAI_TB": "CHAM_DUT_NO_CUOC",
+            "TTKD": NaN,
+            "DUNG_THU": NaN,
+            "LYDO_KO_THU_HOI_DC": NaN,
+            "SO_DT": 832231998.0,
+            "ND_THUCHIEN": "-Yêu cầu kiểm tra, xác minh chính xác số lượng thiết bịcủa VNPTvà thực hiện thu hồi triệt để",
+            "MAY_CN_SUDUNG_VT": "10.42.59.154",
+            "NGUOI_CN_SUDUNG_VT": "tudv.hni",
+            "GHICHU_SUDUNG_VT": NaN,
+            "ONT_TBDC_CHAT_LUONG_CAO": 1,
+            "NVKT_DIABAN_GIAO": "CTV083885-Đỗ Anh Mẫn",
+            "NVKT_DIABAN_THU": "-",
+            "LOAI_GIAO_GIAMTRU_LAN_HAI": 1,
+            "NGAY_SD_TB": "30/06/2023",
+            "TOANHA": NaN
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "SM1-C12.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/SM1-C12.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 70,
+        "num_cols": 56,
+        "columns": [
+          "BAOHONG_ID",
+          "MA_TB",
+          "DIACHI_LD",
+          "DIACHI_TB",
+          "TEN_TB",
+          "TEN_DICH_VU",
+          "MA_KH",
+          "LOAIHINH_TB",
+          "DIENTHOAI_LH",
+          "TEN_KV",
+          "TEN_DIEMCHIA",
+          "TEN_DOI",
+          "TEN_TTVT",
+          "GHICHU_TH",
+          "NGUYEN_NHAN",
+          "NN_DHTT",
+          "KENH_TN",
+          "NGUOI_KHOA",
+          "ND_GIAO",
+          "ND_BAO_HONG",
+          "LYDO_TON",
+          "THUOC_TOANHA",
+          "DANH_SACH_TOA_NHA_ID",
+          "TEN_KC",
+          "TEN_DV_NHAN",
+          "TEN_NV_NHAN",
+          "MA_THANH_TOAN",
+          "DIACHI_THANHTOAN",
+          "HUONG_KET_NOI",
+          "TEN_KHACH_HANG",
+          "MA_MEN",
+          "NGAY_HEN_TTKD",
+          "NGAY_BAO_HONG",
+          "NGAYGIAO",
+          "NGAY_KHOA",
+          "NGAY_NGHIEM_THU",
+          "THOIGIAN_SC_TTVT",
+          "TINHTRANG_ND_BAOHONG",
+          "GOI_KT",
+          "CHITIEU_TTVT",
+          "TG_SUA_DHTT",
+          "CHITIEU_DHTT",
+          "NGUON_KHOAPHIEU",
+          "CHITIEU_SHC",
+          "NGAY_BT",
+          "TEN_TTVT_HT",
+          "KQ_GHTT",
+          "Giảm trừ",
+          "NGAY_BT_DAU",
+          "PT3_KR16",
+          "PT4_KR16",
+          "THOIGIAN_SC_KO_HEN",
+          "THOIGIAN_QD_KO_HEN",
+          "DAT_TT_KO_HEN",
+          "DAT_KO_HEN",
+          "TEN_LOAITN"
+        ],
+        "sample_data": [
+          {
+            "BAOHONG_ID": 10764151,
+            "MA_TB": "hoa40206",
+            "DIACHI_LD": "C39 Khu nhà ở Sơn Lộc, Phường Sơn Lộc, Thị Xã Sơn Tây, Thành Phố Hà Nội, Việt Nam",
+            "DIACHI_TB": "C39 Khu Nhà Ở Sơn Lộc, Phường Sơn Lộc, Thị Xã Sơn Tây, Thành Phố Hà Nội, Việt Nam",
+            "TEN_TB": "Đỗ Thị Thúy Hòa",
+            "TEN_DICH_VU": "Băng rộng cố định",
+            "MA_KH": "HNI010923502",
+            "LOAIHINH_TB": "Fiber",
+            "DIENTHOAI_LH": 384020696,
+            "TEN_KV": "Sơn Lộc 1 - Nguyễn Thành Sơn",
+            "TEN_DIEMCHIA": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "GHICHU_TH": "Đứt cáp MSC:  2004011125  Đội hạ tầng đã sử lý",
+            "NGUYEN_NHAN": "[597]-Đứt, hỏng cáp quang truy nhập-| 02/11/2025 19:33: Đứt cáp MSC:  2004011125  Đội hạ tầng đã sử lý",
+            "NN_DHTT": "Lỗi cáp VTT",
+            "KENH_TN": "Qua tổng đài báo hỏng 119",
+            "NGUOI_KHOA": "VNPT016756-sonnt.hni-Nguyễn Thành Sơn, ",
+            "ND_GIAO": NaN,
+            "ND_BAO_HONG": "Trạng thai Port : DOWN , K/H  báo không vào được mạng  y/c ht",
+            "LYDO_TON": "[8501]-Chờ kéo/sửa chữa cáp phụ-Đứt cáp đội hạ tầng đang khắc phục",
+            "THUOC_TOANHA": 0,
+            "DANH_SACH_TOA_NHA_ID": NaN,
+            "TEN_KC": NaN,
+            "TEN_DV_NHAN": NaN,
+            "TEN_NV_NHAN": NaN,
+            "MA_THANH_TOAN": "YX89907A",
+            "DIACHI_THANHTOAN": "C39 Khu Nhà Ở Sơn Lộc, Thanh Vị, Phường Tùng Thiện, Hà Nội",
+            "HUONG_KET_NOI": NaN,
+            "TEN_KHACH_HANG": NaN,
+            "MA_MEN": "000089130MEN",
+            "NGAY_HEN_TTKD": "02/11/2025 20:07:00",
+            "NGAY_BAO_HONG": "01/11/2025 16:20:08",
+            "NGAYGIAO": "01/11/2025 16:20:12",
+            "NGAY_KHOA": "02/11/2025 19:33:04",
+            "NGAY_NGHIEM_THU": "02/11/2025 19:33:04",
+            "THOIGIAN_SC_TTVT": 0.0,
+            "TINHTRANG_ND_BAOHONG": "Trạng thai Port : DOWN , K/H  báo không vào được mạng  y/c ht",
+            "GOI_KT": "CB4",
+            "CHITIEU_TTVT": "ĐẠT",
+            "TG_SUA_DHTT": 0.0,
+            "CHITIEU_DHTT": "ĐẠT",
+            "NGUON_KHOAPHIEU": "APP",
+            "CHITIEU_SHC": NaN,
+            "NGAY_BT": "01/11/2025 18:27:30",
+            "TEN_TTVT_HT": NaN,
+            "KQ_GHTT": NaN,
+            "Giảm trừ": NaN,
+            "NGAY_BT_DAU": "01/11/2025 18:27:30",
+            "PT3_KR16": 0,
+            "PT4_KR16": 0,
+            "THOIGIAN_SC_KO_HEN": 27.21556,
+            "THOIGIAN_QD_KO_HEN": 8,
+            "DAT_TT_KO_HEN": 0,
+            "DAT_KO_HEN": 0,
+            "TEN_LOAITN": NaN
+          },
+          {
+            "BAOHONG_ID": 10765646,
+            "MA_TB": "hang14082015",
+            "DIACHI_LD": "Cụm 5, Xã Phúc Thọ, Thành phố Hà Nội",
+            "DIACHI_TB": "Cụm 5, Xã Phúc Thọ, Thành phố Hà Nội",
+            "TEN_TB": "Đỗ Thị Hằng",
+            "TEN_DICH_VU": "Băng rộng cố định",
+            "MA_KH": "HNI011046951",
+            "LOAIHINH_TB": "Fiber",
+            "DIENTHOAI_LH": 345655958,
+            "TEN_KV": "Đồng Mô 5 - Nguyễn Văn Minh",
+            "TEN_DIEMCHIA": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "GHICHU_TH": "nối dây thuê bao",
+            "NGUYEN_NHAN": "[596]-Dây thuê bao bị phá hoại-| 02/11/2025 14:45: nối dây thuê bao",
+            "NN_DHTT": "Lỗi cáp VTT",
+            "KENH_TN": "Kênh báo hỏng IPCC tự động",
+            "NGUOI_KHOA": "VNPT016755-minhnv2-Nguyễn Văn Minh, ",
+            "ND_GIAO": NaN,
+            "ND_BAO_HONG": "Không sử dụng được DV",
+            "LYDO_TON": NaN,
+            "THUOC_TOANHA": 0,
+            "DANH_SACH_TOA_NHA_ID": NaN,
+            "TEN_KC": NaN,
+            "TEN_DV_NHAN": NaN,
+            "TEN_NV_NHAN": NaN,
+            "MA_THANH_TOAN": "JK11214A",
+            "DIACHI_THANHTOAN": "Số 66 đường 418, Trung Lạc, Xã Đoài Phương, Hà Nội",
+            "HUONG_KET_NOI": NaN,
+            "TEN_KHACH_HANG": NaN,
+            "MA_MEN": "000352874MEN",
+            "NGAY_HEN_TTKD": NaN,
+            "NGAY_BAO_HONG": "02/11/2025 08:26:26",
+            "NGAYGIAO": "02/11/2025 09:36:06",
+            "NGAY_KHOA": "02/11/2025 14:45:44",
+            "NGAY_NGHIEM_THU": "02/11/2025 14:45:44",
+            "THOIGIAN_SC_TTVT": 6.322,
+            "TINHTRANG_ND_BAOHONG": "Không sử dụng được DV",
+            "GOI_KT": "CB4",
+            "CHITIEU_TTVT": "ĐẠT",
+            "TG_SUA_DHTT": 6.322,
+            "CHITIEU_DHTT": "ĐẠT",
+            "NGUON_KHOAPHIEU": "APP",
+            "CHITIEU_SHC": NaN,
+            "NGAY_BT": NaN,
+            "TEN_TTVT_HT": NaN,
+            "KQ_GHTT": NaN,
+            "Giảm trừ": NaN,
+            "NGAY_BT_DAU": NaN,
+            "PT3_KR16": 0,
+            "PT4_KR16": 0,
+            "THOIGIAN_SC_KO_HEN": 6.32167,
+            "THOIGIAN_QD_KO_HEN": 8,
+            "DAT_TT_KO_HEN": 1,
+            "DAT_KO_HEN": 1,
+            "TEN_LOAITN": NaN
+          },
+          {
+            "BAOHONG_ID": 10767261,
+            "MA_TB": "hang0984222981",
+            "DIACHI_LD": "Ngã Tư Lục Quân (Cách Vị Trí Cũ 50m),Thôn Đoàn Kết, Xã Cổ Đông, Thị Xã Sơn Tây, Thành Phố Hà Nội, Việt Nam",
+            "DIACHI_TB": "Ngã Tư Lục Quân (Cách Vị Trí Cũ 50m),Thôn Đoàn Kết, Xã Cổ Đông, Thị Xã Sơn Tây, Thành Phố Hà Nội, Việt Nam",
+            "TEN_TB": "Hà Thị Hằng",
+            "TEN_DICH_VU": "Băng rộng cố định",
+            "MA_KH": "HNI011020696",
+            "LOAIHINH_TB": "Fiber",
+            "DIENTHOAI_LH": 984222891,
+            "TEN_KV": "Đồng Mô 4 - Đỗ Minh Thăng",
+            "TEN_DIEMCHIA": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "GHICHU_TH": "đứt cáp chính, mã sự cố: 2008041125, cnkt đã khắc phục xong",
+            "NGUYEN_NHAN": "[598]-Cáp quang truy nhập bị phá hoại-| 05/11/2025 20:32: đứt cáp chính, mã sự cố: 2008041125, cnkt đã khắc phục xong",
+            "NN_DHTT": "Lỗi cáp VTT",
+            "KENH_TN": "Kênh báo hỏng IPCC tự động",
+            "NGUOI_KHOA": "CTV086415-thangdm.hni-Đỗ Minh Thăng, ",
+            "ND_GIAO": NaN,
+            "ND_BAO_HONG": "Không sử dụng được DV",
+            "LYDO_TON": "[8604]-Thuê bao hẹn lại-kh hẹn",
+            "THUOC_TOANHA": 0,
+            "DANH_SACH_TOA_NHA_ID": NaN,
+            "TEN_KC": NaN,
+            "TEN_DV_NHAN": NaN,
+            "TEN_NV_NHAN": NaN,
+            "MA_THANH_TOAN": "JO79774A",
+            "DIACHI_THANHTOAN": "số nhà 175 quán dt hoàng anh ngã 4 lục quân, Đoàn Kết, Xã Cổ Đông, Thị xã Sơn Tây, Hà Nội",
+            "HUONG_KET_NOI": NaN,
+            "TEN_KHACH_HANG": NaN,
+            "MA_MEN": "000260232MEN",
+            "NGAY_HEN_TTKD": "05/11/2025 23:22:00",
+            "NGAY_BAO_HONG": "03/11/2025 10:21:39",
+            "NGAYGIAO": "03/11/2025 10:22:36",
+            "NGAY_KHOA": "05/11/2025 20:32:43",
+            "NGAY_NGHIEM_THU": "05/11/2025 20:32:43",
+            "THOIGIAN_SC_TTVT": 0.0,
+            "TINHTRANG_ND_BAOHONG": "Không sử dụng được DV",
+            "GOI_KT": "CB4",
+            "CHITIEU_TTVT": "ĐẠT",
+            "TG_SUA_DHTT": 0.0,
+            "CHITIEU_DHTT": "ĐẠT",
+            "NGUON_KHOAPHIEU": "APP",
+            "CHITIEU_SHC": NaN,
+            "NGAY_BT": "03/11/2025 11:39:08",
+            "TEN_TTVT_HT": NaN,
+            "KQ_GHTT": NaN,
+            "Giảm trừ": NaN,
+            "NGAY_BT_DAU": "03/11/2025 11:39:08",
+            "PT3_KR16": 0,
+            "PT4_KR16": 0,
+            "THOIGIAN_SC_KO_HEN": 58.18444,
+            "THOIGIAN_QD_KO_HEN": 8,
+            "DAT_TT_KO_HEN": 0,
+            "DAT_KO_HEN": 0,
+            "TEN_LOAITN": NaN
+          }
+        ]
+      },
+      {
+        "sheet_name": "TH_phieu_hong_lai_7_ngay",
+        "num_rows": 15,
+        "num_cols": 3,
+        "columns": [
+          "TEN_DOI",
+          "NVKT",
+          "Số phiếu HLL"
+        ],
+        "sample_data": [
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT": "Bùi Văn Duẩn",
+            "Số phiếu HLL": 2
+          },
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "NVKT": "Bùi văn Cường",
+            "Số phiếu HLL": 2
+          },
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "NVKT": "Nguyễn Chí Công",
+            "Số phiếu HLL": 1
+          }
+        ]
+      },
+      {
+        "sheet_name": "TH_SM1C12_HLL_Thang",
+        "num_rows": 35,
+        "num_cols": 3,
+        "columns": [
+          "TEN_DOI",
+          "NVKT",
+          "Tỉ lệ HLL tháng (2.5%)"
+        ],
+        "sample_data": [
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT": "Bùi Văn Duẩn",
+            "Tỉ lệ HLL tháng (2.5%)": 6.45
+          },
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT": "Dương Văn Dũng",
+            "Tỉ lệ HLL tháng (2.5%)": 0.0
+          },
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT": "Hoàng Tung",
+            "Tỉ lệ HLL tháng (2.5%)": 0.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "SM2-C11.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/downloads/baocao_hanoi/SM2-C11.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 847,
+        "num_cols": 57,
+        "columns": [
+          "BAOHONG_ID",
+          "MA_TB",
+          "DIACHI_LD",
+          "DIACHI_TB",
+          "TEN_TB",
+          "TEN_DICH_VU",
+          "MA_KH",
+          "LOAIHINH_TB",
+          "DIENTHOAI_LH",
+          "TEN_KV",
+          "TEN_DIEMCHIA",
+          "TEN_DOI",
+          "TEN_TTVT",
+          "GHICHU_TH",
+          "NGUYEN_NHAN",
+          "NN_DHTT",
+          "KENH_TN",
+          "NGUOI_KHOA",
+          "ND_GIAO",
+          "ND_BAO_HONG",
+          "LYDO_TON",
+          "THUOC_TOANHA",
+          "DANH_SACH_TOA_NHA_ID",
+          "TEN_KC",
+          "TEN_DV_NHAN",
+          "TEN_NV_NHAN",
+          "MA_THANH_TOAN",
+          "DIACHI_THANHTOAN",
+          "HUONG_KET_NOI",
+          "TEN_KHACH_HANG",
+          "MA_MEN",
+          "NGAY_HEN_TTKD",
+          "NGAY_BAO_HONG",
+          "NGAYGIAO",
+          "NGAY_KHOA",
+          "NGAY_NGHIEM_THU",
+          "THOIGIAN_SC_TTVT",
+          "TINHTRANG_ND_BAOHONG",
+          "GOI_KT",
+          "CHITIEU_TTVT",
+          "TG_SUA_DHTT",
+          "CHITIEU_DHTT",
+          "NGUON_KHOAPHIEU",
+          "CHITIEU_SHC",
+          "NGAY_BT",
+          "TEN_TTVT_HT",
+          "KQ_GHTT",
+          "Giảm trừ",
+          "NGAY_BT_DAU",
+          "PT3_KR16",
+          "PT4_KR16",
+          "THOIGIAN_SC_KO_HEN",
+          "THOIGIAN_QD_KO_HEN",
+          "DAT_TT_KO_HEN",
+          "DAT_KO_HEN",
+          "TEN_LOAITN",
+          "TG"
+        ],
+        "sample_data": [
+          {
+            "BAOHONG_ID": 10767455,
+            "MA_TB": "trinh0944548875",
+            "DIACHI_LD": "36/1, Phạm Ngũ Lão, Phường Lê lợi, Thị xã Sơn Tây, Hà Nội",
+            "DIACHI_TB": "36/1, Phạm Ngũ Lão, Phường Lê lợi, Thị xã Sơn Tây, Hà Nội",
+            "TEN_TB": "Nguyễn Như Trình",
+            "TEN_DICH_VU": "Băng rộng cố định",
+            "MA_KH": "HNI012012546",
+            "LOAIHINH_TB": "Fiber",
+            "DIENTHOAI_LH": "0944548875",
+            "TEN_KV": "Sơn Tây 1 - Phạm Anh Tuấn",
+            "TEN_DIEMCHIA": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "GHICHU_TH": "do dây",
+            "NGUYEN_NHAN": "[595]-Đứt, hỏng dây thuê bao đoạn ngoài trời (Outdoor)-do dây",
+            "NN_DHTT": "Lỗi cáp VTT",
+            "KENH_TN": "Qua công cụ xuất phiếu chủ động",
+            "NGUOI_KHOA": "VNPT016321-tuanlq-Lã Quang Tuấn, ",
+            "ND_GIAO": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.44 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 06:57)",
+            "ND_BAO_HONG": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.44 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 06:57)",
+            "LYDO_TON": NaN,
+            "THUOC_TOANHA": 0,
+            "DANH_SACH_TOA_NHA_ID": NaN,
+            "TEN_KC": NaN,
+            "TEN_DV_NHAN": "Tổ Kỹ thuật Địa bàn Sơn Tây",
+            "TEN_NV_NHAN": "Quản trị Hà nội",
+            "MA_THANH_TOAN": "H0593535",
+            "DIACHI_THANHTOAN": "36/1, Phạm Ngũ Lão, Phường Lê lợi, Thị xã Sơn Tây, Hà Nội",
+            "HUONG_KET_NOI": NaN,
+            "TEN_KHACH_HANG": NaN,
+            "MA_MEN": "005624627MEN",
+            "NGAY_HEN_TTKD": NaN,
+            "NGAY_BAO_HONG": "2025-11-03 11:19:47",
+            "NGAYGIAO": "03/11/2025 11:19:47",
+            "NGAY_KHOA": "07/11/2025 10:14:56",
+            "NGAY_NGHIEM_THU": "2025-11-07 09:48:04",
+            "THOIGIAN_SC_TTVT": 94.919,
+            "TINHTRANG_ND_BAOHONG": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.44 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 06:57)",
+            "GOI_KT": "CB4",
+            "CHITIEU_TTVT": "KHÔNG ĐẠT",
+            "TG_SUA_DHTT": 94.471,
+            "CHITIEU_DHTT": "KHÔNG ĐẠT",
+            "NGUON_KHOAPHIEU": "PC",
+            "CHITIEU_SHC": "KHÔNG ĐẠT",
+            "NGAY_BT": NaN,
+            "TEN_TTVT_HT": NaN,
+            "KQ_GHTT": NaN,
+            "Giảm trừ": NaN,
+            "NGAY_BT_DAU": NaN,
+            "PT3_KR16": 0,
+            "PT4_KR16": 0,
+            "THOIGIAN_SC_KO_HEN": 94.91917,
+            "THOIGIAN_QD_KO_HEN": NaN,
+            "DAT_TT_KO_HEN": 0,
+            "DAT_KO_HEN": 0,
+            "TEN_LOAITN": NaN,
+            "TG": 94.4713888888889
+          },
+          {
+            "BAOHONG_ID": 10767472,
+            "MA_TB": "toanth89",
+            "DIACHI_LD": "Xóm Nhà Thờ, Trung hà, Xã Vật Lại, Hà Nội",
+            "DIACHI_TB": "Xóm Nhà Thờ, Trung hà, Xã Vật Lại, Hà Nội",
+            "TEN_TB": "Nguyễn Văn Toán",
+            "TEN_DICH_VU": "Băng rộng cố định",
+            "MA_KH": "HNI011616301",
+            "LOAIHINH_TB": "Fiber",
+            "DIENTHOAI_LH": "0982293690",
+            "TEN_KV": "Vạn Thắng 12 - Lê Phương Thuyết",
+            "TEN_DIEMCHIA": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "GHICHU_TH": "chủ động sửa",
+            "NGUYEN_NHAN": "[605]-Nguyên nhân khác liên quan đến phần mạng ngoại vi-| 06/11/2025 07:43: chủ động sửa",
+            "NN_DHTT": "Lỗi cáp VTT",
+            "KENH_TN": "Qua công cụ xuất phiếu chủ động",
+            "NGUOI_KHOA": "VNPT016766-thuyetlp-Lê Phương Thuyết, ",
+            "ND_GIAO": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.7 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 10:33)",
+            "ND_BAO_HONG": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.7 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 10:33)",
+            "LYDO_TON": "[8508]-Cắt chuyển, cải tạo mạng-chủ động sửa",
+            "THUOC_TOANHA": 0,
+            "DANH_SACH_TOA_NHA_ID": NaN,
+            "TEN_KC": NaN,
+            "TEN_DV_NHAN": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "TEN_NV_NHAN": "Quản trị Hà nội",
+            "MA_THANH_TOAN": "H0098297",
+            "DIACHI_THANHTOAN": "Xóm Nhà Thờ, Trung hà, Xã Vật Lại, Hà Nội",
+            "HUONG_KET_NOI": NaN,
+            "TEN_KHACH_HANG": NaN,
+            "MA_MEN": "005363683MEN",
+            "NGAY_HEN_TTKD": NaN,
+            "NGAY_BAO_HONG": "2025-11-03 11:19:45",
+            "NGAYGIAO": "03/11/2025 11:19:45",
+            "NGAY_KHOA": "06/11/2025 07:43:35",
+            "NGAY_NGHIEM_THU": "2025-11-06 07:43:35",
+            "THOIGIAN_SC_TTVT": 68.397,
+            "TINHTRANG_ND_BAOHONG": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.7 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 10:33)",
+            "GOI_KT": "CB4",
+            "CHITIEU_TTVT": "KHÔNG ĐẠT",
+            "TG_SUA_DHTT": 68.397,
+            "CHITIEU_DHTT": "KHÔNG ĐẠT",
+            "NGUON_KHOAPHIEU": "APP",
+            "CHITIEU_SHC": "ĐẠT",
+            "NGAY_BT": "06/11/2025 07:43:09",
+            "TEN_TTVT_HT": NaN,
+            "KQ_GHTT": NaN,
+            "Giảm trừ": NaN,
+            "NGAY_BT_DAU": "06/11/2025 07:43:09",
+            "PT3_KR16": 0,
+            "PT4_KR16": 0,
+            "THOIGIAN_SC_KO_HEN": 68.39722,
+            "THOIGIAN_QD_KO_HEN": NaN,
+            "DAT_TT_KO_HEN": 0,
+            "DAT_KO_HEN": 0,
+            "TEN_LOAITN": NaN,
+            "TG": 68.39722222222223
+          },
+          {
+            "BAOHONG_ID": 10767473,
+            "MA_TB": "hni0058000018386",
+            "DIACHI_LD": "Số 18 Đội 1, Khê Thượng, Xã Bất Bạt, Thành phố Hà Nội",
+            "DIACHI_TB": "Số 18 Đội 1, Khê Thượng, Xã Bất Bạt, Thành phố Hà Nội",
+            "TEN_TB": "Phùng Ngọc Thái",
+            "TEN_DICH_VU": "Băng rộng cố định",
+            "MA_KH": "HNI014583810",
+            "LOAIHINH_TB": "Fiber",
+            "DIENTHOAI_LH": "0974885931",
+            "TEN_KV": "Suối Hai 02 - Đỗ Anh Mẫn",
+            "TEN_DIEMCHIA": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "TEN_TTVT": "TTVT Sơn Tây",
+            "GHICHU_TH": "da sc rệp cũ hỏng",
+            "NGUYEN_NHAN": "[593]-Bảo dưỡng mạng ngoại vi (VNPT bảo dưỡng mạng, khách hàng không sử dụng được dịch vụ nên báo hỏng)-| 05/11/2025 14:34: da sc rệp cũ hỏng",
+            "NN_DHTT": "Vận hành, khai thác",
+            "KENH_TN": "Qua công cụ xuất phiếu chủ động",
+            "NGUOI_KHOA": "CTV083885-manda.hni-Đỗ Anh Mẫn, ",
+            "ND_GIAO": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.45 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 06:30)",
+            "ND_BAO_HONG": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.45 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 06:30)",
+            "LYDO_TON": "[9101]-Chờ theo dõi-td",
+            "THUOC_TOANHA": 0,
+            "DANH_SACH_TOA_NHA_ID": NaN,
+            "TEN_KC": NaN,
+            "TEN_DV_NHAN": "Tổ Kỹ thuật Địa bàn Quảng Oai",
+            "TEN_NV_NHAN": "Quản trị Hà nội",
+            "MA_THANH_TOAN": "HNIT04242078",
+            "DIACHI_THANHTOAN": "Số 18 Đội 1, Khê Thượng, Xã Bất Bạt, Thành phố Hà Nội",
+            "HUONG_KET_NOI": NaN,
+            "TEN_KHACH_HANG": NaN,
+            "MA_MEN": "006307661MEN",
+            "NGAY_HEN_TTKD": NaN,
+            "NGAY_BAO_HONG": "2025-11-03 11:19:47",
+            "NGAYGIAO": "03/11/2025 11:19:47",
+            "NGAY_KHOA": "05/11/2025 14:34:04",
+            "NGAY_NGHIEM_THU": "2025-11-05 14:34:04",
+            "THOIGIAN_SC_TTVT": 51.238,
+            "TINHTRANG_ND_BAOHONG": "Xuất phiếu bảo dưỡng chủ động, nguyên nhân: Suy hao vượt ngưỡng-ONU Rx -27.45 dBm (Cần đạt -27.0≤ ONU Rx ≤ -8.0);  (time: 03/11/2025 06:30)",
+            "GOI_KT": "CB4",
+            "CHITIEU_TTVT": "KHÔNG ĐẠT",
+            "TG_SUA_DHTT": 51.238,
+            "CHITIEU_DHTT": "KHÔNG ĐẠT",
+            "NGUON_KHOAPHIEU": "APP",
+            "CHITIEU_SHC": "ĐẠT",
+            "NGAY_BT": "05/11/2025 12:40:29",
+            "TEN_TTVT_HT": NaN,
+            "KQ_GHTT": NaN,
+            "Giảm trừ": NaN,
+            "NGAY_BT_DAU": "05/11/2025 12:40:29",
+            "PT3_KR16": 0,
+            "PT4_KR16": 0,
+            "THOIGIAN_SC_KO_HEN": 51.23806,
+            "THOIGIAN_QD_KO_HEN": NaN,
+            "DAT_TT_KO_HEN": 0,
+            "DAT_KO_HEN": 0,
+            "TEN_LOAITN": NaN,
+            "TG": 51.23805555555555
+          }
+        ]
+      },
+      {
+        "sheet_name": "TH_SM2",
+        "num_rows": 35,
+        "num_cols": 6,
+        "columns": [
+          "TEN_DOI",
+          "NVKT",
+          "Tổng phiếu",
+          "Phiếu đạt",
+          "Phiếu không đạt",
+          "Tỉ lệ đạt (%)"
+        ],
+        "sample_data": [
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT": "Bùi Văn Duẩn",
+            "Tổng phiếu": 33,
+            "Phiếu đạt": 33,
+            "Phiếu không đạt": 0,
+            "Tỉ lệ đạt (%)": 100.0
+          },
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT": "Dương Văn Dũng",
+            "Tổng phiếu": 24,
+            "Phiếu đạt": 24,
+            "Phiếu không đạt": 0,
+            "Tỉ lệ đạt (%)": 100.0
+          },
+          {
+            "TEN_DOI": "Tổ Kỹ thuật Địa bàn Phúc Thọ",
+            "NVKT": "Hoàng Tung",
+            "Tổng phiếu": 8,
+            "Phiếu đạt": 8,
+            "Phiếu không đạt": 0,
+            "Tỉ lệ đạt (%)": 100.0
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file_name": "dsnv.xlsx",
+    "file_path": "/home/vtst/baocaohanoi/dsnv.xlsx",
+    "sheets": [
+      {
+        "sheet_name": "Sheet1",
+        "num_rows": 48,
+        "num_cols": 13,
+        "columns": [
+          "STT",
+          "Mã NV",
+          "Mã NV cũ",
+          "đơn vị",
+          "Họ tên",
+          "Số ĐT",
+          "email",
+          "Mã chức danh",
+          "Mã  vị trí",
+          "Ngày sinh",
+          "Giới tính",
+          "Giới tính.1",
+          "tháng"
+        ],
+        "sample_data": [
+          {
+            "STT": 1,
+            "Mã NV": "VNPT016204",
+            "Mã NV cũ": "HNI003595",
+            "đơn vị": "Ban GĐ",
+            "Họ tên": "Nguyễn Quốc Thắng",
+            "Số ĐT": 913380777,
+            "email": "thangnq.hni@vnpt.vn",
+            "Mã chức danh": "CD_VNPT_08 - Giám đốc",
+            "Mã  vị trí": "VTH_VTKV_01 - Giám đốc Trung tâm Viễn thông Khu vực",
+            "Ngày sinh": "1975-09-12 00:00:00",
+            "Giới tính": "Nam",
+            "Giới tính.1": "Nam",
+            "tháng": 9
+          },
+          {
+            "STT": 2,
+            "Mã NV": "VNPT016222",
+            "Mã NV cũ": "HNI003596",
+            "đơn vị": "Ban GĐ",
+            "Họ tên": "Khuất Duy Việt",
+            "Số ĐT": 912680034,
+            "email": "vietkd.hni@vnpt.vn",
+            "Mã chức danh": "CD_VNPT_09 - Phó Giám đốc",
+            "Mã  vị trí": "VTH_VTKV_02 - Phó Giám đốc Trung tâm Viễn thông Khu vực",
+            "Ngày sinh": "1976-03-11 00:00:00",
+            "Giới tính": "Nam",
+            "Giới tính.1": "Nam",
+            "tháng": 3
+          },
+          {
+            "STT": 3,
+            "Mã NV": "VNPT016903",
+            "Mã NV cũ": "HNI003598",
+            "đơn vị": "HTKT",
+            "Họ tên": "Vũ Bá Minh",
+            "Số ĐT": 914914969,
+            "email": "minhvb.hni@vnpt.vn",
+            "Mã chức danh": "CD_VNPT_51 - Nhân viên",
+            "Mã  vị trí": "VTH_VTKV_08 - Nhân viên Hỗ trợ Kỹ thuật VIP",
+            "Ngày sinh": "1981-09-28 00:00:00",
+            "Giới tính": "Nam",
+            "Giới tính.1": "Nam",
+            "tháng": 9
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,15 @@
+viết cho tôi app baocaohanoi.py sử dụng python và playwright để điều khiển auto web như sau: 
+Bước 1: login vào trang https://baocao.hanoi.vnpt.vn/
+tìm trường username tại //*[@id="username"] và điền username = thinhdx.hni
+tìm trường password tại //*[@id="password"] và điền password = A#f4v5hp
+sao đó tìm button Đăng nhập và click tại //*[@id="fm1"]/section/button
+sau đó hệ thống sẽ gửi về mã OTP, và hiện trường input điền mã OTP tại //*[@id="passOTP"], 
+bạn hãy tìm mã OTP trong file   G:\My Drive\App- baocao\OTP-handle/otp_logs.txt và điền vào input trên
+sau đó click //*[@id="loginForm"]/div[1]/button
+
+tới đây đăng nhập hoàn tất, kiểm tra session và cookie để đảm bảo login thành công 
+
+tiếp theo là tải báo cáo PTTB tại https://baocao.hanoi.vnpt.vn/report/report-info-data?id=260054&vdvvt_id=9&vdenngay=19%2F10%2F2025&vdonvi_id=14324&vloai=1&vloai_bc=luyke_thang_hoancong
+
+đợi load xong dữ liệu tìm button có text Xuất Excel ..., click, và chọn vào button có text 2.Tất cả dữ liệu
+lưu ý dùng môi trường ảo venv có sẵn trong thư mục 
