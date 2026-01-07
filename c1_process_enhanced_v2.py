@@ -24,29 +24,43 @@ def normalize_nvkt(x):
 
 
 def process_I15_report_with_tracking(force_update=False):
+    """Wrapper for K1 report"""
+    input_file = os.path.join("downloads", "baocao_hanoi", "I1.5 report.xlsx")
+    return _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="suy_hao_history.db", force_update=force_update)
+
+
+def process_I15_k2_report_with_tracking(force_update=False):
+    """Wrapper for K2 report"""
+    input_file = os.path.join("downloads", "baocao_hanoi", "I1.5_k2 report.xlsx")
+    return _process_I15_generic_with_tracking(input_file, k_suffix="K2", history_db="suy_hao_history_k2.db", force_update=force_update)
+
+
+def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="suy_hao_history.db", force_update=False):
     """
-    Xử lý báo cáo I1.5 với tracking lịch sử:
-    1. Đọc file I1.5 report.xlsx
+    Xử lý báo cáo I1.5 (K1 hoặc K2) với tracking lịch sử:
+    1. Đọc file đầu vào
     2. Tra cứu thông tin từ danhba.db
     3. Chuẩn hóa cột NVKT_DB
     4. Kiểm tra đã xử lý ngày này chưa
     5. So sánh với dữ liệu ngày hôm qua
     6. Tạo các sheet: TH_SHC_I15, Tang_moi, Giam_het, Van_con, Bien_dong_tong_hop
-    7. Lưu vào database để tracking lịch sử
+    7. Lưu vào database để tracking lịch sử (Database riêng cho K1/K2)
 
     Args:
+        input_file (str): Đường dẫn file Excel đầu vào
+        k_suffix (str): Hậu tố K1 hoặc K2 để đặt tên
+        history_db (str): Tên file database history tương ứng
         force_update (bool): Nếu True, cho phép ghi đè dữ liệu đã tồn tại trong ngày
-                             Mặc định False = chỉ lưu DB lần đầu trong ngày
     """
     try:
         print("\n" + "="*80)
-        print("BẮT ĐẦU XỬ LÝ BÁO CÁO I1.5 (VỚI TRACKING LỊCH SỬ V2)")
+        print(f"BẮT ĐẦU XỬ LÝ BÁO CÁO I1.5 {k_suffix} (VỚI TRACKING LỊCH SỬ V2)")
+        print(f"Database: {history_db}")
         print("="*80)
 
         # Đường dẫn file
-        input_file = os.path.join("downloads", "baocao_hanoi", "I1.5 report.xlsx")
         db_file = "danhba.db"
-        history_db = "suy_hao_history.db"
+        history_db = history_db # Dùng giá trị truyền vào
 
         if not os.path.exists(input_file):
             print(f"❌ Không tìm thấy file: {input_file}")
@@ -482,7 +496,7 @@ def process_I15_report_with_tracking(force_update=False):
         if 'NVKT_DB_NORMALIZED' in df.columns and 'DOI_ONE' in df.columns:
             df_result = df.groupby(['NVKT_DB_NORMALIZED', 'DOI_ONE']).size().reset_index(name='Count')
             df_result = df_result[['DOI_ONE', 'NVKT_DB_NORMALIZED', 'Count']]
-            df_result.columns = ['Đơn vị', 'NVKT_DB', 'Số TB Suy hao cao K1']
+            df_result.columns = ['Đơn vị', 'NVKT_DB', f'Số TB Suy hao cao {k_suffix}']
             df_result = df_result.sort_values(by='Đơn vị').reset_index(drop=True)
             
             # Merge với thong_ke để lấy số thuê bao quản lý và tính tỉ lệ
@@ -493,7 +507,7 @@ def process_I15_report_with_tracking(force_update=False):
                     how='left'
                 )
                 # Tính tỉ lệ suy hao cao (%)
-                df_result['Tỉ lệ SHC (%)'] = (df_result['Số TB Suy hao cao K1'] / df_result['Số TB quản lý'] * 100).round(2)
+                df_result['Tỉ lệ SHC (%)'] = (df_result[f'Số TB Suy hao cao {k_suffix}'] / df_result['Số TB quản lý'] * 100).round(2)
                 df_result['Tỉ lệ SHC (%)'] = df_result['Tỉ lệ SHC (%)'].fillna(0)
                 print(f"✅ Đã thêm cột Số TB quản lý và Tỉ lệ SHC (%)")
             
@@ -504,7 +518,7 @@ def process_I15_report_with_tracking(force_update=False):
 
         # Tổng hợp theo tổ
         print("\n✓ Đang tạo tổng hợp theo tổ...")
-        df_by_to = df_result.groupby('Đơn vị')['Số TB Suy hao cao K1'].sum().reset_index()
+        df_by_to = df_result.groupby('Đơn vị')[f'Số TB Suy hao cao {k_suffix}'].sum().reset_index()
         df_by_to = df_by_to.sort_values(by='Đơn vị').reset_index(drop=True)
         
         # Merge với thong_ke_theo_don_vi để lấy số thuê bao quản lý
@@ -515,24 +529,24 @@ def process_I15_report_with_tracking(force_update=False):
                 how='left'
             )
             # Tính tỉ lệ suy hao cao (%)
-            df_by_to['Tỉ lệ SHC (%)'] = (df_by_to['Số TB Suy hao cao K1'] / df_by_to['Số TB quản lý'] * 100).round(2)
+            df_by_to['Tỉ lệ SHC (%)'] = (df_by_to[f'Số TB Suy hao cao {k_suffix}'] / df_by_to['Số TB quản lý'] * 100).round(2)
             df_by_to['Tỉ lệ SHC (%)'] = df_by_to['Tỉ lệ SHC (%)'].fillna(0)
             print(f"✅ Đã thêm cột Số TB quản lý và Tỉ lệ SHC (%) cho sheet theo tổ")
         
         # Tạo dòng tổng
-        total_shc = df_by_to['Số TB Suy hao cao K1'].sum()
+        total_shc = df_by_to[f'Số TB Suy hao cao {k_suffix}'].sum()
         total_ql = df_by_to['Số TB quản lý'].sum() if 'Số TB quản lý' in df_by_to.columns else 0
         total_rate = round(total_shc / total_ql * 100, 2) if total_ql > 0 else 0
         
         if 'Số TB quản lý' in df_by_to.columns:
             total_row = pd.DataFrame({
                 'Đơn vị': ['Tổng'],
-                'Số TB Suy hao cao K1': [total_shc],
+                f'Số TB Suy hao cao {k_suffix}': [total_shc],
                 'Số TB quản lý': [total_ql],
                 'Tỉ lệ SHC (%)': [total_rate]
             })
         else:
-            total_row = pd.DataFrame({'Đơn vị': ['Tổng'], 'Số TB Suy hao cao K1': [total_shc]})
+            total_row = pd.DataFrame({'Đơn vị': ['Tổng'], f'Số TB Suy hao cao {k_suffix}': [total_shc]})
         df_by_to = pd.concat([df_by_to, total_row], ignore_index=True)
 
         # Thống kê theo SA
@@ -626,5 +640,40 @@ def process_I15_report_with_tracking(force_update=False):
 
 
 if __name__ == "__main__":
-    # Test hàm
-    process_I15_report_with_tracking()
+    import argparse
+    from suy_hao_reports import generate_daily_comparison_report, generate_daily_comparison_report_k2
+    
+    parser = argparse.ArgumentParser(description="Xử lý báo cáo I1.5 Suy hao cao")
+    parser.add_argument("--k1", action="store_true", help="Chỉ xử lý báo cáo K1")
+    parser.add_argument("--k2", action="store_true", help="Chỉ xử lý báo cáo K2")
+    parser.add_argument("--force", action="store_true", help="Ghi đè dữ liệu đã tồn tại")
+    
+    args = parser.parse_args()
+    
+    # Nếu không chọn gì thì chạy cả hai
+    run_k1 = args.k1 or (not args.k1 and not args.k2)
+    run_k2 = args.k2 or (not args.k1 and not args.k2)
+    
+    if run_k1:
+        print("\n" + "="*80)
+        print("XỬ LÝ BÁO CÁO K1")
+        print("="*80)
+        process_I15_report_with_tracking(force_update=args.force)
+        
+        # Tạo báo cáo so sánh SHC ngày (T so với T-1)
+        print("\n" + "="*80)
+        print("TẠO BÁO CÁO SO SÁNH SHC K1 (T so với T-1)")
+        print("="*80)
+        generate_daily_comparison_report()
+    
+    if run_k2:
+        print("\n" + "="*80)
+        print("XỬ LÝ BÁO CÁO K2")
+        print("="*80)
+        process_I15_k2_report_with_tracking(force_update=args.force)
+        
+        # Tạo báo cáo so sánh SHC K2 ngày (T so với T-1)
+        print("\n" + "="*80)
+        print("TẠO BÁO CÁO SO SÁNH SHC K2 (T so với T-1)")
+        print("="*80)
+        generate_daily_comparison_report_k2()

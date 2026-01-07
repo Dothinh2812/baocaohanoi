@@ -15,11 +15,12 @@ from thuc_tang_download import download_report_pttb_ngung_psc, download_report_p
 from thuc_tang_process import process_ngung_psc_report, process_hoan_cong_report, create_thuc_tang_report, process_mytv_ngung_psc_report, process_mytv_hoan_cong_report, create_mytv_thuc_tang_report
 from vat_tu_thu_hoi_download import download_report_vattu_thuhoi
 from vat_tu_thu_hoi_process import vat_tu_thu_hoi_process
-from c1_report_download import download_report_c11, download_report_c12,download_report_c12_chitiet_SM2, download_report_c13, download_report_c14,download_report_c14_chitiet, download_report_c15, download_report_I15, download_report_c11_chitiet, download_report_c11_chitiet_SM2, download_report_c12_chitiet_SM1, download_report_c15_chitiet
-from c1_process import process_c11_report, process_c11_chitiet_report, process_c12_report, process_c13_report, process_c14_report,process_c14_chitiet_report, process_c15_report,process_c15_chitiet_report, process_I15_report, process_c11_chitiet_report_SM2, process_c12_chitiet_report_SM1SM2
-from suy_hao_reports import generate_daily_comparison_report
+from c1_report_download import download_report_c11, download_report_c12,download_report_c12_chitiet_SM2, download_report_c13, download_report_c14,download_report_c14_chitiet, download_report_c15, download_report_I15,download_report_I15_k2, download_report_c11_chitiet, download_report_c11_chitiet_SM2, download_report_c12_chitiet_SM1, download_report_c15_chitiet
+from c1_process import process_c11_report, process_c11_chitiet_report, process_c12_report, process_c13_report, process_c14_report,process_c14_chitiet_report, process_c15_report,process_c15_chitiet_report, process_I15_report, process_I15_k2_report, process_c11_chitiet_report_SM2, process_c12_chitiet_report_SM1SM2
+from suy_hao_reports import generate_daily_comparison_report, generate_daily_comparison_report_k2
 from exclusion_process import process_exclusion_reports
 from kpi_calculator import tao_bao_cao_kpi
+from import_baocao import main as import_baocao_main
 
 # =============================================================================
 # CẤU HÌNH NGÀY BÁO CÁO CHI TIẾT (SM4-C11, SM2-C11, SM1-C12, SM2-C12)
@@ -95,20 +96,27 @@ def main():
         process_c12_report()
         download_report_c13(page_baocao, report_month)
         process_c13_report()
-         # C14 và chi tiết
+        #C14 và chi tiết
         download_report_c14(page_baocao, report_month)
         process_c14_report()
         download_report_c14_chitiet(page_baocao, report_month)
         process_c14_chitiet_report()
-        download_report_c15(page_baocao, report_month)
-        process_c15_report()
+
+        # download_report_c15(page_baocao, report_month)
+        # process_c15_report()
          # C15 chi tiết
-        download_report_c15_chitiet(page_baocao, report_month)
+        download_report_c15_chitiet(page_baocao)
         process_c15_chitiet_report()
         download_report_I15(page_baocao)
         process_I15_report()
+        download_report_I15_k2(page_baocao)
+        process_I15_k2_report()
+        
         # Tạo báo cáo so sánh SHC ngày (T so với T-1)
         generate_daily_comparison_report()
+        
+        # Tạo báo cáo so sánh SHC K2 ngày (T so với T-1)
+        generate_daily_comparison_report_k2()
 
         #     print("\n✅ Hoàn thành tải báo cáo!")
         #     print("Trình duyệt sẽ giữ mở trong 10 giây để bạn kiểm tra.")
@@ -166,6 +174,10 @@ def main():
         # Tính điểm KPI cho NVKT
         print("\n=== Tính điểm KPI NVKT ===")
         tao_bao_cao_kpi("downloads/baocao_hanoi", "downloads/KPI", "TRƯỚC GIẢM TRỪ")
+
+        # Import dữ liệu vào SQLite database
+        print("\n=== Import dữ liệu vào database ===")
+        import_baocao_main()
 
         print("\n✅ Hoàn thành toàn bộ quá trình!")
 

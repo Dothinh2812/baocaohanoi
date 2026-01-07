@@ -1877,10 +1877,30 @@ def download_report_c14_chitiet(page_baocao, report_month="Tháng 01/2026"):
 
         # Bước 7: Click button "Xuất Excel"
         print("\n✓ Đang click button 'Xuất Excel'...")
+        
+        # Đợi loading overlay biến mất
+        try:
+            loading_overlay = page_baocao.locator("ngx-loading .backdrop")
+            loading_overlay.wait_for(state="hidden", timeout=60000)
+            print("✓ Loading overlay đã biến mất")
+        except:
+            print("⚠️ Không detect được loading overlay, tiếp tục...")
+        
+        time.sleep(2)
+        
         xuatexcel_btn_xpath = "/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[2]/div/button"
         xuatexcel_btn = page_baocao.locator(f"xpath={xuatexcel_btn_xpath}")
         xuatexcel_btn.wait_for(state="visible", timeout=10000)
-        xuatexcel_btn.click()
+        
+        # Thử click với force=True để bypass overlay nếu còn
+        try:
+            xuatexcel_btn.click(force=True, timeout=5000)
+        except:
+            print("⚠️ Click bình thường thất bại, dùng JavaScript...")
+            page_baocao.evaluate("""
+                const btn = document.querySelector('button.dropdown-toggle');
+                if (btn) btn.click();
+            """)
         time.sleep(2)
         print("✅ Đã click button 'Xuất Excel', dropdown đã mở")
 
@@ -2121,11 +2141,17 @@ def download_report_c15_chitiet(page_baocao):
         print("="*80)
 
         # Bước 1: Truy cập URL
-        url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=258408&ploaibc=1&pdonvi_id=284656&pthoigianid=98944679"
+        url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=1&pdonvi_id=284656&pthoigianid=98944771"
         print(f"\n✓ Đang truy cập: {url}")
         page_baocao.goto(url, wait_until="networkidle", timeout=500000)
-        time.sleep(3)
+        time.sleep(20)
         print("✅ Đã tải trang thành công")
+        
+        # Đợi dữ liệu load hoàn toàn
+        print("\\n✓ Đang đợi dữ liệu load...")
+        page_baocao.wait_for_load_state("networkidle", timeout=180000)
+        time.sleep(20)
+        print("✅ Dữ liệu đã load xong")
 
         # # Bước 2: Click vào dropdown button để mở treeview
         # print("\n✓ Đang click vào dropdown button...")
@@ -2180,9 +2206,10 @@ def download_report_c15_chitiet(page_baocao):
         time.sleep(2)
         print("✅ Đã click button 'Xuất Excel', dropdown đã mở")
 
-        # Bước 8: Click "2.Tất cả dữ liệu" để tải file
-        print("\n✓ Đang click '2.Tất cả dữ liệu' để tải file...")
-        download_option = page_baocao.get_by_text("2.Tất cả dữ liệu")
+        # Bước 8: Click icon download để tải file
+        print("\n✓ Đang click icon download để tải file...")
+        download_icon_xpath = "/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-data/div/div[1]/div/div/div/div/div[2]/div/div/i[3]"
+        download_option = page_baocao.locator(f"xpath={download_icon_xpath}")
         download_option.wait_for(state="visible", timeout=10000)
 
         # Bắt đầu tải file
@@ -2472,14 +2499,15 @@ if __name__ == "__main__":
     if result:
         page_baocao, browser_baocao, playwright_baocao = result
 
-        download_report_c11(page_baocao)
-        download_report_c12(page_baocao)
-        download_report_c13(page_baocao)
-        download_report_c11_chitiet_SM2(page_baocao)
-        download_report_c12_chitiet_SM1(page_baocao)
-        download_report_c12_chitiet_SM2(page_baocao)
-        download_report_c14_chitiet(page_baocao)
-        download_report_c15_chitiet(page_baocao)
+        # download_report_c11(page_baocao)
+        # download_report_c12(page_baocao)
+        # download_report_c13(page_baocao)
+        # download_report_c11_chitiet_SM2(page_baocao)
+        # download_report_c12_chitiet_SM1(page_baocao)
+        # download_report_c12_chitiet_SM2(page_baocao)
+        # download_report_c14_chitiet(page_baocao)
+        #download_report_c15_chitiet(page_baocao)
+        download_report_I15(page_baocao)
         download_report_I15_k2(page_baocao)
 
         # Đóng browser sau khi hoàn thành

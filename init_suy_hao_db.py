@@ -7,11 +7,11 @@ Chạy một lần để tạo cấu trúc database
 import sqlite3
 import os
 
-def init_suy_hao_database():
+def init_suy_hao_database(db_name="suy_hao_history.db"):
     """
-    Tạo database suy_hao_history.db với đầy đủ schema
+    Tạo database với đầy đủ schema
     """
-    db_path = os.path.join(os.path.dirname(__file__), "suy_hao_history.db")
+    db_path = os.path.join(os.path.dirname(__file__), db_name)
 
     print(f"\n{'='*80}")
     print(f"KHỞI TẠO DATABASE: {db_path}")
@@ -97,6 +97,8 @@ def init_suy_hao_database():
             so_tang_moi INTEGER DEFAULT 0,
             so_giam_het INTEGER DEFAULT 0,
             so_van_con INTEGER DEFAULT 0,
+            so_tb_quan_ly INTEGER DEFAULT 0,
+            ty_le_shc REAL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(ngay_bao_cao, doi_one, nvkt_db_normalized)
         )
@@ -222,5 +224,10 @@ def init_suy_hao_database():
 
 
 if __name__ == "__main__":
-    db_path = init_suy_hao_database()
-    print(f"Database đã được tạo tại: {db_path}")
+    # Khởi tạo DB cho I1.5 (K1)
+    db_k1 = init_suy_hao_database("suy_hao_history.db")
+    print(f"Database K1 đã được tạo tại: {db_k1}")
+
+    # Khởi tạo DB cho I1.5 K2
+    db_k2 = init_suy_hao_database("suy_hao_history_k2.db")
+    print(f"Database K2 đã được tạo tại: {db_k2}")

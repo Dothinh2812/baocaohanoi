@@ -697,16 +697,221 @@ def process_c15_report():
         return False
 
 
+# def process_c15_chitiet_report():
+#     """
+#       hàm cũ không dùng cho báo cáo 2.Tất cả. hiện không còn dùng
+#     # Xử lý báo cáo chi tiết C1.5:
+#     # 1. Đọc file c1.5_chitiet_report.xlsx
+#     # 2. Chuẩn hóa cột NVKT địa bàn:
+#     #    - VNPT016770-Nguyễn Mạnh Hùng -> Nguyễn Mạnh Hùng
+#     # 3. Tạo sheet mới 'KQ_C15_chitiet' với các cột:
+#     #    - DOIVT: Tên đội
+#     #    - NVKT: Tên NVKT sau khi chuẩn hóa
+#     #    - Phiếu đạt: Số bản ghi có "Đạt chỉ tiêu" = "ĐẠT"
+#     #    - Tổng Hoàn công: Tổng số bản ghi
+#     #    - Tỉ lệ đạt: (Phiếu đạt / Tổng Hoàn công) * 100%
+#     """
+#     try:
+#         print("\n" + "="*80)
+#         print("BẮT ĐẦU XỬ LÝ BÁO CÁO CHI TIẾT C1.5")
+#         print("="*80)
+
+#         # Đường dẫn file
+#         input_file = os.path.join("downloads", "baocao_hanoi", "c1.5_chitiet_report.xlsx")
+
+#         if not os.path.exists(input_file):
+#             print(f"❌ Không tìm thấy file: {input_file}")
+#             return False
+
+#         print(f"\n✓ Đang đọc file: {input_file}")
+
+#         # Đọc file Excel
+#         df = pd.read_excel(input_file)
+#         print(f"✅ Đã đọc file, tổng số dòng: {len(df)}, tổng số cột: {df.shape[1]}")
+#         print(f"Các cột hiện có: {', '.join(df.columns)}")
+
+#         # Kiểm tra các cột cần thiết
+#         required_columns = ['Đạt chỉ tiêu']
+#         missing_columns = [col for col in required_columns if col not in df.columns]
+
+#         if missing_columns:
+#             print(f"❌ Không tìm thấy các cột bắt buộc: {', '.join(missing_columns)}")
+#             return False
+
+#         # Tìm cột NVKT địa bàn (có thể có tên khác nhau)
+#         nvkt_column = None
+#         for col in df.columns:
+#             if 'NVKT' in col.upper() or 'địa bàn' in col.lower():
+#                 nvkt_column = col
+#                 break
+
+#         if nvkt_column is None:
+#             print(f"❌ Không tìm thấy cột NVKT địa bàn")
+#             return False
+
+#         print(f"\n✓ Sử dụng cột '{nvkt_column}' làm cột NVKT")
+
+#         # Tìm cột DOIVT (có thể có tên khác nhau)
+#         doivt_column = None
+#         for col in df.columns:
+#             if 'DOI' in col.upper() or 'đội' in col.lower():
+#                 doivt_column = col
+#                 break
+
+#         if doivt_column is None:
+#             print(f"⚠️ Cảnh báo: Không tìm thấy cột DOIVT, sẽ bỏ qua cột này")
+#             has_doivt = False
+#         else:
+#             print(f"✓ Sử dụng cột '{doivt_column}' làm cột DOIVT")
+#             has_doivt = True
+
+#         # Chuẩn hóa cột NVKT
+#         print("\n✓ Đang chuẩn hóa cột NVKT...")
+
+#         def extract_nvkt_name(nvkt_text):
+#             """
+#             Chuẩn hóa tên NVKT:
+#             VNPT016770-Nguyễn Mạnh Hùng -> Nguyễn Mạnh Hùng
+#             """
+#             if pd.isna(nvkt_text):
+#                 return None
+
+#             nvkt_text = str(nvkt_text).strip()
+
+#             # Loại bỏ phần mã VNPT nếu có
+#             if '-' in nvkt_text:
+#                 parts = nvkt_text.split('-')
+#                 # Lấy phần sau dấu "-" cuối cùng
+#                 nvkt_name = parts[-1].strip()
+#             else:
+#                 nvkt_name = nvkt_text
+
+#             return nvkt_name
+
+#         # Áp dụng hàm chuẩn hóa
+#         df['NVKT'] = df[nvkt_column].apply(extract_nvkt_name)
+
+#         # Loại bỏ các dòng có NVKT là None/NaN
+#         df_filtered = df[df['NVKT'].notna()].copy()
+#         print(f"✅ Đã chuẩn hóa cột NVKT, còn lại {len(df_filtered)} dòng hợp lệ")
+
+#         # Tạo báo cáo tổng hợp
+#         print("\n✓ Đang tạo báo cáo tổng hợp...")
+
+#         report_data = []
+
+#         # Xác định các cột để group by
+#         if has_doivt:
+#             group_columns = [doivt_column, 'NVKT']
+#             print("✓ Nhóm theo DOIVT và NVKT")
+#         else:
+#             group_columns = ['NVKT']
+#             print("✓ Nhóm theo NVKT")
+
+#         # Nhóm dữ liệu
+#         for group_key, group_df in df_filtered.groupby(group_columns):
+#             # Tính toán các chỉ số
+#             tong_hoan_cong = len(group_df)
+#             phieu_dat = len(group_df[group_df['Đạt chỉ tiêu'].str.upper() == 'ĐẠT'])
+#             ti_le_dat = (phieu_dat / tong_hoan_cong * 100) if tong_hoan_cong > 0 else 0
+
+#             if has_doivt:
+#                 doivt, nvkt = group_key
+#                 report_data.append({
+#                     'DOIVT': doivt,
+#                     'NVKT': nvkt,
+#                     'Phiếu đạt': phieu_dat,
+#                     'Tổng Hoàn công': tong_hoan_cong,
+#                     'Tỉ lệ đạt': f"{ti_le_dat:.2f}%"
+#                 })
+#             else:
+#                 nvkt = group_key
+#                 report_data.append({
+#                     'NVKT': nvkt,
+#                     'Phiếu đạt': phieu_dat,
+#                     'Tổng Hoàn công': tong_hoan_cong,
+#                     'Tỉ lệ đạt': f"{ti_le_dat:.2f}%"
+#                 })
+
+#         # Tạo DataFrame từ report_data
+#         df_report = pd.DataFrame(report_data)
+#         print(f"✅ Đã tạo báo cáo với {len(df_report)} dòng")
+
+#         # Ghi vào sheet mới
+#         print("\n✓ Đang ghi vào sheet mới 'KQ_C15_chitiet'...")
+
+#         # Tạo sheet TH_TTVTST - Tổng hợp TTVT Sơn Tây
+#         print("\n✓ Đang tạo sheet TH_TTVTST...")
+
+#         # Tính toán các chỉ số tổng
+#         tong_phieu_dat = len(df_filtered[df_filtered['Đạt chỉ tiêu'].str.upper() == 'ĐẠT'])
+#         tong_phieu_hoan_cong = len(df_filtered)
+#         ti_le_dat_phan_tram = (tong_phieu_dat / tong_phieu_hoan_cong * 100) if tong_phieu_hoan_cong > 0 else 0
+
+#         # Tính điểm BSC theo công thức
+#         def calculate_bsc(ti_le):
+#             """
+#             Tính điểm BSC theo công thức:
+#             - KQ >= 99.5%: BSC = 5
+#             - 89.5% <= KQ < 99.5%: BSC = 1 + 4 * ((KQ - 89.5) / 10)
+#             - KQ < 89.5%: BSC = 1
+#             """
+#             if ti_le >= 99.5:
+#                 return 5.0
+#             elif ti_le >= 89.5:
+#                 return 1 + 4 * ((ti_le - 89.5) / 10)
+#             else:
+#                 return 1.0
+
+#         diem_bsc = calculate_bsc(ti_le_dat_phan_tram)
+
+#         # Tạo DataFrame cho sheet TH_TTVTST
+#         df_tongho = pd.DataFrame([{
+#             'Tổng phiếu đạt': tong_phieu_dat,
+#             'Tổng phiếu Hoàn công': tong_phieu_hoan_cong,
+#             'Tỉ lệ đạt': f"{ti_le_dat_phan_tram:.2f}%",
+#             'BSC': f"{diem_bsc:.2f}"
+#         }])
+
+#         print(f"✅ Đã tạo sheet TH_TTVTST:")
+#         print(f"   - Tổng phiếu đạt: {tong_phieu_dat}")
+#         print(f"   - Tổng phiếu Hoàn công: {tong_phieu_hoan_cong}")
+#         print(f"   - Tỉ lệ đạt: {ti_le_dat_phan_tram:.2f}%")
+#         print(f"   - Điểm BSC: {diem_bsc:.2f}")
+
+#         # Mở file Excel và thêm cả 2 sheet mới
+#         with pd.ExcelWriter(input_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+#             df_report.to_excel(writer, sheet_name='KQ_C15_chitiet', index=False)
+#             df_tongho.to_excel(writer, sheet_name='TH_TTVTST', index=False)
+
+#         print(f"\n✅ Đã ghi dữ liệu vào sheet 'KQ_C15_chitiet'")
+#         print(f"✅ Đã ghi dữ liệu vào sheet 'TH_TTVTST'")
+
+#         print("\n" + "="*80)
+#         print("✅ HOÀN THÀNH XỬ LÝ BÁO CÁO CHI TIẾT C1.5")
+#         print("="*80)
+
+#         return True
+
+#     except Exception as e:
+#         print(f"\n❌ Lỗi khi xử lý báo cáo chi tiết C1.5: {e}")
+#         import traceback
+#         traceback.print_exc()
+#         return False
+
 def process_c15_chitiet_report():
     """
     Xử lý báo cáo chi tiết C1.5:
     1. Đọc file c1.5_chitiet_report.xlsx
-    2. Chuẩn hóa cột NVKT địa bàn:
+    2. Tính thời gian thi công: TG_THI_CONG = (NGAY_HC - NGAY_LHD) * 24 (đơn vị: giờ)
+    3. Đánh giá đạt/không đạt: TG_THI_CONG > 24 -> "Không đạt", ngược lại -> "Đạt"
+    4. Chuẩn hóa cột TEN_NVKT để lấy tên NVKT:
        - VNPT016770-Nguyễn Mạnh Hùng -> Nguyễn Mạnh Hùng
-    3. Tạo sheet mới 'KQ_C15_chitiet' với các cột:
+    5. Tạo sheet mới 'KQ_C15_chitiet' với các cột:
        - DOIVT: Tên đội
        - NVKT: Tên NVKT sau khi chuẩn hóa
-       - Phiếu đạt: Số bản ghi có "Đạt chỉ tiêu" = "ĐẠT"
+       - Phiếu đạt: Số bản ghi có TG_THI_CONG <= 24
+       - Phiếu không đạt: Số bản ghi có TG_THI_CONG > 24
        - Tổng Hoàn công: Tổng số bản ghi
        - Tỉ lệ đạt: (Phiếu đạt / Tổng Hoàn công) * 100%
     """
@@ -729,23 +934,27 @@ def process_c15_chitiet_report():
         print(f"✅ Đã đọc file, tổng số dòng: {len(df)}, tổng số cột: {df.shape[1]}")
         print(f"Các cột hiện có: {', '.join(df.columns)}")
 
-        # Kiểm tra các cột cần thiết
-        required_columns = ['Đạt chỉ tiêu']
+        # Kiểm tra các cột cần thiết cho tính thời gian thi công
+        required_columns = ['NGAY_HC', 'NGAY_LHD']
         missing_columns = [col for col in required_columns if col not in df.columns]
 
         if missing_columns:
             print(f"❌ Không tìm thấy các cột bắt buộc: {', '.join(missing_columns)}")
             return False
 
-        # Tìm cột NVKT địa bàn (có thể có tên khác nhau)
+        # Tìm cột TEN_NVKT
         nvkt_column = None
         for col in df.columns:
-            if 'NVKT' in col.upper() or 'địa bàn' in col.lower():
+            if col == 'TEN_NVKT':
+                nvkt_column = col
+                break
+            elif 'NVKT' in col.upper():
                 nvkt_column = col
                 break
 
         if nvkt_column is None:
-            print(f"❌ Không tìm thấy cột NVKT địa bàn")
+            print(f"❌ Không tìm thấy cột TEN_NVKT")
+            print(f"Các cột hiện có: {', '.join(df.columns)}")
             return False
 
         print(f"\n✓ Sử dụng cột '{nvkt_column}' làm cột NVKT")
@@ -753,7 +962,10 @@ def process_c15_chitiet_report():
         # Tìm cột DOIVT (có thể có tên khác nhau)
         doivt_column = None
         for col in df.columns:
-            if 'DOI' in col.upper() or 'đội' in col.lower():
+            if col == 'DOIVT':
+                doivt_column = col
+                break
+            elif 'DOI' in col.upper():
                 doivt_column = col
                 break
 
@@ -763,6 +975,27 @@ def process_c15_chitiet_report():
         else:
             print(f"✓ Sử dụng cột '{doivt_column}' làm cột DOIVT")
             has_doivt = True
+
+        # Tính thời gian thi công
+        print("\n✓ Đang tính thời gian thi công (TG_THI_CONG)...")
+
+        # Chuyển đổi cột ngày sang datetime
+        df['NGAY_HC'] = pd.to_datetime(df['NGAY_HC'], errors='coerce', dayfirst=True)
+        df['NGAY_LHD'] = pd.to_datetime(df['NGAY_LHD'], errors='coerce', dayfirst=True)
+
+        # Tính TG_THI_CONG = (NGAY_HC - NGAY_LHD) * 24 (đơn vị: giờ)
+        # Chênh lệch ngày * 24 = số giờ
+        df['TG_THI_CONG'] = (df['NGAY_HC'] - df['NGAY_LHD']).dt.total_seconds() / 3600
+
+        # Đánh giá đạt/không đạt: TG_THI_CONG > 24 -> "Không đạt", ngược lại -> "Đạt"
+        df['KET_QUA'] = df['TG_THI_CONG'].apply(lambda x: 'Không đạt' if pd.notna(x) and x > 24 else 'Đạt')
+
+        # Thống kê ban đầu
+        valid_records = df[df['TG_THI_CONG'].notna()]
+        print(f"✅ Đã tính TG_THI_CONG cho {len(valid_records)} bản ghi hợp lệ")
+        print(f"   - TG_THI_CONG trung bình: {valid_records['TG_THI_CONG'].mean():.2f} giờ")
+        print(f"   - TG_THI_CONG min: {valid_records['TG_THI_CONG'].min():.2f} giờ")
+        print(f"   - TG_THI_CONG max: {valid_records['TG_THI_CONG'].max():.2f} giờ")
 
         # Chuẩn hóa cột NVKT
         print("\n✓ Đang chuẩn hóa cột NVKT...")
@@ -790,8 +1023,8 @@ def process_c15_chitiet_report():
         # Áp dụng hàm chuẩn hóa
         df['NVKT'] = df[nvkt_column].apply(extract_nvkt_name)
 
-        # Loại bỏ các dòng có NVKT là None/NaN
-        df_filtered = df[df['NVKT'].notna()].copy()
+        # Loại bỏ các dòng có NVKT là None/NaN và TG_THI_CONG hợp lệ
+        df_filtered = df[(df['NVKT'].notna()) & (df['TG_THI_CONG'].notna())].copy()
         print(f"✅ Đã chuẩn hóa cột NVKT, còn lại {len(df_filtered)} dòng hợp lệ")
 
         # Tạo báo cáo tổng hợp
@@ -811,7 +1044,8 @@ def process_c15_chitiet_report():
         for group_key, group_df in df_filtered.groupby(group_columns):
             # Tính toán các chỉ số
             tong_hoan_cong = len(group_df)
-            phieu_dat = len(group_df[group_df['Đạt chỉ tiêu'].str.upper() == 'ĐẠT'])
+            phieu_dat = len(group_df[group_df['KET_QUA'] == 'Đạt'])
+            phieu_khong_dat = len(group_df[group_df['KET_QUA'] == 'Không đạt'])
             ti_le_dat = (phieu_dat / tong_hoan_cong * 100) if tong_hoan_cong > 0 else 0
 
             if has_doivt:
@@ -820,32 +1054,26 @@ def process_c15_chitiet_report():
                     'DOIVT': doivt,
                     'NVKT': nvkt,
                     'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
                     'Tổng Hoàn công': tong_hoan_cong,
-                    'Tỉ lệ đạt': f"{ti_le_dat:.2f}%"
+                    'Tỉ lệ đạt (%)': round(ti_le_dat, 2)
                 })
             else:
                 nvkt = group_key
                 report_data.append({
                     'NVKT': nvkt,
                     'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
                     'Tổng Hoàn công': tong_hoan_cong,
-                    'Tỉ lệ đạt': f"{ti_le_dat:.2f}%"
+                    'Tỉ lệ đạt (%)': round(ti_le_dat, 2)
                 })
 
         # Tạo DataFrame từ report_data
         df_report = pd.DataFrame(report_data)
         print(f"✅ Đã tạo báo cáo với {len(df_report)} dòng")
 
-        # Ghi vào sheet mới
-        print("\n✓ Đang ghi vào sheet mới 'KQ_C15_chitiet'...")
-
-        # Tạo sheet TH_TTVTST - Tổng hợp TTVT Sơn Tây
+        # Tạo sheet TH_TTVTST - Tổng hợp TTVT Sơn Tây (theo DOIVT và NVKT)
         print("\n✓ Đang tạo sheet TH_TTVTST...")
-
-        # Tính toán các chỉ số tổng
-        tong_phieu_dat = len(df_filtered[df_filtered['Đạt chỉ tiêu'].str.upper() == 'ĐẠT'])
-        tong_phieu_hoan_cong = len(df_filtered)
-        ti_le_dat_phan_tram = (tong_phieu_dat / tong_phieu_hoan_cong * 100) if tong_phieu_hoan_cong > 0 else 0
 
         # Tính điểm BSC theo công thức
         def calculate_bsc(ti_le):
@@ -862,29 +1090,290 @@ def process_c15_chitiet_report():
             else:
                 return 1.0
 
+        # Tạo DataFrame cho sheet TH_TTVTST với cột DOIVT và NVKT
+        th_data = []
+        
+        if has_doivt:
+            # Thống kê theo DOIVT (theo đội)
+            doivt_list = df_filtered[doivt_column].dropna().unique()
+            doivt_list = sorted(doivt_list)
+            
+            for doivt in doivt_list:
+                df_doi = df_filtered[df_filtered[doivt_column] == doivt]
+                
+                phieu_dat = len(df_doi[df_doi['KET_QUA'] == 'Đạt'])
+                phieu_khong_dat = len(df_doi[df_doi['KET_QUA'] == 'Không đạt'])
+                tong_hoan_cong = len(df_doi)
+                ti_le_dat = (phieu_dat / tong_hoan_cong * 100) if tong_hoan_cong > 0 else 0
+                
+                th_data.append({
+                    'DOIVT': doivt,
+                    'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
+                    'Tổng Hoàn công': tong_hoan_cong,
+                    'Tỉ lệ đạt (%)': round(ti_le_dat, 2)
+                })
+        else:
+            # Không có cột DOIVT, tạo 1 dòng tổng hợp
+            phieu_dat = len(df_filtered[df_filtered['KET_QUA'] == 'Đạt'])
+            phieu_khong_dat = len(df_filtered[df_filtered['KET_QUA'] == 'Không đạt'])
+            tong_hoan_cong = len(df_filtered)
+            ti_le_dat = (phieu_dat / tong_hoan_cong * 100) if tong_hoan_cong > 0 else 0
+            
+            th_data.append({
+                'DOIVT': 'Tất cả',
+                'Phiếu đạt': phieu_dat,
+                'Phiếu không đạt': phieu_khong_dat,
+                'Tổng Hoàn công': tong_hoan_cong,
+                'Tỉ lệ đạt (%)': round(ti_le_dat, 2)
+            })
+        
+        # Thêm dòng Tổng (TTVT Sơn Tây)
+        tong_phieu_dat = len(df_filtered[df_filtered['KET_QUA'] == 'Đạt'])
+        tong_phieu_khong_dat = len(df_filtered[df_filtered['KET_QUA'] == 'Không đạt'])
+        tong_phieu_hoan_cong = len(df_filtered)
+        ti_le_dat_phan_tram = (tong_phieu_dat / tong_phieu_hoan_cong * 100) if tong_phieu_hoan_cong > 0 else 0
         diem_bsc = calculate_bsc(ti_le_dat_phan_tram)
+        
+        th_data.append({
+            'DOIVT': 'TTVT Sơn Tây',
+            'Phiếu đạt': tong_phieu_dat,
+            'Phiếu không đạt': tong_phieu_khong_dat,
+            'Tổng Hoàn công': tong_phieu_hoan_cong,
+            'Tỉ lệ đạt (%)': round(ti_le_dat_phan_tram, 2)
+        })
+        
+        # Tạo DataFrame
+        df_tongho = pd.DataFrame(th_data)
 
-        # Tạo DataFrame cho sheet TH_TTVTST
-        df_tongho = pd.DataFrame([{
-            'Tổng phiếu đạt': tong_phieu_dat,
-            'Tổng phiếu Hoàn công': tong_phieu_hoan_cong,
-            'Tỉ lệ đạt': f"{ti_le_dat_phan_tram:.2f}%",
-            'BSC': f"{diem_bsc:.2f}"
-        }])
-
-        print(f"✅ Đã tạo sheet TH_TTVTST:")
-        print(f"   - Tổng phiếu đạt: {tong_phieu_dat}")
+        print(f"✅ Đã tạo sheet TH_TTVTST với {len(th_data) - 1} dòng DOIVT + 1 dòng Tổng:")
+        print(f"   - Tổng phiếu đạt (TG <= 24h): {tong_phieu_dat}")
+        print(f"   - Tổng phiếu không đạt (TG > 24h): {tong_phieu_khong_dat}")
         print(f"   - Tổng phiếu Hoàn công: {tong_phieu_hoan_cong}")
         print(f"   - Tỉ lệ đạt: {ti_le_dat_phan_tram:.2f}%")
         print(f"   - Điểm BSC: {diem_bsc:.2f}")
 
-        # Mở file Excel và thêm cả 2 sheet mới
+        # Tạo sheet chi tiết với cột TG_THI_CONG và KET_QUA
+        print("\n✓ Đang tạo sheet chi tiết dữ liệu...")
+        
+        # Chọn các cột cần thiết cho sheet chi tiết
+        detail_columns = ['MA_TB', 'NGAY_LHD', 'NGAY_HC', 'TG_THI_CONG', 'KET_QUA', 'NVKT']
+        if has_doivt:
+            detail_columns.insert(0, doivt_column)
+        
+        # Chỉ lấy các cột tồn tại
+        available_detail_cols = [col for col in detail_columns if col in df_filtered.columns]
+        df_detail = df_filtered[available_detail_cols].copy()
+        
+        # Làm tròn TG_THI_CONG
+        df_detail['TG_THI_CONG'] = df_detail['TG_THI_CONG'].round(2)
+
+        # Tạo sheet TH_KIEULD - Thống kê theo TEN_KIEULD, TEN_NVKT, DOIVT
+        print("\n✓ Đang tạo sheet TH_KIEULD...")
+        
+        kieuld_data = []
+        
+        # Kiểm tra cột TEN_KIEULD có tồn tại không
+        if 'TEN_KIEULD' in df_filtered.columns:
+            # Xác định các cột để group by
+            group_cols = []
+            if has_doivt:
+                group_cols.append(doivt_column)
+            group_cols.extend(['NVKT', 'TEN_KIEULD'])
+            
+            # Nhóm dữ liệu
+            for group_key, group_df in df_filtered.groupby(group_cols, dropna=False):
+                if has_doivt:
+                    doivt, nvkt, kieuld = group_key
+                else:
+                    nvkt, kieuld = group_key
+                    doivt = ''
+                
+                # Tính toán các chỉ số
+                phieu_dat = len(group_df[group_df['KET_QUA'] == 'Đạt'])
+                phieu_khong_dat = len(group_df[group_df['KET_QUA'] == 'Không đạt'])
+                tong_hoan_cong = len(group_df)
+                ti_le_dat = (phieu_dat / tong_hoan_cong * 100) if tong_hoan_cong > 0 else 0
+                
+                kieuld_data.append({
+                    'DOIVT': doivt if doivt else '',
+                    'NVKT': nvkt if nvkt else '',
+                    'TEN_KIEULD': kieuld if kieuld else '',
+                    'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
+                    'Tổng Hoàn công': tong_hoan_cong,
+                    'Tỉ lệ đạt (%)': round(ti_le_dat, 2)
+                })
+            
+            df_kieuld = pd.DataFrame(kieuld_data)
+            
+            # Sắp xếp theo DOIVT, NVKT, TEN_KIEULD
+            if has_doivt:
+                df_kieuld = df_kieuld.sort_values(['DOIVT', 'NVKT', 'TEN_KIEULD']).reset_index(drop=True)
+            else:
+                df_kieuld = df_kieuld.sort_values(['NVKT', 'TEN_KIEULD']).reset_index(drop=True)
+            
+            print(f"✅ Đã tạo sheet TH_KIEULD với {len(df_kieuld)} dòng")
+        else:
+            print("⚠️ Không tìm thấy cột TEN_KIEULD, bỏ qua tạo sheet TH_KIEULD")
+            df_kieuld = pd.DataFrame()
+
+        # Tạo sheet TH_DVVT - Thống kê theo TEN_DVVT, TEN_NVKT, DOIVT
+        print("\n✓ Đang tạo sheet TH_DVVT...")
+        
+        dvvt_data = []
+        
+        # Kiểm tra cột TEN_DVVT có tồn tại không
+        if 'TEN_DVVT' in df_filtered.columns:
+            # Xác định các cột để group by
+            group_cols = []
+            if has_doivt:
+                group_cols.append(doivt_column)
+            group_cols.extend(['NVKT', 'TEN_DVVT'])
+            
+            # Nhóm dữ liệu
+            for group_key, group_df in df_filtered.groupby(group_cols, dropna=False):
+                if has_doivt:
+                    doivt, nvkt, dvvt = group_key
+                else:
+                    nvkt, dvvt = group_key
+                    doivt = ''
+                
+                # Tính toán các chỉ số
+                phieu_dat = len(group_df[group_df['KET_QUA'] == 'Đạt'])
+                phieu_khong_dat = len(group_df[group_df['KET_QUA'] == 'Không đạt'])
+                tong_hoan_cong = len(group_df)
+                ti_le_dat = (phieu_dat / tong_hoan_cong * 100) if tong_hoan_cong > 0 else 0
+                
+                dvvt_data.append({
+                    'DOIVT': doivt if doivt else '',
+                    'NVKT': nvkt if nvkt else '',
+                    'TEN_DVVT': dvvt if dvvt else '',
+                    'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
+                    'Tổng Hoàn công': tong_hoan_cong,
+                    'Tỉ lệ đạt (%)': round(ti_le_dat, 2)
+                })
+            
+            df_dvvt = pd.DataFrame(dvvt_data)
+            
+            # Sắp xếp theo DOIVT, NVKT, TEN_DVVT
+            if has_doivt:
+                df_dvvt = df_dvvt.sort_values(['DOIVT', 'NVKT', 'TEN_DVVT']).reset_index(drop=True)
+            else:
+                df_dvvt = df_dvvt.sort_values(['NVKT', 'TEN_DVVT']).reset_index(drop=True)
+            
+            print(f"✅ Đã tạo sheet TH_DVVT với {len(df_dvvt)} dòng")
+        else:
+            print("⚠️ Không tìm thấy cột TEN_DVVT, bỏ qua tạo sheet TH_DVVT")
+            df_dvvt = pd.DataFrame()
+
+        # Tạo sheet TH_DVVT_DOI - Thống kê theo TEN_DVVT và DOIVT (không có NVKT)
+        print("\n✓ Đang tạo sheet TH_DVVT_DOI...")
+        
+        dvvt_doi_data = []
+        
+        # Kiểm tra cột TEN_DVVT có tồn tại không
+        if 'TEN_DVVT' in df_filtered.columns and has_doivt:
+            # Nhóm dữ liệu theo DOIVT và TEN_DVVT
+            for (doivt, dvvt), group_df in df_filtered.groupby([doivt_column, 'TEN_DVVT'], dropna=False):
+                # Tính toán các chỉ số
+                phieu_dat = len(group_df[group_df['KET_QUA'] == 'Đạt'])
+                phieu_khong_dat = len(group_df[group_df['KET_QUA'] == 'Không đạt'])
+                tong_hoan_cong = len(group_df)
+                ti_le_dat = (phieu_dat / tong_hoan_cong * 100) if tong_hoan_cong > 0 else 0
+                
+                dvvt_doi_data.append({
+                    'DOIVT': doivt if doivt else '',
+                    'TEN_DVVT': dvvt if dvvt else '',
+                    'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
+                    'Tổng Hoàn công': tong_hoan_cong,
+                    'Tỉ lệ đạt (%)': round(ti_le_dat, 2)
+                })
+            
+            df_dvvt_doi = pd.DataFrame(dvvt_doi_data)
+            
+            # Sắp xếp theo DOIVT, TEN_DVVT
+            df_dvvt_doi = df_dvvt_doi.sort_values(['DOIVT', 'TEN_DVVT']).reset_index(drop=True)
+            
+            print(f"✅ Đã tạo sheet TH_DVVT_DOI với {len(df_dvvt_doi)} dòng")
+        else:
+            if 'TEN_DVVT' not in df_filtered.columns:
+                print("⚠️ Không tìm thấy cột TEN_DVVT, bỏ qua tạo sheet TH_DVVT_DOI")
+            else:
+                print("⚠️ Không tìm thấy cột DOIVT, bỏ qua tạo sheet TH_DVVT_DOI")
+            df_dvvt_doi = pd.DataFrame()
+
+        # Tạo sheet TH_DVVT_TTVT - Thống kê theo TEN_DVVT cho toàn bộ TTVT Sơn Tây
+        print("\n✓ Đang tạo sheet TH_DVVT_TTVT...")
+        
+        dvvt_ttvt_data = []
+        
+        # Kiểm tra cột TEN_DVVT có tồn tại không
+        if 'TEN_DVVT' in df_filtered.columns:
+            # Nhóm dữ liệu chỉ theo TEN_DVVT
+            for dvvt, group_df in df_filtered.groupby('TEN_DVVT', dropna=False):
+                # Tính toán các chỉ số
+                phieu_dat = len(group_df[group_df['KET_QUA'] == 'Đạt'])
+                phieu_khong_dat = len(group_df[group_df['KET_QUA'] == 'Không đạt'])
+                tong_hoan_cong = len(group_df)
+                ti_le_dat = (phieu_dat / tong_hoan_cong * 100) if tong_hoan_cong > 0 else 0
+                
+                dvvt_ttvt_data.append({
+                    'TEN_DVVT': dvvt if dvvt else '',
+                    'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
+                    'Tổng Hoàn công': tong_hoan_cong,
+                    'Tỉ lệ đạt (%)': round(ti_le_dat, 2)
+                })
+            
+            # Thêm dòng Tổng (TTVT Sơn Tây)
+            tong_dat = len(df_filtered[df_filtered['KET_QUA'] == 'Đạt'])
+            tong_khong_dat = len(df_filtered[df_filtered['KET_QUA'] == 'Không đạt'])
+            tong_hc = len(df_filtered)
+            ti_le_tong = (tong_dat / tong_hc * 100) if tong_hc > 0 else 0
+            
+            dvvt_ttvt_data.append({
+                'TEN_DVVT': 'TTVT Sơn Tây (Tổng)',
+                'Phiếu đạt': tong_dat,
+                'Phiếu không đạt': tong_khong_dat,
+                'Tổng Hoàn công': tong_hc,
+                'Tỉ lệ đạt (%)': round(ti_le_tong, 2)
+            })
+            
+            df_dvvt_ttvt = pd.DataFrame(dvvt_ttvt_data)
+            
+            print(f"✅ Đã tạo sheet TH_DVVT_TTVT với {len(df_dvvt_ttvt) - 1} loại dịch vụ + 1 dòng Tổng")
+        else:
+            print("⚠️ Không tìm thấy cột TEN_DVVT, bỏ qua tạo sheet TH_DVVT_TTVT")
+            df_dvvt_ttvt = pd.DataFrame()
+
+        # Mở file Excel và thêm các sheet mới
         with pd.ExcelWriter(input_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
             df_report.to_excel(writer, sheet_name='KQ_C15_chitiet', index=False)
             df_tongho.to_excel(writer, sheet_name='TH_TTVTST', index=False)
+            df_detail.to_excel(writer, sheet_name='Chi_tiet_TG', index=False)
+            if not df_kieuld.empty:
+                df_kieuld.to_excel(writer, sheet_name='TH_KIEULD', index=False)
+            if not df_dvvt.empty:
+                df_dvvt.to_excel(writer, sheet_name='TH_DVVT', index=False)
+            if not df_dvvt_doi.empty:
+                df_dvvt_doi.to_excel(writer, sheet_name='TH_DVVT_DOI', index=False)
+            if not df_dvvt_ttvt.empty:
+                df_dvvt_ttvt.to_excel(writer, sheet_name='TH_DVVT_TTVT', index=False)
 
         print(f"\n✅ Đã ghi dữ liệu vào sheet 'KQ_C15_chitiet'")
         print(f"✅ Đã ghi dữ liệu vào sheet 'TH_TTVTST'")
+        print(f"✅ Đã ghi dữ liệu vào sheet 'Chi_tiet_TG'")
+        if not df_kieuld.empty:
+            print(f"✅ Đã ghi dữ liệu vào sheet 'TH_KIEULD'")
+        if not df_dvvt.empty:
+            print(f"✅ Đã ghi dữ liệu vào sheet 'TH_DVVT'")
+        if not df_dvvt_doi.empty:
+            print(f"✅ Đã ghi dữ liệu vào sheet 'TH_DVVT_DOI'")
+        if not df_dvvt_ttvt.empty:
+            print(f"✅ Đã ghi dữ liệu vào sheet 'TH_DVVT_TTVT'")
 
         print("\n" + "="*80)
         print("✅ HOÀN THÀNH XỬ LÝ BÁO CÁO CHI TIẾT C1.5")
@@ -897,7 +1386,6 @@ def process_c15_chitiet_report():
         import traceback
         traceback.print_exc()
         return False
-
 
 def process_c11_chitiet_report():
     """
@@ -2632,16 +3120,29 @@ def process_I15_report(force_update=False):
     return process_I15_report_with_tracking(force_update=force_update)
 
 
+def process_I15_k2_report(force_update=False):
+    """
+    Xử lý báo cáo I1.5 K2 tương tự I1.5 nhưng dùng file I1.5_k2 report.xlsx
+    """
+    # Import hàm mới
+    import sys
+    import os
+    sys.path.insert(0, os.path.dirname(__file__))
+    from c1_process_enhanced_v2 import process_I15_k2_report_with_tracking
+
+    return process_I15_k2_report_with_tracking(force_update=force_update)
+
+
 if __name__ == "__main__":
     #Test các hàm xử lý
     # process_c11_report()
     # process_c12_report()
     # process_c13_report()
     # process_c14_report()
-    process_c14_chitiet_report()
-    # process_c15_chitiet_report()
+    # process_c14_chitiet_report()
+    process_c15_chitiet_report()
     # process_c15_report()
-    process_I15_report()
+    # process_I15_report()
     # process_c11_chitiet_report_SM2()
     # process_c12_chitiet_report_SM1SM2()
     # process_c11_chitiet_report()

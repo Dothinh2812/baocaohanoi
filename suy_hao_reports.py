@@ -201,6 +201,200 @@ def generate_daily_comparison_report(today_date=None, output_file=None):
     
     return output_file
 
+
+def generate_daily_comparison_report_k2(today_date=None, output_file=None):
+    """
+    Tạo báo cáo so sánh suy hao cao K2 ngày hôm nay với ngày hôm qua
+    Sử dụng database suy_hao_history_k2.db
+    
+    Args:
+        today_date: Ngày cần so sánh (format: 'YYYY-MM-DD' hoặc datetime). 
+                   Mặc định lấy ngày mới nhất trong database.
+        output_file: Đường dẫn file Excel output (tùy chọn)
+    
+    Returns:
+        Đường dẫn file Excel đã tạo
+    """
+    print(f"\n{'='*80}")
+    print(f"TẠO BÁO CÁO SO SÁNH SHC K2 NGÀY")
+    print(f"{'='*80}\n")
+    
+    db_path = "suy_hao_history_k2.db"
+    if not os.path.exists(db_path):
+        print(f"❌ Không tìm thấy database: {db_path}")
+        return None
+    
+    conn = sqlite3.connect(db_path)
+    
+    # Xác định ngày hôm nay và ngày hôm qua
+    if today_date is None:
+        # Lấy ngày mới nhất trong database
+        df_latest = pd.read_sql_query("SELECT MAX(ngay_bao_cao) as latest FROM suy_hao_snapshots", conn)
+        if df_latest.empty or df_latest['latest'][0] is None:
+            print("❌ Không có dữ liệu trong database K2")
+            conn.close()
+            return None
+        today_date = datetime.strptime(df_latest['latest'][0], '%Y-%m-%d')
+    elif isinstance(today_date, str):
+        today_date = datetime.strptime(today_date, '%Y-%m-%d')
+    
+    yesterday_date = today_date - timedelta(days=1)
+    
+    print(f"✓ Ngày hôm nay: {today_date.strftime('%d/%m/%Y')}")
+    print(f"✓ Ngày hôm qua: {yesterday_date.strftime('%d/%m/%Y')}")
+    
+    # Lấy dữ liệu summary ngày hôm nay
+    df_today = pd.read_sql_query(f"""
+        SELECT 
+            doi_one,
+            nvkt_db_normalized,
+            tong_so_hien_tai as so_luong_hom_nay,
+            so_tang_moi as so_phat_sinh,
+            so_giam_het as so_da_giam,
+            so_van_con,
+            so_tb_quan_ly,
+            ty_le_shc as ty_le_hom_nay
+        FROM suy_hao_daily_summary
+        WHERE ngay_bao_cao = '{today_date.strftime('%Y-%m-%d')}'
+    """, conn)
+    
+    # Lấy dữ liệu summary ngày hôm qua
+    df_yesterday = pd.read_sql_query(f"""
+        SELECT 
+            doi_one,
+            nvkt_db_normalized,
+            tong_so_hien_tai as so_luong_hom_qua,
+            ty_le_shc as ty_le_hom_qua
+        FROM suy_hao_daily_summary
+        WHERE ngay_bao_cao = '{yesterday_date.strftime('%Y-%m-%d')}'
+    """, conn)
+    
+    print(f"\n✓ Dữ liệu hôm nay: {len(df_today)} NVKT")
+    print(f"✓ Dữ liệu hôm qua: {len(df_yesterday)} NVKT")
+    
+    if len(df_today) == 0:
+        print(f"❌ Không có dữ liệu ngày {today_date.strftime('%d/%m/%Y')}")
+        conn.close()
+        return None
+    
+    # Merge dữ liệu
+    df_compare = df_today.merge(
+        df_yesterday[['doi_one', 'nvkt_db_normalized', 'so_luong_hom_qua', 'ty_le_hom_qua']],
+        on=['doi_one', 'nvkt_db_normalized'],
+        how='outer'
+    ).fillna(0)
+    
+    # Tính toán chênh lệch
+    df_compare['chenh_lech'] = df_compare['so_luong_hom_nay'] - df_compare['so_luong_hom_qua']
+    df_compare['chenh_lech_ty_le'] = (df_compare['ty_le_hom_nay'] - df_compare['ty_le_hom_qua']).round(2)
+    
+    # Tạo tên cột với ngày cụ thể
+    yesterday_str = yesterday_date.strftime('%d/%m')
+    today_str = today_date.strftime('%d/%m')
+    
+    col_sl_qua = f'SL {yesterday_str}'
+    col_sl_nay = f'SL {today_str}'
+    col_tl_qua = f'TL% {yesterday_str}'
+    col_tl_nay = f'TL% {today_str}'
+    
+    # Đổi tên cột
+    df_compare = df_compare.rename(columns={
+        'doi_one': 'Đơn vị',
+        'nvkt_db_normalized': 'NVKT',
+        'so_luong_hom_qua': col_sl_qua,
+        'so_luong_hom_nay': col_sl_nay,
+        'so_phat_sinh': 'Phát sinh',
+        'so_da_giam': 'Đã giảm',
+        'so_van_con': 'Vẫn còn',
+        'chenh_lech': '+/- SL',
+        'so_tb_quan_ly': 'TB Quản lý',
+        'ty_le_hom_qua': col_tl_qua,
+        'ty_le_hom_nay': col_tl_nay,
+        'chenh_lech_ty_le': '+/- TL%'
+    })
+    
+    # Sắp xếp cột
+    columns_order = ['Đơn vị', 'NVKT', col_sl_qua, col_sl_nay, '+/- SL', 
+                     'Phát sinh', 'Đã giảm', 'Vẫn còn', 'TB Quản lý', 
+                     col_tl_qua, col_tl_nay, '+/- TL%']
+    df_compare = df_compare[[c for c in columns_order if c in df_compare.columns]]
+    df_compare = df_compare.sort_values(by=['Đơn vị', 'NVKT'])
+    
+    # Tổng hợp theo đơn vị
+    df_by_unit = df_compare.groupby('Đơn vị').agg({
+        col_sl_qua: 'sum',
+        col_sl_nay: 'sum',
+        'Phát sinh': 'sum',
+        'Đã giảm': 'sum',
+        'Vẫn còn': 'sum',
+        'TB Quản lý': 'sum'
+    }).reset_index()
+    
+    df_by_unit['+/- SL'] = df_by_unit[col_sl_nay] - df_by_unit[col_sl_qua]
+    df_by_unit[col_tl_qua] = (df_by_unit[col_sl_qua] / df_by_unit['TB Quản lý'] * 100).round(2)
+    df_by_unit[col_tl_nay] = (df_by_unit[col_sl_nay] / df_by_unit['TB Quản lý'] * 100).round(2)
+    df_by_unit['+/- TL%'] = (df_by_unit[col_tl_nay] - df_by_unit[col_tl_qua]).round(2)
+    
+    # Xử lý inf/nan
+    df_by_unit = df_by_unit.replace([float('inf'), -float('inf')], 0).fillna(0)
+    
+    # Thêm dòng tổng
+    total_row = pd.DataFrame({
+        'Đơn vị': ['TỔNG CỘNG'],
+        col_sl_qua: [df_by_unit[col_sl_qua].sum()],
+        col_sl_nay: [df_by_unit[col_sl_nay].sum()],
+        '+/- SL': [df_by_unit['+/- SL'].sum()],
+        'Phát sinh': [df_by_unit['Phát sinh'].sum()],
+        'Đã giảm': [df_by_unit['Đã giảm'].sum()],
+        'Vẫn còn': [df_by_unit['Vẫn còn'].sum()],
+        'TB Quản lý': [df_by_unit['TB Quản lý'].sum()],
+        col_tl_qua: [round(df_by_unit[col_sl_qua].sum() / df_by_unit['TB Quản lý'].sum() * 100, 2) if df_by_unit['TB Quản lý'].sum() > 0 else 0],
+        col_tl_nay: [round(df_by_unit[col_sl_nay].sum() / df_by_unit['TB Quản lý'].sum() * 100, 2) if df_by_unit['TB Quản lý'].sum() > 0 else 0],
+        '+/- TL%': [0]
+    })
+    total_row['+/- TL%'] = total_row[col_tl_nay] - total_row[col_tl_qua]
+    df_by_unit = pd.concat([df_by_unit, total_row], ignore_index=True)
+    
+    # Sắp xếp cột cho df_by_unit
+    unit_columns = ['Đơn vị', col_sl_qua, col_sl_nay, '+/- SL', 
+                    'Phát sinh', 'Đã giảm', 'Vẫn còn', 'TB Quản lý',
+                    col_tl_qua, col_tl_nay, '+/- TL%']
+    df_by_unit = df_by_unit[[c for c in unit_columns if c in df_by_unit.columns]]
+    
+    conn.close()
+    
+    # In thống kê
+    print(f"\n{'─'*60}")
+    print(f"📊 THỐNG KÊ TỔNG HỢP K2:")
+    print(f"   SL {yesterday_str}: {int(total_row[col_sl_qua].iloc[0])}")
+    print(f"   SL {today_str}: {int(total_row[col_sl_nay].iloc[0])}")
+    print(f"   Phát sinh:  +{int(total_row['Phát sinh'].iloc[0])}")
+    print(f"   Đã giảm:    -{int(total_row['Đã giảm'].iloc[0])}")
+    print(f"   Chênh lệch: {int(total_row['+/- SL'].iloc[0]):+d}")
+    print(f"{'─'*60}")
+    
+    # Tạo file Excel
+    if output_file is None:
+        output_file = "downloads/baocao_hanoi/So_sanh_SHC_k2_theo_ngay_T-1.xlsx"
+    
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    
+    print(f"\n✓ Đang ghi file Excel: {output_file}")
+    
+    with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+        # Sheet tổng hợp theo đơn vị
+        df_by_unit.to_excel(writer, sheet_name='Theo_don_vi', index=False)
+        
+        # Sheet chi tiết theo NVKT
+        df_compare.to_excel(writer, sheet_name='Chi_tiet_NVKT', index=False)
+    
+    print(f"✅ Đã tạo báo cáo so sánh K2: {output_file}")
+    print(f"\n{'='*80}")
+    print(f"✅ HOÀN THÀNH BÁO CÁO SO SÁNH SHC K2 NGÀY")
+    print(f"{'='*80}\n")
+    
+    return output_file
+
 def generate_weekly_report(year, week_number, output_file=None):
     """
     Tạo báo cáo so sánh theo tuần

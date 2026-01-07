@@ -124,6 +124,32 @@ def tinh_diem_C14(kq):
         return 1
 
 
+def tinh_diem_C15(kq):
+    """
+    Tính điểm C1.5: Tỉ lệ thiết lập dịch vụ đạt thời gian quy định
+    
+    Args:
+        kq: Tỉ lệ thiết lập dịch vụ đạt (dạng thập phân, vd: 0.995 = 99.5%)
+    
+    Returns:
+        Điểm từ 1-5
+    
+    Công thức:
+        - KQ ≥ 99.5% = 5
+        - 89.5% < KQ < 99.5% = 1 + 4*(KQ - 89.5%)/10%
+        - KQ ≤ 89.5% = 1
+    """
+    if pd.isna(kq) or kq is None:
+        return np.nan
+    
+    if kq >= 0.995:
+        return 5
+    elif kq > 0.895:
+        return 1 + 4 * (kq - 0.895) / 0.10
+    else:
+        return 1
+
+
 # ============================================================================
 # CÁC HÀM ĐỌC DỮ LIỆU TỪ FILE EXCEL
 # ============================================================================
@@ -272,6 +298,26 @@ def doc_C14(data_folder):
     return df
 
 
+def doc_C15(data_folder):
+    """
+    Đọc dữ liệu C1.5: Tỉ lệ thiết lập dịch vụ đạt thời gian quy định
+    File: c1.5_chitiet_report.xlsx, Sheet: KQ_C15_chitiet
+    """
+    file_path = Path(data_folder) / "c1.5_chitiet_report.xlsx"
+    df = pd.read_excel(file_path, sheet_name="KQ_C15_chitiet")
+    
+    df = df[['DOIVT', 'NVKT', 'Phiếu đạt', 'Phiếu không đạt', 'Tổng Hoàn công', 'Tỉ lệ đạt (%)']].copy()
+    df.columns = ['don_vi', 'nvkt', 'c15_phieu_dat', 'c15_phieu_khong_dat', 'c15_tong_phieu', 'c15_ty_le']
+    
+    # Chuẩn hóa tên NVKT
+    df = chuan_hoa_ten(df, 'nvkt')
+    
+    # Chuẩn hóa tỷ lệ về dạng thập phân
+    df = chuan_hoa_ty_le(df, 'c15_ty_le')
+    
+    return df
+
+
 # ============================================================================
 # CÁC HÀM ĐỌC DỮ LIỆU SAU GIẢM TRỪ
 # ============================================================================
@@ -380,6 +426,9 @@ def tinh_diem_kpi_nvkt(data_folder, output_folder=None):
     df_c14 = doc_C14(data_folder)
     print(f"  - C1.4: {len(df_c14)} NVKT")
     
+    df_c15 = doc_C15(data_folder)
+    print(f"  - C1.5: {len(df_c15)} NVKT")
+    
     # 2. Merge tất cả dữ liệu theo nvkt VÀ don_vi
     # (NVKT có thể xuất hiện ở nhiều đơn vị do chuyển đơn vị)
     merge_keys = ['don_vi', 'nvkt']
@@ -415,6 +464,13 @@ def tinh_diem_kpi_nvkt(data_folder, output_folder=None):
         how='outer'
     )
     
+    # Merge C1.5
+    df_all = df_all.merge(
+        df_c15, 
+        on=merge_keys, 
+        how='outer'
+    )
+    
     print(f"\nTổng số NVKT sau merge: {len(df_all)}")
     
     # 3. Tính điểm từng thành phần
@@ -425,22 +481,25 @@ def tinh_diem_kpi_nvkt(data_folder, output_folder=None):
     df_all['diem_c12_tp1'] = df_all['c12_tp1_ty_le'].apply(tinh_diem_C12_TP1)
     df_all['diem_c12_tp2'] = df_all['c12_tp2_ty_le'].apply(tinh_diem_C12_TP2)
     df_all['diem_c14'] = df_all['c14_ty_le'].apply(tinh_diem_C14)
+    df_all['diem_c15'] = df_all['c15_ty_le'].apply(tinh_diem_C15)
     
     # 4. Tính điểm tổng hợp
     df_all['Diem_C1.1'] = df_all['diem_c11_tp1'] * 0.30 + df_all['diem_c11_tp2'] * 0.70
     df_all['Diem_C1.2'] = df_all['diem_c12_tp1'] * 0.50 + df_all['diem_c12_tp2'] * 0.50
     df_all['Diem_C1.4'] = df_all['diem_c14']
+    df_all['Diem_C1.5'] = df_all['diem_c15']
     
     # 5. Làm tròn điểm (2 chữ số thập phân)
-    diem_cols = ['diem_c11_tp1', 'diem_c11_tp2', 'diem_c12_tp1', 'diem_c12_tp2', 'diem_c14',
-                 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4']
+    diem_cols = ['diem_c11_tp1', 'diem_c11_tp2', 'diem_c12_tp1', 'diem_c12_tp2', 'diem_c14', 'diem_c15',
+                 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4', 'Diem_C1.5']
     for col in diem_cols:
         df_all[col] = df_all[col].round(2)
     
     # Làm tròn tỷ lệ về % (2 chữ số thập phân)
-    ty_le_cols = ['c11_tp1_ty_le', 'c11_tp2_ty_le', 'c12_tp1_ty_le', 'c12_tp2_ty_le', 'c14_ty_le']
+    ty_le_cols = ['c11_tp1_ty_le', 'c11_tp2_ty_le', 'c12_tp1_ty_le', 'c12_tp2_ty_le', 'c14_ty_le', 'c15_ty_le']
     for col in ty_le_cols:
-        df_all[col] = (df_all[col] * 100).round(2)  # Chuyển về %
+        if col in df_all.columns:
+            df_all[col] = (df_all[col] * 100).round(2)  # Chuyển về %
     
     # 6. Sắp xếp các cột theo thứ tự logic
     col_order = [
@@ -458,7 +517,9 @@ def tinh_diem_kpi_nvkt(data_folder, output_folder=None):
         # C1.2 Tổng
         'Diem_C1.2',
         # C1.4
-        'c14_phieu_ks', 'c14_phieu_khl', 'c14_ty_le', 'diem_c14', 'Diem_C1.4'
+        'c14_phieu_ks', 'c14_phieu_khl', 'c14_ty_le', 'diem_c14', 'Diem_C1.4',
+        # C1.5
+        'c15_phieu_dat', 'c15_phieu_khong_dat', 'c15_tong_phieu', 'c15_ty_le', 'diem_c15', 'Diem_C1.5'
     ]
     
     # Chỉ lấy các cột tồn tại
@@ -473,16 +534,32 @@ def tinh_diem_kpi_nvkt(data_folder, output_folder=None):
         output_folder = Path(output_folder)
         output_folder.mkdir(parents=True, exist_ok=True)
         
-        # File đầy đủ chi tiết (ghi đè mỗi lần chạy)
+        # File đầy đủ chi tiết - ghi thêm sheet C1.5
         full_file = output_folder / "KPI_NVKT_ChiTiet.xlsx"
-        df_all.to_excel(full_file, index=False)
+        
+        # Tạo DataFrame riêng cho C1.5
+        c15_cols = ['don_vi', 'nvkt', 'c15_phieu_dat', 'c15_phieu_khong_dat', 'c15_tong_phieu', 'c15_ty_le', 'diem_c15', 'Diem_C1.5']
+        df_c15_detail = df_all[[col for col in c15_cols if col in df_all.columns]].copy()
+        df_c15_detail = df_c15_detail.dropna(subset=['c15_tong_phieu'])  # Chỉ lấy NVKT có dữ liệu C1.5
+        
+        with pd.ExcelWriter(full_file, engine='openpyxl') as writer:
+            df_all.to_excel(writer, sheet_name='KPI_ChiTiet', index=False)
+            df_c15_detail.to_excel(writer, sheet_name='C1.5_ChiTiet', index=False)
         print(f"\nĐã xuất file chi tiết: {full_file}")
         
-        # File tóm tắt (ghi đè mỗi lần chạy)
-        summary_cols = ['don_vi', 'nvkt', 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4']
-        df_summary = df_all[summary_cols].copy()
+        # File tóm tắt - ghi thêm sheet C1.5
+        summary_cols = ['don_vi', 'nvkt', 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4', 'Diem_C1.5']
+        df_summary = df_all[[col for col in summary_cols if col in df_all.columns]].copy()
+        
+        # Tóm tắt riêng C1.5
+        c15_summary_cols = ['don_vi', 'nvkt', 'c15_ty_le', 'Diem_C1.5']
+        df_c15_summary = df_all[[col for col in c15_summary_cols if col in df_all.columns]].copy()
+        df_c15_summary = df_c15_summary.dropna(subset=['Diem_C1.5'])
+        
         summary_file = output_folder / "KPI_NVKT_TomTat.xlsx"
-        df_summary.to_excel(summary_file, index=False)
+        with pd.ExcelWriter(summary_file, engine='openpyxl') as writer:
+            df_summary.to_excel(writer, sheet_name='KPI_TomTat', index=False)
+            df_c15_summary.to_excel(writer, sheet_name='C1.5_TomTat', index=False)
         print(f"Đã xuất file tóm tắt: {summary_file}")
     
     return df_all
