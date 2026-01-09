@@ -21,6 +21,7 @@ from suy_hao_reports import generate_daily_comparison_report, generate_daily_com
 from exclusion_process import process_exclusion_reports
 from kpi_calculator import tao_bao_cao_kpi
 from import_baocao import main as import_baocao_main
+from report_generator import generate_kpi_report
 
 # =============================================================================
 # CẤU HÌNH NGÀY BÁO CÁO CHI TIẾT (SM4-C11, SM2-C11, SM1-C12, SM2-C12)
@@ -81,42 +82,129 @@ def main():
 
         # Tải và xử lý báo cáo C1.x
         print("\n=== Bắt đầu tải các báo cáo C1.x ===")
-        download_report_c11(page_baocao, report_month)
-        process_c11_report()
-        # C11 chi tiết (sử dụng start_date và end_date)
-        download_report_c11_chitiet(page_baocao, start_date, end_date)
-        process_c11_chitiet_report()
-        download_report_c11_chitiet_SM2(page_baocao, start_date, end_date)
-        process_c11_chitiet_report_SM2()
+        
+        # Danh sách lưu các báo cáo bị lỗi
+        failed_reports = []
+        
+        # C1.1
+        try:
+            download_report_c11(page_baocao, report_month)
+            process_c11_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo C1.1: {e}")
+            failed_reports.append("C1.1")
+        
+        # C11 chi tiết SM4 (sử dụng start_date và end_date)
+        try:
+            download_report_c11_chitiet(page_baocao, start_date, end_date)
+            process_c11_chitiet_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo C11 chi tiết SM4: {e}")
+            failed_reports.append("C11 chi tiết SM4")
+        
+        # C11 chi tiết SM2
+        try:
+            download_report_c11_chitiet_SM2(page_baocao, start_date, end_date)
+            process_c11_chitiet_report_SM2()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo C11 chi tiết SM2: {e}")
+            failed_reports.append("C11 chi tiết SM2")
+        
         # C12 chi tiết SM1, SM2 (sử dụng start_date và end_date)
-        download_report_c12_chitiet_SM1(page_baocao, start_date, end_date)
-        download_report_c12_chitiet_SM2(page_baocao, start_date, end_date)
-        process_c12_chitiet_report_SM1SM2()
-        download_report_c12(page_baocao, report_month)
-        process_c12_report()
-        download_report_c13(page_baocao, report_month)
-        process_c13_report()
-        #C14 và chi tiết
-        download_report_c14(page_baocao, report_month)
-        process_c14_report()
-        download_report_c14_chitiet(page_baocao, report_month)
-        process_c14_chitiet_report()
+        try:
+            download_report_c12_chitiet_SM1(page_baocao, start_date, end_date)
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải báo cáo C12 chi tiết SM1: {e}")
+            failed_reports.append("C12 chi tiết SM1")
+        
+        try:
+            download_report_c12_chitiet_SM2(page_baocao, start_date, end_date)
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải báo cáo C12 chi tiết SM2: {e}")
+            failed_reports.append("C12 chi tiết SM2")
+        
+        try:
+            process_c12_chitiet_report_SM1SM2()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi xử lý báo cáo C12 chi tiết SM1/SM2: {e}")
+            failed_reports.append("Xử lý C12 chi tiết SM1/SM2")
+        
+        # C1.2
+        try:
+            download_report_c12(page_baocao, report_month)
+            process_c12_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo C1.2: {e}")
+            failed_reports.append("C1.2")
+        
+        # C1.3
+        try:
+            download_report_c13(page_baocao, report_month)
+            process_c13_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo C1.3: {e}")
+            failed_reports.append("C1.3")
+        
+        # C1.4 và chi tiết
+        try:
+            download_report_c14(page_baocao, report_month)
+            process_c14_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo C1.4: {e}")
+            failed_reports.append("C1.4")
+        
+        try:
+            download_report_c14_chitiet(page_baocao, report_month)
+            process_c14_chitiet_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo C1.4 chi tiết: {e}")
+            failed_reports.append("C1.4 chi tiết")
 
-        # download_report_c15(page_baocao, report_month)
-        # process_c15_report()
-         # C15 chi tiết
-        download_report_c15_chitiet(page_baocao)
-        process_c15_chitiet_report()
-        download_report_I15(page_baocao)
-        process_I15_report()
-        download_report_I15_k2(page_baocao)
-        process_I15_k2_report()
+        # C1.5 chi tiết
+        try:
+            download_report_c15_chitiet(page_baocao)
+            process_c15_chitiet_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo C1.5 chi tiết: {e}")
+            failed_reports.append("C1.5 chi tiết")
+        
+        # I1.5
+        try:
+            download_report_I15(page_baocao)
+            process_I15_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo I1.5: {e}")
+            failed_reports.append("I1.5")
+        
+        # I1.5 K2
+        try:
+            download_report_I15_k2(page_baocao)
+            process_I15_k2_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tải/xử lý báo cáo I1.5 K2: {e}")
+            failed_reports.append("I1.5 K2")
         
         # Tạo báo cáo so sánh SHC ngày (T so với T-1)
-        generate_daily_comparison_report()
+        try:
+            generate_daily_comparison_report()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tạo báo cáo so sánh SHC ngày: {e}")
+            failed_reports.append("So sánh SHC ngày")
         
         # Tạo báo cáo so sánh SHC K2 ngày (T so với T-1)
-        generate_daily_comparison_report_k2()
+        try:
+            generate_daily_comparison_report_k2()
+        except Exception as e:
+            print(f"⚠️ Lỗi khi tạo báo cáo so sánh SHC K2 ngày: {e}")
+            failed_reports.append("So sánh SHC K2 ngày")
+        
+        # In tổng kết các báo cáo bị lỗi
+        if failed_reports:
+            print("\n" + "="*60)
+            print(f"⚠️ CÓ {len(failed_reports)} BÁO CÁO BỊ LỖI:")
+            for report_name in failed_reports:
+                print(f"   - {report_name}")
+            print("="*60)
 
         #     print("\n✅ Hoàn thành tải báo cáo!")
         #     print("Trình duyệt sẽ giữ mở trong 10 giây để bạn kiểm tra.")
@@ -174,6 +262,14 @@ def main():
         # Tính điểm KPI cho NVKT
         print("\n=== Tính điểm KPI NVKT ===")
         tao_bao_cao_kpi("downloads/baocao_hanoi", "downloads/KPI", "TRƯỚC GIẢM TRỪ")
+
+        # Tạo báo cáo Word KPI
+        print("\n=== Tạo báo cáo Word KPI ===")
+        generate_kpi_report(
+            kpi_folder="downloads/KPI",
+            output_folder="downloads/reports",
+            report_month=report_month.replace("Tháng ", "") if report_month else None
+        )
 
         # Import dữ liệu vào SQLite database
         print("\n=== Import dữ liệu vào database ===")
