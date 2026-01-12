@@ -23,6 +23,15 @@ def normalize_nvkt(x):
     return x
 
 
+def add_tt_column(df):
+    """Thêm cột TT (Thứ tự) vào đầu DataFrame, đánh số từ 1"""
+    if len(df) == 0:
+        return df
+    df_copy = df.copy()
+    df_copy.insert(0, 'TT', range(1, len(df_copy) + 1))
+    return df_copy
+
+
 def process_I15_report_with_tracking(force_update=False):
     """Wrapper for K1 report"""
     input_file = os.path.join("downloads", "baocao_hanoi", "I1.5 report.xlsx")
@@ -561,7 +570,7 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
 
         # Danh sách chi tiết cho từng NVKT_DB
         print("\n✓ Đang tạo danh sách chi tiết cho từng NVKT_DB...")
-        columns_to_keep = ['ACCOUNT_CTS', 'TEN_TB_ONE', 'DT_ONEDIACHI_ONE', 'NGAY_SUYHAO',
+        columns_to_keep = ['ACCOUNT_CTS', 'TEN_TB_ONE', 'DIACHI_ONE', 'DT_ONEDIACHI_ONE', 'NGAY_SUYHAO',
                           'OLT_CTS', 'PORT_CTS', 'THIETBI', 'SA', 'KETCUOI', 'NVKT_DB_NORMALIZED']
         missing_cols = [col for col in columns_to_keep if col not in df.columns]
         if missing_cols:
@@ -578,23 +587,23 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
         print("\n✓ Đang ghi vào các sheet...")
 
         with pd.ExcelWriter(input_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
-            df.to_excel(writer, sheet_name='Sheet1', index=False)
+            add_tt_column(df).to_excel(writer, sheet_name='Sheet1', index=False)
             print(f"  ✅ Sheet1 (dữ liệu gốc): {len(df)} dòng")
 
-            df_result.to_excel(writer, sheet_name='TH_SHC_I15', index=False)
-            df_by_to.to_excel(writer, sheet_name='TH_SHC_theo_to', index=False)
+            add_tt_column(df_result).to_excel(writer, sheet_name='TH_SHC_I15', index=False)
+            add_tt_column(df_by_to).to_excel(writer, sheet_name='TH_SHC_theo_to', index=False)
             if df_by_sa is not None:
-                df_by_sa.to_excel(writer, sheet_name='shc_theo_SA', index=False)
+                add_tt_column(df_by_sa).to_excel(writer, sheet_name='shc_theo_SA', index=False)
 
             if len(df_bien_dong) > 0:
-                df_bien_dong.to_excel(writer, sheet_name='Bien_dong_tong_hop', index=False)
+                add_tt_column(df_bien_dong).to_excel(writer, sheet_name='Bien_dong_tong_hop', index=False)
                 print(f"  ✅ Bien_dong_tong_hop: {len(df_bien_dong)} dòng")
 
             if len(df_tang_moi) > 0:
                 cols_tang = ['ACCOUNT_CTS', 'TEN_TB_ONE', 'DT_ONEDIACHI_ONE', 'DOI_ONE',
                             'NVKT_DB_NORMALIZED', 'SA', 'OLT_CTS', 'PORT_CTS', 'THIETBI', 'KETCUOI']
                 cols_tang = [c for c in cols_tang if c in df_tang_moi.columns]
-                df_tang_moi[cols_tang].to_excel(writer, sheet_name='Tang_moi', index=False)
+                add_tt_column(df_tang_moi[cols_tang]).to_excel(writer, sheet_name='Tang_moi', index=False)
                 print(f"  ✅ Tang_moi: {len(df_tang_moi)} dòng")
 
             if len(df_giam_het) > 0:
@@ -603,7 +612,7 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
                 cols_giam = [c for c in cols_giam if c in df_giam_het.columns]
                 df_giam_out = df_giam_het[cols_giam].copy()
                 df_giam_out.columns = [c.upper() if c != 'so_ngay_lien_tuc' else 'Số ngày suy hao' for c in df_giam_out.columns]
-                df_giam_out.to_excel(writer, sheet_name='Giam_het', index=False)
+                add_tt_column(df_giam_out).to_excel(writer, sheet_name='Giam_het', index=False)
                 print(f"  ✅ Giam_het: {len(df_giam_het)} dòng")
 
             if len(df_van_con) > 0:
@@ -613,7 +622,7 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
                 df_van_out = df_van_con[cols_van].copy()
                 if 'so_ngay_lien_tuc' in df_van_out.columns:
                     df_van_out = df_van_out.rename(columns={'so_ngay_lien_tuc': 'Số ngày liên tục'})
-                df_van_out.to_excel(writer, sheet_name='Van_con', index=False)
+                add_tt_column(df_van_out).to_excel(writer, sheet_name='Van_con', index=False)
                 print(f"  ✅ Van_con: {len(df_van_con)} dòng")
 
             for nvkt in nvkt_list:
@@ -622,9 +631,71 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
                     df_nvkt = df_nvkt.sort_values(by='SA').reset_index(drop=True)
                 df_nvkt = df_nvkt.drop(columns=['NVKT_DB_NORMALIZED'])
                 sheet_name = str(nvkt)[:31]
-                df_nvkt.to_excel(writer, sheet_name=sheet_name, index=False)
+                add_tt_column(df_nvkt).to_excel(writer, sheet_name=sheet_name, index=False)
 
             print(f"  ✅ Đã tạo {len(nvkt_list)} sheet chi tiết NVKT_DB")
+
+        # ==================================================================
+        # TẠO FILE EXCEL CHI TIẾT CHO TỪNG NVKT THEO THƯ MỤC TỔ
+        # ==================================================================
+        print("\n" + "="*80)
+        print("TẠO FILE EXCEL CHI TIẾT CHO TỪNG NVKT")
+        print("="*80)
+
+        # Tạo thư mục gốc
+        base_dir = os.path.dirname(input_file)
+        detail_dir = os.path.join(base_dir, "shc_NVKT_danh_sach_chi_tiet")
+        if not os.path.exists(detail_dir):
+            os.makedirs(detail_dir)
+            print(f"✓ Đã tạo thư mục: {detail_dir}")
+
+        # Lấy danh sách các cột cần thiết cho file chi tiết
+        detail_columns = ['ACCOUNT_CTS', 'TEN_TB_ONE', 'DIACHI_ONE', 'DT_ONEDIACHI_ONE', 'NGAY_SUYHAO',
+                         'OLT_CTS', 'PORT_CTS', 'THIETBI', 'SA', 'KETCUOI']
+        detail_columns = [c for c in detail_columns if c in df.columns]
+
+        # Đếm số file đã tạo
+        file_count = 0
+
+        # Lấy danh sách các tổ có trong dữ liệu
+        if 'DOI_ONE' in df.columns:
+            doi_list = df['DOI_ONE'].dropna().unique()
+            print(f"✓ Tìm thấy {len(doi_list)} tổ")
+
+            for doi in doi_list:
+                # Tạo thư mục cho tổ (thay thế ký tự không hợp lệ)
+                doi_safe = str(doi).replace('/', '_').replace('\\', '_').replace(':', '_').strip()
+                doi_dir = os.path.join(detail_dir, doi_safe)
+                if not os.path.exists(doi_dir):
+                    os.makedirs(doi_dir)
+
+                # Lấy danh sách NVKT trong tổ
+                df_doi = df[df['DOI_ONE'] == doi]
+                nvkt_in_doi = df_doi['NVKT_DB_NORMALIZED'].dropna().unique()
+
+                for nvkt in nvkt_in_doi:
+                    # Lấy dữ liệu của NVKT
+                    df_nvkt_detail = df_doi[df_doi['NVKT_DB_NORMALIZED'] == nvkt][detail_columns].copy()
+                    
+                    if len(df_nvkt_detail) == 0:
+                        continue
+
+                    # Sắp xếp theo SA
+                    if 'SA' in df_nvkt_detail.columns:
+                        df_nvkt_detail = df_nvkt_detail.sort_values(by='SA').reset_index(drop=True)
+
+                    # Tạo tên file (thay thế ký tự không hợp lệ)
+                    nvkt_safe = str(nvkt).replace('/', '_').replace('\\', '_').replace(':', '_').strip()
+                    file_name = f"{nvkt_safe}.xlsx"
+                    file_path = os.path.join(doi_dir, file_name)
+
+                    # Ghi file Excel với cột TT
+                    add_tt_column(df_nvkt_detail).to_excel(file_path, index=False, sheet_name='Chi tiết SHC')
+                    file_count += 1
+
+            print(f"✅ Đã tạo {file_count} file Excel chi tiết trong thư mục {detail_dir}")
+        else:
+            print("⚠️ Không tìm thấy cột DOI_ONE, bỏ qua tạo file chi tiết theo tổ")
 
         print("\n" + "="*80)
         print("✅ HOÀN THÀNH XỬ LÝ BÁO CÁO I1.5")
