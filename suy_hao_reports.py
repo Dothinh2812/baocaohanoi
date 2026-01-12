@@ -759,33 +759,42 @@ def generate_trend_report(start_date, end_date, output_file=None):
     df_daily['ngay_bao_cao'] = pd.to_datetime(df_daily['ngay_bao_cao']).dt.strftime('%d/%m/%Y')
     df_daily.columns = ['Ngày', 'Đơn vị', 'Số lượng']
 
-    # Pivot để hiển thị theo đơn vị
-    df_pivot = df_daily.pivot(index='Ngày', columns='Đơn vị', values='Số lượng').fillna(0)
+    # Pivot để hiển thị theo đơn vị (đơn vị làm cột index, ngày làm cột dữ liệu)
+    df_pivot = df_daily.pivot(index='Đơn vị', columns='Ngày', values='Số lượng').fillna(0).astype(int)
     df_pivot = df_pivot.reset_index()
 
     # Biến động theo NVKT_DB
     df_nvkt_trend = pd.read_sql_query(f"""
         SELECT
             ngay_bao_cao,
+            doi_one,
             nvkt_db_normalized,
             COUNT(DISTINCT account_cts) as so_luong
         FROM suy_hao_snapshots
         WHERE ngay_bao_cao BETWEEN '{start_date.strftime('%Y-%m-%d')}'
           AND '{end_date.strftime('%Y-%m-%d')}'
-        GROUP BY ngay_bao_cao, nvkt_db_normalized
-        ORDER BY ngay_bao_cao, nvkt_db_normalized
+        GROUP BY ngay_bao_cao, doi_one, nvkt_db_normalized
+        ORDER BY doi_one, nvkt_db_normalized, ngay_bao_cao
     """, conn)
 
     conn.close()
 
-    # Pivot để hiển thị theo NVKT_DB (giống như df_pivot)
-    df_nvkt_trend['ngay_bao_cao'] = pd.to_datetime(df_nvkt_trend['ngay_bao_cao']).dt.strftime('%d/%m/%Y')
-    df_nvkt_pivot = df_nvkt_trend.pivot(index='ngay_bao_cao', columns='nvkt_db_normalized', values='so_luong').fillna(0)
+    # Pivot để hiển thị theo NVKT_DB với cột Đơn vị
+    df_nvkt_trend['ngay_bao_cao'] = pd.to_datetime(df_nvkt_trend['ngay_bao_cao']).dt.strftime('%d/%m')
+    df_nvkt_pivot = df_nvkt_trend.pivot_table(
+        index=['doi_one', 'nvkt_db_normalized'], 
+        columns='ngay_bao_cao', 
+        values='so_luong', 
+        aggfunc='sum',
+        fill_value=0
+    ).astype(int)
     df_nvkt_pivot = df_nvkt_pivot.reset_index()
+    df_nvkt_pivot = df_nvkt_pivot.rename(columns={'doi_one': 'Đơn vị', 'nvkt_db_normalized': 'NVKT'})
+    df_nvkt_pivot = df_nvkt_pivot.sort_values(by=['Đơn vị', 'NVKT'])
 
     # Tạo file Excel
     if output_file is None:
-        output_file = f"downloads/baocao_hanoi/Bao_cao_xu_huong_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.xlsx"
+        output_file = f"downloads/baocao_hanoi/Bao_cao_xu_huong_SHC_{start_date.strftime('%Y%m%d')}_{end_date.strftime('%Y%m%d')}.xlsx"
 
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
@@ -797,8 +806,153 @@ def generate_trend_report(start_date, end_date, output_file=None):
 
         # Sheet xu hướng theo NVKT_DB (pivot table)
         df_nvkt_pivot.to_excel(writer, sheet_name='Xu_huong_theo_NVKT', index=False)
+        
+        # Lấy workbook để thêm biểu đồ
+        workbook = writer.book
+        
+        # Import thêm các module cần thiết cho chart
+        from openpyxl.chart import BarChart, Reference
+        from openpyxl.chart.label import DataLabelList
+        from openpyxl.utils.dataframe import dataframe_to_rows
+        
+        # Tạo biểu đồ cho từng đơn vị
+        units = df_nvkt_pivot['Đơn vị'].unique()
+        date_cols = [col for col in df_nvkt_pivot.columns if col not in ['Đơn vị', 'NVKT']]
+        
+        for unit_name in units:
+            # Lọc dữ liệu theo đơn vị
+            df_unit = df_nvkt_pivot[df_nvkt_pivot['Đơn vị'] == unit_name].copy()
+            
+            if df_unit.empty:
+                continue
+            
+            # Tạo sheet mới cho biểu đồ
+            short_name = unit_name.replace('Tổ Kỹ thuật Địa bàn ', '')
+            sheet_name = f'Bieu_do_{short_name[:10]}'  # Giới hạn 31 ký tự
+            
+            # Tạo sheet mới với dữ liệu
+            ws = workbook.create_sheet(title=sheet_name)
+            
+            # Ghi dữ liệu vào sheet
+            # Header: NVKT + các ngày
+            headers = ['NVKT'] + list(date_cols)
+            for col_idx, header in enumerate(headers, 1):
+                ws.cell(row=1, column=col_idx, value=str(header))
+            
+            # Data rows
+            for row_idx, (_, row) in enumerate(df_unit.iterrows(), 2):
+                ws.cell(row=row_idx, column=1, value=row['NVKT'])
+                for col_idx, date_col in enumerate(date_cols, 2):
+                    ws.cell(row=row_idx, column=col_idx, value=row[date_col])
+            
+            # Tạo biểu đồ bar
+            chart = BarChart()
+            chart.type = "col"
+            chart.grouping = "clustered"
+            chart.title = f"KẾT QUẢ XỬ LÝ SUY HAO CAO - {short_name}"
+            chart.y_axis.title = "Số TB suy hao cao"
+            chart.x_axis.title = None  # Không cần tiêu đề vì đã có tên NVKT
+            chart.x_axis.tickLblPos = "low"  # Hiển thị nhãn ở dưới
+            
+            # Số hàng dữ liệu
+            num_rows = len(df_unit) + 1
+            num_cols = len(date_cols) + 1
+            
+            # Data reference (các cột ngày)
+            data = Reference(ws, min_col=2, min_row=1, max_col=num_cols, max_row=num_rows)
+            
+            # Category reference (tên NVKT) - dùng cách thông thường
+            cats = Reference(ws, min_col=1, min_row=2, max_row=num_rows)
+            
+            chart.add_data(data, titles_from_data=True)
+            chart.set_categories(cats)
+            
+            chart.shape = 4
+            chart.width = 25  # Rộng hơn để tên NVKT không bị chồng
+            chart.height = 12
+            
+            # Thêm data labels - chỉ hiện số lượng
+            chart.dataLabels = DataLabelList()
+            chart.dataLabels.showVal = True
+            chart.dataLabels.showCatName = False
+            chart.dataLabels.showSerName = False
+            chart.dataLabels.showPercent = False
+            chart.dataLabels.showLegendKey = False
+            
+            # Đặt biểu đồ vào vị trí phù hợp (sau bảng dữ liệu)
+            ws.add_chart(chart, f"A{num_rows + 3}")
+        
+        print(f"   ✅ Đã tạo biểu đồ cho {len(units)} đơn vị")
 
     print(f"✅ Đã tạo báo cáo xu hướng: {output_file}")
+    
+    # =========================================================================
+    # TẠO BIỂU ĐỒ DẠNG ẢNH
+    # =========================================================================
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+    chart_folder = "downloads/baocao_hanoi/shc_NVKT_chart"
+    os.makedirs(chart_folder, exist_ok=True)
+    
+    print(f"\n📊 Tạo biểu đồ dạng ảnh...")
+    
+    for unit_name in df_nvkt_pivot['Đơn vị'].unique():
+        df_unit = df_nvkt_pivot[df_nvkt_pivot['Đơn vị'] == unit_name].copy()
+        
+        if df_unit.empty:
+            continue
+        
+        short_name = unit_name.replace('Tổ Kỹ thuật Địa bàn ', '')
+        nvkt_list = df_unit['NVKT'].values
+        date_cols = [col for col in df_unit.columns if col not in ['Đơn vị', 'NVKT']]
+        
+        # Tạo figure
+        fig, ax = plt.subplots(figsize=(16, 8))
+        
+        x = np.arange(len(nvkt_list))
+        n_dates = len(date_cols)
+        width = 0.8 / n_dates
+        
+        # Màu sắc
+        colors = plt.cm.tab10(np.linspace(0, 1, n_dates))
+        
+        # Vẽ từng ngày
+        for i, date_col in enumerate(date_cols):
+            values = df_unit[date_col].values
+            offset = (i - n_dates/2 + 0.5) * width
+            bars = ax.bar(x + offset, values, width, label=str(date_col), color=colors[i])
+            
+            # Thêm giá trị lên cột
+            for bar, val in zip(bars, values):
+                if val > 0:
+                    ax.annotate(f'{int(val)}',
+                               xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                               xytext=(0, 1),
+                               textcoords="offset points",
+                               ha='center', va='bottom',
+                               fontsize=7, fontweight='bold')
+        
+        ax.set_xlabel('NVKT', fontsize=12)
+        ax.set_ylabel('Số TB suy hao cao', fontsize=12)
+        ax.set_title(f'KẾT QUẢ XỬ LÝ SUY HAO CAO - {short_name}\n({start_date.strftime("%d/%m/%Y")} - {end_date.strftime("%d/%m/%Y")})', 
+                     fontsize=14, fontweight='bold', pad=15)
+        ax.set_xticks(x)
+        ax.set_xticklabels(nvkt_list, rotation=45, ha='right', fontsize=10)
+        ax.legend(title='Ngày', loc='upper right', fontsize=9, ncol=2)
+        ax.grid(axis='y', alpha=0.3, linestyle='--')
+        ax.set_axisbelow(True)
+        
+        plt.tight_layout()
+        
+        # Lưu file
+        safe_name = short_name.replace(' ', '_')
+        chart_path = os.path.join(chart_folder, f"SHC_{safe_name}.png")
+        plt.savefig(chart_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        
+        print(f"   ✅ {chart_path}")
+    
     print(f"\n{'='*80}")
     print(f"✅ HOÀN THÀNH BÁO CÁO XU HƯỚNG")
     print(f"{'='*80}\n")

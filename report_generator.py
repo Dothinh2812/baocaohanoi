@@ -686,10 +686,15 @@ def add_c11_detail_table(doc, df_detail, team_name=None):
     df = df.sort_values(['don_vi', 'nvkt'])
     
     # Tiêu đề
-    doc.add_heading('Chi tiết chỉ tiêu C1.1 - Tỷ lệ sửa chữa', level=3)
+    doc.add_heading('Chi tiết chỉ tiêu C1.1 - Chất lượng sửa chữa thuê bao BRCĐ', level=3)
     
-    headers = ['STT', 'NVKT', 'TP1-Tổng', 'TP1-Đạt', 'TP1-TL(%)', 'Điểm TP1',
-               'TP2-Tổng', 'TP2-Đạt', 'TP2-TL(%)', 'Điểm TP2', 'Điểm C1.1']
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 Chú thích: ').bold = True
+    p.add_run('TP1 = Sửa chữa chủ động (SCCD ≤72h) | TP2 = Sửa chữa theo báo hỏng (SC BH)')
+    
+    headers = ['STT', 'NVKT', 'Tổng SCCD', 'Đạt ≤72h', 'TL(%)', 'Điểm TP1',
+               'Tổng SC BH', 'Đúng hạn', 'TL(%)', 'Điểm TP2', 'Điểm C1.1']
     
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = 'Table Grid'
@@ -743,10 +748,15 @@ def add_c12_detail_table(doc, df_detail, team_name=None):
     
     df = df.sort_values(['don_vi', 'nvkt'])
     
-    doc.add_heading('Chi tiết chỉ tiêu C1.2 - Tỷ lệ báo hỏng lặp lại', level=3)
+    doc.add_heading('Chi tiết chỉ tiêu C1.2 - Tỷ lệ thuê bao báo hỏng', level=3)
     
-    headers = ['STT', 'NVKT', 'TP1-HLL', 'TP1-BH', 'TP1-TL(%)', 'Điểm TP1',
-               'TP2-BH', 'TP2-TB', 'TP2-TL(%)', 'Điểm TP2', 'Điểm C1.2']
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 Chú thích: ').bold = True
+    p.add_run('TP1 = Hỏng lặp (≥2 lần/7 ngày) | TP2 = Tỷ lệ BH/TB quản lý | BH = Báo hỏng | TB QL = Thuê bao quản lý')
+    
+    headers = ['STT', 'NVKT', 'Hỏng lặp', 'Tổng BH', 'TL(%)', 'Điểm TP1',
+               'Phiếu BH', 'TB QL', 'TL(‰)', 'Điểm TP2', 'Điểm C1.2']
     
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = 'Table Grid'
@@ -802,7 +812,12 @@ def add_c14_detail_table(doc, df_detail, team_name=None):
     
     doc.add_heading('Chi tiết chỉ tiêu C1.4 - Độ hài lòng khách hàng', level=3)
     
-    headers = ['STT', 'NVKT', 'Phiếu KS', 'Phiếu KHL', 'Tỷ lệ HL (%)', 'Điểm C1.4']
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 Chú thích: ').bold = True
+    p.add_run('KS = Khảo sát | Không HL = Không hài lòng | HL = Hài lòng')
+    
+    headers = ['STT', 'NVKT', 'Tổng KS', 'Không HL', 'Tỷ lệ HL (%)', 'Điểm C1.4']
     
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = 'Table Grid'
@@ -851,9 +866,14 @@ def add_c15_detail_table(doc, df_detail, team_name=None):
     
     df = df.sort_values(['don_vi', 'nvkt'])
     
-    doc.add_heading('Chi tiết chỉ tiêu C1.5 - Tỷ lệ thiết lập dịch vụ đạt', level=3)
+    doc.add_heading('Chi tiết chỉ tiêu C1.5 - Thiết lập dịch vụ BRCĐ đạt thời gian quy định', level=3)
     
-    headers = ['STT', 'NVKT', 'Phiếu đạt', 'Không đạt', 'Tổng phiếu', 'Tỷ lệ (%)', 'Điểm C1.5']
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 Chú thích: ').bold = True
+    p.add_run('Đạt TG = Hoàn thành đúng thời gian (ngoài CCCO: ≤24h, trong CCCO: theo quy định)')
+    
+    headers = ['STT', 'NVKT', 'Đạt TG', 'Không đạt', 'Tổng phiếu', 'Tỷ lệ (%)', 'Điểm C1.5']
     
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = 'Table Grid'
@@ -893,8 +913,387 @@ def add_c15_detail_table(doc, df_detail, team_name=None):
 
 
 # =============================================================================
+# HÀM SHC CHO BÁO CÁO TỔNG HỢP
+# =============================================================================
+
+def load_shc_summary_by_unit(data_folder="downloads/baocao_hanoi"):
+    """
+    Đọc dữ liệu SHC tổng hợp theo đơn vị từ sheet Xu_huong_theo_don_vi
+    
+    Returns:
+        dict: {'units': {...}, 'dates': [...]} hoặc None
+    """
+    import glob
+    
+    pattern = os.path.join(data_folder, "Bao_cao_xu_huong_SHC_*.xlsx")
+    files = glob.glob(pattern)
+    
+    if not files:
+        return None
+    
+    latest_file = max(files, key=os.path.getmtime)
+    
+    try:
+        df = pd.read_excel(latest_file, sheet_name='Xu_huong_theo_don_vi')
+        
+        # Cột đầu tiên là Đơn vị, các cột còn lại là ngày
+        date_columns = [col for col in df.columns if col != 'Đơn vị']
+        
+        result = {'units': {}, 'dates': date_columns}
+        
+        for _, row in df.iterrows():
+            unit_name = row['Đơn vị']
+            values = [int(row[col]) if pd.notna(row[col]) else 0 for col in date_columns]
+            result['units'][unit_name] = values
+        
+        return result
+    except Exception as e:
+        print(f"   ⚠️ Lỗi đọc SHC summary: {e}")
+        return None
+
+
+def load_shc_by_nvkt_for_unit(unit_name, data_folder="downloads/baocao_hanoi"):
+    """
+    Đọc dữ liệu SHC theo từng NVKT cho 1 đơn vị từ sheet Xu_huong_theo_NVKT
+    
+    Returns:
+        dict: {'nvkt_list': [...], 'dates': [...], 'data': {nvkt: [values]}} hoặc None
+    """
+    import glob
+    
+    pattern = os.path.join(data_folder, "Bao_cao_xu_huong_SHC_*.xlsx")
+    files = glob.glob(pattern)
+    
+    if not files:
+        return None
+    
+    latest_file = max(files, key=os.path.getmtime)
+    
+    try:
+        df = pd.read_excel(latest_file, sheet_name='Xu_huong_theo_NVKT')
+        
+        # Lọc theo đơn vị
+        df_unit = df[df['Đơn vị'] == unit_name]
+        
+        if df_unit.empty:
+            return None
+        
+        date_columns = [col for col in df.columns if col not in ['Đơn vị', 'NVKT']]
+        
+        result = {
+            'nvkt_list': [],
+            'dates': [str(d) for d in date_columns],
+            'data': {}
+        }
+        
+        for _, row in df_unit.iterrows():
+            nvkt = row['NVKT']
+            values = [int(row[col]) if pd.notna(row[col]) else 0 for col in date_columns]
+            result['nvkt_list'].append(nvkt)
+            result['data'][nvkt] = values
+        
+        return result
+    except Exception as e:
+        print(f"   ⚠️ Lỗi đọc SHC by NVKT: {e}")
+        return None
+
+
+def create_nvkt_shc_grouped_chart(nvkt_data, unit_name, output_path=None):
+    """
+    Tạo biểu đồ nhóm cột SHC theo NVKT, mỗi ngày 1 màu khác nhau
+    """
+    if not nvkt_data or not nvkt_data['data']:
+        return None
+    
+    nvkt_list = nvkt_data['nvkt_list']
+    dates = nvkt_data['dates']
+    data = nvkt_data['data']
+    
+    # Sử dụng họ tên đầy đủ
+    nvkt_labels = nvkt_list
+    
+    # Setup figure
+    fig, ax = plt.subplots(figsize=(14, 6))
+    
+    x = np.arange(len(nvkt_list))
+    n_dates = len(dates)
+    width = 0.8 / n_dates  # Chiều rộng mỗi cột
+    
+    # Màu sắc cho từng ngày
+    colors = plt.cm.tab10(np.linspace(0, 1, n_dates))
+    
+    # Vẽ từng ngày
+    for i, date in enumerate(dates):
+        values = [data[nvkt][i] for nvkt in nvkt_list]
+        offset = (i - n_dates/2 + 0.5) * width
+        bars = ax.bar(x + offset, values, width, label=date, color=colors[i])
+        
+        # Thêm giá trị lên cột (chỉ nếu > 0)
+        for bar, val in zip(bars, values):
+            if val > 0:
+                ax.annotate(f'{val}',
+                           xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                           xytext=(0, 1),
+                           textcoords="offset points",
+                           ha='center', va='bottom',
+                           fontsize=7, fontweight='bold')
+    
+    short_name = TEAM_SHORT_NAMES.get(unit_name, unit_name)
+    ax.set_xlabel('NVKT', fontsize=11)
+    ax.set_ylabel('Số TB suy hao cao', fontsize=11)
+    ax.set_title(f'KẾT QUẢ XỬ LÝ SUY HAO CAO - {short_name}', fontsize=14, fontweight='bold', pad=15)
+    ax.set_xticks(x)
+    ax.set_xticklabels(nvkt_labels, rotation=45, ha='right', fontsize=9)
+    ax.legend(title='Ngày', loc='upper right', fontsize=8, ncol=2)
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
+    ax.set_axisbelow(True)
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        return output_path
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
+        buf.seek(0)
+        return buf
+
+
+def create_shc_overview_chart(shc_data, output_path=None):
+    """
+    Tạo biểu đồ tổng hợp SHC theo ngày cho tất cả đơn vị (stacked bar)
+    """
+    if not shc_data:
+        return None
+    
+    dates = [str(d) for d in shc_data['dates']]
+    units = shc_data['units']
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    x = np.arange(len(dates))
+    width = 0.2
+    colors = ['#2196F3', '#4CAF50', '#FF9800', '#E91E63']
+    
+    unit_names = list(units.keys())
+    for i, unit_name in enumerate(unit_names):
+        short_name = TEAM_SHORT_NAMES.get(unit_name, unit_name)
+        values = units[unit_name]
+        bars = ax.bar(x + i * width, values, width, label=short_name, color=colors[i % len(colors)])
+        
+        # Thêm giá trị lên cột
+        for bar, val in zip(bars, values):
+            if val > 0:
+                ax.annotate(f'{val}', xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                           xytext=(0, 2), textcoords="offset points",
+                           ha='center', va='bottom', fontsize=8)
+    
+    ax.set_xlabel('Ngày', fontsize=11)
+    ax.set_ylabel('Số TB suy hao cao', fontsize=11)
+    ax.set_title('XU HƯỚNG SUY HAO CAO THEO ĐƠN VỊ', fontsize=14, fontweight='bold', pad=15)
+    ax.set_xticks(x + width * (len(unit_names) - 1) / 2)
+    ax.set_xticklabels(dates, rotation=45, ha='right', fontsize=9)
+    ax.legend(loc='upper right')
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        return output_path
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
+        buf.seek(0)
+        return buf
+
+
+def add_shc_overview_section(doc, data_folder="downloads/baocao_hanoi"):
+    """
+    Thêm phần tổng quan SHC vào báo cáo (PHẦN 1)
+    """
+    shc_data = load_shc_summary_by_unit(data_folder)
+    
+    if not shc_data:
+        return
+    
+    doc.add_heading('1.4. Tổng quan Suy Hao Cao', level=2)
+    
+    dates = shc_data['dates']
+    units = shc_data['units']
+    
+    # Bảng tổng hợp
+    table = doc.add_table(rows=1, cols=len(dates) + 2)
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    # Header
+    headers = ['Đơn vị'] + [str(d) for d in dates] + ['Tổng']
+    for i, header in enumerate(headers):
+        cell = table.rows[0].cells[i]
+        cell.text = header
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '1565C0')
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+    
+    # Data rows
+    grand_total = 0
+    for unit_name, values in units.items():
+        cells = table.add_row().cells
+        short_name = TEAM_SHORT_NAMES.get(unit_name, unit_name)
+        cells[0].text = short_name
+        
+        total = sum(values)
+        grand_total += total
+        
+        for j, val in enumerate(values):
+            cells[j + 1].text = str(val)
+            cells[j + 1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[j + 1].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            if val > 5:
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(200, 0, 0)
+        
+        cells[-1].text = str(total)
+        cells[-1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = cells[-1].paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.size = Pt(9)
+    
+    # Dòng tổng
+    cells = table.add_row().cells
+    cells[0].text = 'TỔNG CỘNG'
+    cells[0].paragraphs[0].runs[0].font.bold = True
+    set_cell_shading(cells[0], 'E3F2FD')
+    
+    totals_by_date = [sum(units[u][i] for u in units) for i in range(len(dates))]
+    for j, total in enumerate(totals_by_date):
+        cells[j + 1].text = str(total)
+        cells[j + 1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        cells[j + 1].paragraphs[0].runs[0].font.bold = True
+        set_cell_shading(cells[j + 1], 'E3F2FD')
+    
+    cells[-1].text = str(grand_total)
+    cells[-1].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cells[-1].paragraphs[0].runs[0].font.bold = True
+    set_cell_shading(cells[-1], 'E3F2FD')
+    
+    doc.add_paragraph()
+    
+    # Biểu đồ
+    try:
+        chart = create_shc_overview_chart(shc_data)
+        if chart:
+            doc.add_picture(chart, width=Inches(6.5))
+            last_paragraph = doc.paragraphs[-1]
+            last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    except Exception as e:
+        print(f"   ⚠️ Không thể tạo biểu đồ SHC: {e}")
+    
+    doc.add_paragraph()
+
+
+def add_shc_unit_section(doc, unit_name, data_folder="downloads/baocao_hanoi"):
+    """
+    Thêm phần SHC chi tiết cho 1 đơn vị (trong PHẦN 2)
+    """
+    shc_data = load_shc_summary_by_unit(data_folder)
+    
+    if not shc_data or unit_name not in shc_data['units']:
+        return
+    
+    dates = shc_data['dates']
+    values = shc_data['units'][unit_name]
+    
+    short_name = TEAM_SHORT_NAMES.get(unit_name, unit_name)
+    doc.add_heading(f'Số liệu Suy Hao Cao - {short_name}', level=3)
+    
+    # Bảng dữ liệu - cải thiện format
+    table = doc.add_table(rows=2, cols=len(dates) + 1)
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    # Header row - bao gồm cột Chỉ tiêu
+    headers = ['Ngày'] + [str(d) for d in dates]
+    for j, header in enumerate(headers):
+        cell = table.rows[0].cells[j]
+        cell.text = header
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '1565C0')
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+    
+    # Data row
+    table.rows[1].cells[0].text = 'Số TB SHC'
+    table.rows[1].cells[0].paragraphs[0].runs[0].font.bold = True
+    table.rows[1].cells[0].paragraphs[0].runs[0].font.size = Pt(9)
+    set_cell_shading(table.rows[1].cells[0], 'E3F2FD')
+    
+    for j, val in enumerate(values):
+        cell = table.rows[1].cells[j + 1]
+        cell.text = str(val)
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = cell.paragraphs[0].runs[0]
+        run.font.size = Pt(10)
+        run.font.bold = True
+        
+        # Tô màu theo mức độ (dựa trên ngưỡng phù hợp cho đơn vị)
+        avg_val = sum(values) / len(values) if values else 0
+        if val <= avg_val * 0.5:
+            set_cell_shading(cell, 'C8E6C9')  # Xanh nhạt - tốt
+            run.font.color.rgb = RGBColor(0, 128, 0)
+        elif val <= avg_val * 1.2:
+            set_cell_shading(cell, 'FFF9C4')  # Vàng nhạt - trung bình
+        else:
+            set_cell_shading(cell, 'FFCDD2')  # Đỏ nhạt - cao
+            run.font.color.rgb = RGBColor(200, 0, 0)
+    
+    doc.add_paragraph()
+    
+    # Thống kê chi tiết
+    total = sum(values)
+    avg = total / len(values) if values else 0
+    max_val = max(values) if values else 0
+    min_val = min(values) if values else 0
+    max_day = dates[values.index(max_val)] if values else 'N/A'
+    min_day = dates[values.index(min_val)] if values else 'N/A'
+    
+    p = doc.add_paragraph()
+    p.add_run(f'📊 Tổng: {total} | Trung bình: {avg:.1f}/ngày | ').bold = True
+    p.add_run(f'Cao nhất: {max_val} ({max_day}) | Thấp nhất: {min_val} ({min_day})')
+    
+    doc.add_paragraph()
+    
+    # Biểu đồ nhóm theo NVKT (như hình mẫu)
+    try:
+        nvkt_data = load_shc_by_nvkt_for_unit(unit_name, data_folder)
+        if nvkt_data:
+            chart = create_nvkt_shc_grouped_chart(nvkt_data, unit_name)
+            if chart:
+                doc.add_picture(chart, width=Inches(6.5))
+                last_paragraph = doc.paragraphs[-1]
+                last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    except Exception as e:
+        print(f"   ⚠️ Không thể tạo biểu đồ SHC cho {short_name}: {e}")
+    
+    doc.add_paragraph()
+
+
+# =============================================================================
 # HÀM TẠO BÁO CÁO WORD HOÀN CHỈNH
 # =============================================================================
+
 def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUTPUT_FOLDER, 
                          report_month=None, report_title=None):
     """
@@ -973,6 +1372,42 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     
     # 1.2 Thêm bảng thống kê tổng hợp theo tổ - sử dụng điểm BSC thực tế
     doc.add_heading('1.2. Thống kê điểm BSC theo đơn vị', level=2)
+    
+    # Chú thích giải thích các chỉ tiêu
+    legend = doc.add_paragraph()
+    legend.add_run('📋 CHÚ THÍCH CÁC CHỈ TIÊU BSC - VIỄN CẢNH KHÁCH HÀNG (C)').bold = True
+    
+    # C1.1
+    p11 = doc.add_paragraph()
+    p11.add_run('C1.1 - Chất lượng sửa chữa thuê bao BRCĐ: ').bold = True
+    p11.add_run('Gồm 2 thành phần:\n')
+    p11.add_run('   • TP1 (30%): Sửa chữa chủ động - Tỷ lệ phiếu SCCD hoàn thành ≤72h\n')
+    p11.add_run('   • TP2 (70%): Sửa chữa theo báo hỏng - Tỷ lệ phiếu BH hoàn thành đúng hạn')
+    
+    # C1.2
+    p12 = doc.add_paragraph()
+    p12.add_run('C1.2 - Tỷ lệ thuê bao báo hỏng: ').bold = True
+    p12.add_run('Gồm 2 thành phần:\n')
+    p12.add_run('   • TP1 (50%): Hỏng lặp lại - Tỷ lệ TB báo hỏng ≥2 lần/7 ngày\n')
+    p12.add_run('   • TP2 (50%): Tỷ lệ sự cố - Tỷ lệ phiếu BH / Tổng TB quản lý (‰)')
+    
+    # C1.3
+    p13 = doc.add_paragraph()
+    p13.add_run('C1.3 - Chất lượng sửa chữa kênh TSL (Leased Line): ').bold = True
+    p13.add_run('Áp dụng cho các dịch vụ Internet trực tiếp, kênh thuê riêng, MegaWan, Metronet, Siptrunking')
+    
+    # C1.4
+    p14 = doc.add_paragraph()
+    p14.add_run('C1.4 - Độ hài lòng khách hàng: ').bold = True
+    p14.add_run('Tỷ lệ khách hàng hài lòng sau khi được sửa chữa (qua khảo sát)')
+    
+    # C1.5
+    p15 = doc.add_paragraph()
+    p15.add_run('C1.5 - Thiết lập dịch vụ BRCĐ đạt thời gian quy định: ').bold = True
+    p15.add_run('Tỷ lệ phiếu lắp đặt hoàn thành đúng hạn\n')
+    p15.add_run('   • Ngoài CCCO: ≤24h | Trong CCCO: Phiếu trước 17h xong trong ngày')
+    
+    doc.add_paragraph()  # Spacing
     
     # Chuẩn bị dữ liệu BSC từ các báo cáo C1.x
     teams_order = ['Phúc Thọ', 'Quảng Oai', 'Suối Hai', 'Sơn Tây']
@@ -1107,6 +1542,10 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     if c1x_reports:
         add_c1x_overview_table(doc, c1x_reports)
     
+    # 1.5 Tổng quan Suy Hao Cao
+    print("📊 Thêm phần Suy Hao Cao...")
+    add_shc_overview_section(doc, data_folder="downloads/baocao_hanoi")
+    
     doc.add_page_break()
     
     # =========================================================================
@@ -1146,6 +1585,9 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
         doc.add_paragraph()
         
         add_c15_detail_table(doc, df_detail, team_name)
+        
+        # Số liệu Suy Hao Cao cho tổ
+        add_shc_unit_section(doc, team_name, data_folder="downloads/baocao_hanoi")
         
         # Thêm page break sau mỗi tổ (trừ tổ cuối)
         if team_idx < len(teams):
@@ -1368,16 +1810,16 @@ def add_individual_c11_detail(doc, nvkt_data):
     """
     Thêm chi tiết chỉ tiêu C1.1 cho 1 NVKT
     """
-    doc.add_heading('2. CHI TIẾT CHỈ TIÊU C1.1 - TỶ LỆ SỬA CHỮA', level=2)
+    doc.add_heading('2. CHI TIẾT CHỈ TIÊU C1.1 - CHẤT LƯỢNG SỬA CHỮA BRCĐ', level=2)
     
     # Thành phần 1
-    doc.add_heading('2.1. Thành phần 1: Tỷ lệ sửa chữa phiếu chất lượng chủ động (30%)', level=3)
+    doc.add_heading('2.1. Thành phần 1: Sửa chữa chủ động (SCCD ≤72h) - 30%', level=3)
     
     table1 = doc.add_table(rows=2, cols=4)
     table1.style = 'Table Grid'
     set_table_border(table1)
     
-    headers1 = ['Tổng phiếu', 'Phiếu đạt', 'Tỷ lệ đạt (%)', 'Điểm']
+    headers1 = ['Tổng SCCD', 'Đạt ≤72h', 'Tỷ lệ (%)', 'Điểm']
     for i, cell in enumerate(table1.rows[0].cells):
         cell.text = headers1[i]
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1402,13 +1844,13 @@ def add_individual_c11_detail(doc, nvkt_data):
     doc.add_paragraph()
     
     # Thành phần 2
-    doc.add_heading('2.2. Thành phần 2: Tỷ lệ sửa chữa báo hỏng đúng quy định (70%)', level=3)
+    doc.add_heading('2.2. Thành phần 2: Sửa chữa theo báo hỏng (đúng hạn) - 70%', level=3)
     
     table2 = doc.add_table(rows=2, cols=4)
     table2.style = 'Table Grid'
     set_table_border(table2)
     
-    headers2 = ['Tổng phiếu', 'Phiếu đạt', 'Tỷ lệ đạt (%)', 'Điểm']
+    headers2 = ['Tổng SC BH', 'Đúng hạn', 'Tỷ lệ (%)', 'Điểm']
     for i, cell in enumerate(table2.rows[0].cells):
         cell.text = headers2[i]
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1452,16 +1894,16 @@ def add_individual_c12_detail(doc, nvkt_data):
     """
     Thêm chi tiết chỉ tiêu C1.2 cho 1 NVKT
     """
-    doc.add_heading('3. CHI TIẾT CHỈ TIÊU C1.2 - TỶ LỆ BÁO HỎNG LẶP LẠI & SỰ CỐ', level=2)
+    doc.add_heading('3. CHI TIẾT CHỈ TIÊU C1.2 - TỶ LỆ THUÊ BAO BÁO HỎNG', level=2)
     
     # Thành phần 1
-    doc.add_heading('3.1. Thành phần 1: Tỷ lệ thuê bao báo hỏng lặp lại (50%)', level=3)
+    doc.add_heading('3.1. Thành phần 1: Hỏng lặp (≥2 lần/7 ngày) - 50%', level=3)
     
     table1 = doc.add_table(rows=2, cols=4)
     table1.style = 'Table Grid'
     set_table_border(table1)
     
-    headers1 = ['Phiếu HLL', 'Phiếu BH', 'Tỷ lệ HLL (%)', 'Điểm']
+    headers1 = ['TB hỏng lặp', 'Tổng BH', 'Tỷ lệ (%)', 'Điểm']
     for i, cell in enumerate(table1.rows[0].cells):
         cell.text = headers1[i]
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1486,13 +1928,13 @@ def add_individual_c12_detail(doc, nvkt_data):
     doc.add_paragraph()
     
     # Thành phần 2
-    doc.add_heading('3.2. Thành phần 2: Tỷ lệ sự cố dịch vụ BRCĐ (50%)', level=3)
+    doc.add_heading('3.2. Thành phần 2: Tỷ lệ BH/TB quản lý (‰) - 50%', level=3)
     
     table2 = doc.add_table(rows=2, cols=4)
     table2.style = 'Table Grid'
     set_table_border(table2)
     
-    headers2 = ['Phiếu BH', 'Tổng TB', 'Tỷ lệ sự cố (%)', 'Điểm']
+    headers2 = ['Phiếu BH', 'TB quản lý', 'Tỷ lệ (‰)', 'Điểm']
     for i, cell in enumerate(table2.rows[0].cells):
         cell.text = headers2[i]
         cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1613,6 +2055,235 @@ def add_individual_c15_detail(doc, nvkt_data):
     p.add_run('≥ 99.5% = 5 điểm, 89.5% < KQ < 99.5% = nội suy, ≤ 89.5% = 1 điểm')
 
 
+def load_shc_trend_data(nvkt_name, data_folder="downloads/baocao_hanoi"):
+    """
+    Đọc dữ liệu xu hướng SHC cho 1 NVKT từ file Bao_cao_xu_huong_*.xlsx
+    
+    Args:
+        nvkt_name: Tên NVKT cần tìm
+        data_folder: Thư mục chứa file báo cáo
+    
+    Returns:
+        dict: {'dates': [...], 'values': [...], 'don_vi': '...'} hoặc None
+    """
+    import glob
+    
+    # Tìm file Bao_cao_xu_huong mới nhất
+    pattern = os.path.join(data_folder, "Bao_cao_xu_huong_SHC_*.xlsx")
+    files = glob.glob(pattern)
+    
+    if not files:
+        return None
+    
+    # Sắp xếp theo thời gian chỉnh sửa file (mới nhất cuối cùng)
+    latest_file = max(files, key=os.path.getmtime)
+    print(f"   📊 Sử dụng file SHC: {os.path.basename(latest_file)}")
+    
+    try:
+        # Đọc sheet Xu_huong_theo_NVKT
+        df = pd.read_excel(latest_file, sheet_name='Xu_huong_theo_NVKT')
+        
+        # Tìm NVKT trong cột 'NVKT'
+        nvkt_row = df[df['NVKT'] == nvkt_name]
+        
+        if nvkt_row.empty:
+            return None
+        
+        row = nvkt_row.iloc[0]
+        don_vi = row.get('Đơn vị', '')
+        
+        # Lấy các cột ngày (không phải 'Đơn vị' và 'NVKT')
+        date_columns = [col for col in df.columns if col not in ['Đơn vị', 'NVKT']]
+        
+        dates = []
+        values = []
+        for col in date_columns:
+            dates.append(str(col))
+            val = row[col]
+            values.append(int(val) if pd.notna(val) else 0)
+        
+        return {
+            'dates': dates,
+            'values': values,
+            'don_vi': don_vi
+        }
+    except Exception as e:
+        print(f"   ⚠️ Lỗi đọc dữ liệu SHC: {e}")
+        return None
+
+
+def create_shc_trend_bar_chart(shc_data, nvkt_name, output_path=None):
+    """
+    Tạo biểu đồ cột thể hiện xu hướng số TB suy hao cao theo ngày
+    
+    Args:
+        shc_data: dict với keys 'dates' và 'values'
+        nvkt_name: Tên NVKT
+        output_path: Đường dẫn lưu file (None = trả về bytes)
+    
+    Returns:
+        bytes hoặc str: Chart image
+    """
+    if not shc_data or not shc_data.get('dates') or not shc_data.get('values'):
+        return None
+    
+    dates = shc_data['dates']
+    values = shc_data['values']
+    
+    # Tạo figure
+    fig, ax = plt.subplots(figsize=(10, 5))
+    
+    # Vẽ biểu đồ cột
+    x_pos = range(len(dates))
+    bars = ax.bar(x_pos, values, color='#2196F3', edgecolor='#1565C0', linewidth=1)
+    
+    # Thêm giá trị lên cột
+    for bar, val in zip(bars, values):
+        height = bar.get_height()
+        ax.annotate(f'{val}',
+                   xy=(bar.get_x() + bar.get_width() / 2, height),
+                   xytext=(0, 3),
+                   textcoords="offset points",
+                   ha='center', va='bottom',
+                   fontsize=9, fontweight='bold')
+    
+    # Thiết lập trục
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(dates, rotation=45, ha='right', fontsize=9)
+    ax.set_ylabel('Số TB suy hao cao', fontsize=11)
+    ax.set_xlabel('Ngày', fontsize=11)
+    ax.set_title(f'XU HƯỚNG SỐ TB SUY HAO CAO - {nvkt_name}', fontsize=12, fontweight='bold', pad=15)
+    
+    # Grid và layout
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
+    ax.set_axisbelow(True)
+    
+    # Đường xu hướng trung bình
+    if len(values) > 1:
+        avg = sum(values) / len(values)
+        ax.axhline(y=avg, color='#E91E63', linestyle='--', linewidth=1.5, alpha=0.7, 
+                   label=f'TB: {avg:.1f}')
+        ax.legend(loc='upper right')
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        return output_path
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
+        buf.seek(0)
+        return buf
+
+
+def add_individual_shc_section(doc, nvkt_name, data_folder="downloads/baocao_hanoi"):
+    """
+    Thêm phần Số liệu Suy Hao Cao vào báo cáo cá nhân
+    Bao gồm: Bảng dữ liệu + Biểu đồ bar
+    
+    Args:
+        doc: Document Word
+        nvkt_name: Tên NVKT
+        data_folder: Thư mục chứa file báo cáo
+    """
+    # Load dữ liệu SHC
+    shc_data = load_shc_trend_data(nvkt_name, data_folder)
+    
+    if not shc_data:
+        return  # Không có dữ liệu SHC
+    
+    doc.add_page_break()
+    doc.add_heading('6. SỐ LIỆU SUY HAO CAO', level=2)
+    
+    dates = shc_data['dates']
+    values = shc_data['values']
+    
+    # Mô tả
+    p = doc.add_paragraph()
+    p.add_run('📊 Xu hướng số thuê bao suy hao cao theo ngày:').bold = True
+    
+    doc.add_paragraph()
+    
+    # Tạo bảng dữ liệu (chia thành các nhóm nếu nhiều ngày)
+    max_cols = 10  # Số cột tối đa mỗi bảng
+    
+    for i in range(0, len(dates), max_cols):
+        chunk_dates = dates[i:i+max_cols]
+        chunk_values = values[i:i+max_cols]
+        
+        table = doc.add_table(rows=2, cols=len(chunk_dates))
+        table.style = 'Table Grid'
+        set_table_border(table)
+        
+        # Header row - Ngày
+        for j, date in enumerate(chunk_dates):
+            cell = table.rows[0].cells[j]
+            cell.text = str(date)
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            set_cell_shading(cell, '1E88E5')
+            run = cell.paragraphs[0].runs[0]
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(255, 255, 255)
+            run.font.size = Pt(9)
+        
+        # Data row - Số lượng
+        for j, val in enumerate(chunk_values):
+            cell = table.rows[1].cells[j]
+            cell.text = str(val)
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cell.paragraphs[0].runs[0]
+            run.font.size = Pt(10)
+            run.font.bold = True
+            
+            # Tô màu theo mức độ
+            if val == 0:
+                set_cell_shading(cell, 'C8E6C9')  # Xanh lá nhạt
+                run.font.color.rgb = RGBColor(0, 128, 0)
+            elif val <= 3:
+                set_cell_shading(cell, 'FFF9C4')  # Vàng nhạt
+            else:
+                set_cell_shading(cell, 'FFCDD2')  # Đỏ nhạt
+                run.font.color.rgb = RGBColor(200, 0, 0)
+        
+        doc.add_paragraph()
+    
+    # Thống kê tổng quan
+    total = sum(values)
+    avg = total / len(values) if values else 0
+    max_val = max(values) if values else 0
+    min_val = min(values) if values else 0
+    
+    p = doc.add_paragraph()
+    p.add_run(f'📈 Tổng số TB SHC trong kỳ: ').bold = True
+    p.add_run(f'{total}')
+    
+    p = doc.add_paragraph()
+    p.add_run(f'📊 Trung bình/ngày: ').bold = True
+    p.add_run(f'{avg:.1f}')
+    
+    p = doc.add_paragraph()
+    p.add_run(f'⬆️ Cao nhất: ').bold = True
+    p.add_run(f'{max_val}')
+    p.add_run(f'  |  ')
+    p.add_run(f'⬇️ Thấp nhất: ').bold = True
+    p.add_run(f'{min_val}')
+    
+    doc.add_paragraph()
+    
+    # Biểu đồ bar
+    try:
+        chart = create_shc_trend_bar_chart(shc_data, nvkt_name)
+        if chart:
+            doc.add_picture(chart, width=Inches(6))
+            last_paragraph = doc.paragraphs[-1]
+            last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    except Exception as e:
+        print(f"   ⚠️ Không thể tạo biểu đồ SHC: {e}")
+
+
 def generate_individual_kpi_report(nvkt_name, don_vi, kpi_folder=DEFAULT_KPI_FOLDER, 
                                     output_folder=DEFAULT_OUTPUT_FOLDER, report_month=None):
     """
@@ -1730,6 +2401,11 @@ def generate_individual_kpi_report(nvkt_name, don_vi, kpi_folder=DEFAULT_KPI_FOL
     add_individual_c15_detail(doc, nvkt_data)
     
     # =========================================================================
+    # PHẦN 6: SỐ LIỆU SUY HAO CAO
+    # =========================================================================
+    add_individual_shc_section(doc, nvkt_name, data_folder="downloads/baocao_hanoi")
+    
+    # =========================================================================
     # LƯU FILE
     # =========================================================================
     safe_name = sanitize_filename(nvkt_name)
@@ -1737,6 +2413,7 @@ def generate_individual_kpi_report(nvkt_name, don_vi, kpi_folder=DEFAULT_KPI_FOL
     doc.save(output_file)
     
     return str(output_file)
+
 
 
 def generate_all_individual_reports(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUTPUT_FOLDER, 
@@ -1861,11 +2538,24 @@ if __name__ == "__main__":
             print("   Ví dụ: python report_generator.py --individual --all")
             print("   Hoặc:  python report_generator.py --individual --nvkt 'Bùi Văn Duẩn' --donvi 'Tổ Kỹ thuật Địa bàn Phúc Thọ'")
     else:
-        # Tạo báo cáo tổng hợp (mặc định)
+        # Tạo cả báo cáo tổng hợp và báo cáo cá nhân (mặc định)
+        print("=" * 60)
+        print("📊 TẠO BÁO CÁO TỔNG HỢP")
+        print("=" * 60)
         report_path = generate_kpi_report(
             kpi_folder=args.kpi_folder,
             output_folder=args.output_folder,
             report_month=args.month
         )
-        print(f"\n📁 Đường dẫn báo cáo: {report_path}")
+        print(f"\n📁 Đường dẫn báo cáo tổng hợp: {report_path}")
+        
+        print("\n")
+        print("=" * 60)
+        print("📝 TẠO BÁO CÁO CÁ NHÂN CHO TẤT CẢ NVKT")
+        print("=" * 60)
+        generate_all_individual_reports(
+            kpi_folder=args.kpi_folder,
+            output_folder=args.output_folder,
+            report_month=args.month
+        )
 
