@@ -336,6 +336,18 @@ def doc_C11_TP1_sau_giam_tru(exclusion_folder):
     # Chuẩn hóa tỷ lệ về dạng thập phân
     df = chuan_hoa_ty_le(df, 'c11_tp1_ty_le')
     
+    # Chuẩn hóa tên NVKT về dạng Title Case
+    df = chuan_hoa_ten(df, 'nvkt')
+    
+    # Gộp các bản sao (nếu có) - tổng hợp theo NVKT và Đội
+    df = df.groupby(['don_vi', 'nvkt'], as_index=False).agg({
+        'c11_tp1_tong_phieu': 'sum',
+        'c11_tp1_phieu_dat': 'sum',
+        'c11_tp1_ty_le': 'first'  # Tạm lấy giá trị đầu, sẽ tính lại bên dưới
+    })
+    # Tính lại tỷ lệ
+    df['c11_tp1_ty_le'] = df['c11_tp1_phieu_dat'] / df['c11_tp1_tong_phieu'].replace(0, 1)
+    
     return df
 
 
@@ -353,6 +365,17 @@ def doc_C11_TP2_sau_giam_tru(exclusion_folder):
     # Chuẩn hóa tỷ lệ về dạng thập phân
     df = chuan_hoa_ty_le(df, 'c11_tp2_ty_le')
     
+    # Chuẩn hóa tên NVKT về dạng Title Case
+    df = chuan_hoa_ten(df, 'nvkt')
+    
+    # Gộp các bản sao (nếu có)
+    df = df.groupby(['don_vi', 'nvkt'], as_index=False).agg({
+        'c11_tp2_tong_phieu': 'sum',
+        'c11_tp2_phieu_dat': 'sum',
+        'c11_tp2_ty_le': 'first'
+    })
+    df['c11_tp2_ty_le'] = df['c11_tp2_phieu_dat'] / df['c11_tp2_tong_phieu'].replace(0, 1)
+    
     return df
 
 
@@ -369,6 +392,17 @@ def doc_C12_TP1_sau_giam_tru(exclusion_folder):
     
     # Chuẩn hóa tỷ lệ về dạng thập phân
     df = chuan_hoa_ty_le(df, 'c12_tp1_ty_le')
+    
+    # Chuẩn hóa tên NVKT về dạng Title Case
+    df = chuan_hoa_ten(df, 'nvkt')
+    
+    # Gộp các bản sao (nếu có)
+    df = df.groupby(['don_vi', 'nvkt'], as_index=False).agg({
+        'c12_tp1_phieu_hll': 'sum',
+        'c12_tp1_phieu_bh': 'sum',
+        'c12_tp1_ty_le': 'first'
+    })
+    df['c12_tp1_ty_le'] = df['c12_tp1_phieu_hll'] / df['c12_tp1_phieu_bh'].replace(0, 1)
     
     return df
 
@@ -389,6 +423,68 @@ def doc_C12_TP2_sau_giam_tru(exclusion_folder):
     
     # Chuẩn hóa tỷ lệ về dạng thập phân (3.16 / 100 = 0.0316)
     df = chuan_hoa_ty_le(df, 'c12_tp2_ty_le')
+    
+    # Chuẩn hóa tên NVKT về dạng Title Case
+    df = chuan_hoa_ten(df, 'nvkt')
+    
+    # Gộp các bản sao (nếu có)
+    df = df.groupby(['don_vi', 'nvkt'], as_index=False).agg({
+        'c12_tp2_tong_tb': 'sum',
+        'c12_tp2_phieu_bh': 'sum',
+        'c12_tp2_ty_le': 'first'
+    })
+    df['c12_tp2_ty_le'] = df['c12_tp2_phieu_bh'] / df['c12_tp2_tong_tb'].replace(0, 1)
+    
+    return df
+
+
+def doc_C14_sau_giam_tru(exclusion_folder):
+    """
+    Đọc dữ liệu C1.4 SAU GIẢM TRỪ: Độ hài lòng khách hàng
+    File: So_sanh_C14.xlsx, Sheet: So_sanh_chi_tiet
+    """
+    file_path = Path(exclusion_folder) / "So_sanh_C14.xlsx"
+    
+    if not file_path.exists():
+        print(f"⚠️ Không tìm thấy file C1.4 sau giảm trừ: {file_path}")
+        return None
+    
+    df = pd.read_excel(file_path, sheet_name="So_sanh_chi_tiet")
+    
+    # Lấy các cột cần thiết (sau giảm trừ)
+    cols_needed = ['TEN_DOI', 'NVKT', 'Tổng phiếu KS (Sau GT)', 'Số phiếu KHL (Sau GT)', 'Tỷ lệ HL (%) (Sau GT)']
+    cols_available = [c for c in cols_needed if c in df.columns]
+    
+    if 'TEN_DOI' in df.columns:
+        df = df[cols_available].copy()
+        df.columns = ['don_vi', 'nvkt', 'c14_phieu_ks', 'c14_phieu_khl', 'c14_ty_le']
+    else:
+        cols_needed = ['NVKT', 'Tổng phiếu KS (Sau GT)', 'Số phiếu KHL (Sau GT)', 'Tỷ lệ HL (%) (Sau GT)']
+        df = df[cols_needed].copy()
+        df.columns = ['nvkt', 'c14_phieu_ks', 'c14_phieu_khl', 'c14_ty_le']
+        df['don_vi'] = None
+    
+    # Chuẩn hóa tên NVKT
+    df = chuan_hoa_ten(df, 'nvkt')
+    
+    # Chuẩn hóa tỷ lệ về dạng thập phân (85% -> 0.85)
+    df = chuan_hoa_ty_le(df, 'c14_ty_le')
+    
+    # Xử lý trường hợp đặc biệt: mẫu số = 0 -> tỷ lệ = 100%
+    mask_no_survey = (df['c14_phieu_ks'] == 0) | (df['c14_phieu_ks'].isna())
+    df.loc[mask_no_survey, 'c14_ty_le'] = 1.0
+    
+    # Gộp các bản sao (nếu có)
+    if 'don_vi' in df.columns and df['don_vi'].notna().any():
+        df = df.groupby(['don_vi', 'nvkt'], as_index=False).agg({
+            'c14_phieu_ks': 'sum',
+            'c14_phieu_khl': 'sum',
+            'c14_ty_le': 'first'
+        })
+        # Tính lại tỷ lệ
+        mask = df['c14_phieu_ks'] > 0
+        df.loc[mask, 'c14_ty_le'] = (df.loc[mask, 'c14_phieu_ks'] - df.loc[mask, 'c14_phieu_khl']) / df.loc[mask, 'c14_phieu_ks']
+        df.loc[~mask, 'c14_ty_le'] = 1.0
     
     return df
 
@@ -633,9 +729,13 @@ def tinh_diem_kpi_nvkt_sau_giam_tru(exclusion_folder, original_data_folder, outp
     df_c12_tp2 = doc_C12_TP2_sau_giam_tru(exclusion_folder)
     print(f"  - C1.2 TP2 (sau GT): {len(df_c12_tp2)} NVKT")
     
-    # C1.4 không có giảm trừ, dùng dữ liệu gốc
-    df_c14 = doc_C14(original_data_folder)
-    print(f"  - C1.4 (gốc): {len(df_c14)} NVKT")
+    # C1.4 - Thử đọc dữ liệu sau giảm trừ, nếu không có thì dùng dữ liệu gốc
+    df_c14 = doc_C14_sau_giam_tru(exclusion_folder)
+    if df_c14 is not None and len(df_c14) > 0:
+        print(f"  - C1.4 (sau GT): {len(df_c14)} NVKT")
+    else:
+        df_c14 = doc_C14(original_data_folder)
+        print(f"  - C1.4 (gốc): {len(df_c14)} NVKT")
     
     # 2. Merge tất cả dữ liệu theo nvkt VÀ don_vi
     merge_keys = ['don_vi', 'nvkt']
@@ -696,15 +796,13 @@ def tinh_diem_kpi_nvkt_sau_giam_tru(exclusion_folder, original_data_folder, outp
         output_folder = Path(output_folder)
         output_folder.mkdir(parents=True, exist_ok=True)
         
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        full_file = output_folder / f"KPI_NVKT_SauGiamTru_ChiTiet_{timestamp}.xlsx"
+        full_file = output_folder / f"KPI_NVKT_SauGiamTru_ChiTiet.xlsx"
         df_all.to_excel(full_file, index=False)
         print(f"\nĐã xuất file chi tiết: {full_file}")
         
         summary_cols = ['don_vi', 'nvkt', 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4']
         df_summary = df_all[summary_cols].copy()
-        summary_file = output_folder / f"KPI_NVKT_SauGiamTru_TomTat_{timestamp}.xlsx"
+        summary_file = output_folder / f"KPI_NVKT_SauGiamTru_TomTat.xlsx"
         df_summary.to_excel(summary_file, index=False)
         print(f"Đã xuất file tóm tắt: {summary_file}")
     

@@ -11,6 +11,36 @@ Chức năng:
 import pandas as pd
 import os
 from datetime import datetime
+import re
+from pathlib import Path
+
+# Import các module nội bộ
+import kpi_calculator
+import report_generator
+
+
+def normalize_id(id_val):
+    """
+    Chuẩn hóa BAOHONG_ID:
+    - Chuyển về string
+    - Loại bỏ ký tự lạ _x000d_, khoảng trắng, xuống dòng
+    - Loại bỏ hậu tố .0 nếu có (do pandas đọc nhầm thành float)
+    """
+    if pd.isna(id_val):
+        return ""
+    
+    # Chuyển về string và loại bỏ khoảng trắng
+    s = str(id_val).strip()
+    
+    # Loại bỏ _x000d_ và các ký tự điều khiển
+    s = s.replace('_x000d_', '').strip()
+    s = re.sub(r'[\r\n\t]', '', s)
+    
+    # Loại bỏ .0 nếu là số
+    if s.endswith('.0'):
+        s = s[:-2]
+        
+    return s
 
 
 def load_exclusion_list(exclusion_file="du_lieu_tham_chieu/ds_phieu_loai_tru.xlsx"):
@@ -34,8 +64,11 @@ def load_exclusion_list(exclusion_file="du_lieu_tham_chieu/ds_phieu_loai_tru.xls
             print(f"⚠️ Không tìm thấy cột 'BAOHONG_ID' trong file {exclusion_file}")
             return set()
         
-        exclusion_ids = set(df['BAOHONG_ID'].astype(str).tolist())
-        print(f"✅ Đã đọc {len(exclusion_ids)} mã BAOHONG_ID cần loại trừ")
+        # Chuẩn hóa tất cả ID
+        exclusion_ids = {normalize_id(idx) for idx in df['BAOHONG_ID'].tolist() if pd.notna(idx)}
+        exclusion_ids.discard("") # Loại bỏ chuỗi rỗng nếu có
+        
+        print(f"✅ Đã đọc {len(exclusion_ids)} mã BAOHONG_ID sau khi chuẩn hóa")
         return exclusion_ids
         
     except Exception as e:
@@ -156,7 +189,7 @@ def create_c11_comparison_report(exclusion_ids, output_dir):
         df_raw = df_raw[df_raw['NVKT'].notna()].copy()
         
         # Lọc dữ liệu sau giảm trừ
-        df_raw['BAOHONG_ID_STR'] = df_raw['BAOHONG_ID'].astype(str)
+        df_raw['BAOHONG_ID_STR'] = df_raw['BAOHONG_ID'].apply(normalize_id)
         df_excluded = df_raw[~df_raw['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
         
         num_excluded = len(df_raw) - len(df_excluded)
@@ -328,7 +361,7 @@ def create_c11_sm2_comparison_report(exclusion_ids, output_dir):
         df_raw['PHIEU_DAT'] = (df_raw['TG'] <= 72).astype(int)
         
         # Lọc dữ liệu sau giảm trừ
-        df_raw['BAOHONG_ID_STR'] = df_raw['BAOHONG_ID'].astype(str)
+        df_raw['BAOHONG_ID_STR'] = df_raw['BAOHONG_ID'].apply(normalize_id)
         df_excluded = df_raw[~df_raw['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
         
         num_excluded = len(df_raw) - len(df_excluded)
@@ -492,7 +525,7 @@ def create_c12_comparison_report(exclusion_ids, output_dir):
         df_sm1_raw = df_sm1_raw[df_sm1_raw['NVKT'].notna()].copy()
         
         # Áp dụng giảm trừ SM1
-        df_sm1_raw['BAOHONG_ID_STR'] = df_sm1_raw['BAOHONG_ID'].astype(str)
+        df_sm1_raw['BAOHONG_ID_STR'] = df_sm1_raw['BAOHONG_ID'].apply(normalize_id)
         df_sm1_excluded = df_sm1_raw[~df_sm1_raw['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
         num_excluded_sm1 = len(df_sm1_raw) - len(df_sm1_excluded)
         print(f"✅ Loại trừ SM1: {num_excluded_sm1} phiếu, còn lại {len(df_sm1_excluded)} phiếu")
@@ -542,7 +575,7 @@ def create_c12_comparison_report(exclusion_ids, output_dir):
         df_sm2_raw = df_sm2_raw[df_sm2_raw['NVKT'].notna()].copy()
         
         # Áp dụng giảm trừ SM2
-        df_sm2_raw['BAOHONG_ID_STR'] = df_sm2_raw['BAOHONG_ID'].astype(str)
+        df_sm2_raw['BAOHONG_ID_STR'] = df_sm2_raw['BAOHONG_ID'].apply(normalize_id)
         df_sm2_excluded = df_sm2_raw[~df_sm2_raw['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
         num_excluded_sm2 = len(df_sm2_raw) - len(df_sm2_excluded)
         print(f"✅ Loại trừ SM2: {num_excluded_sm2} phiếu, còn lại {len(df_sm2_excluded)} phiếu")
@@ -745,7 +778,7 @@ def create_sm1_c12_excluded_file(exclusion_ids, output_dir):
         print(f"✅ Đã đọc SM1-C12, tổng số dòng thô: {len(df_sm1)}")
         
         # Lọc dữ liệu sau giảm trừ
-        df_sm1['BAOHONG_ID_STR'] = df_sm1['BAOHONG_ID'].astype(str)
+        df_sm1['BAOHONG_ID_STR'] = df_sm1['BAOHONG_ID'].apply(normalize_id)
         df_sm1_excluded = df_sm1[~df_sm1['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
         
         # Xóa cột tạm
@@ -807,7 +840,7 @@ def create_sm1_c12_excluded_file(exclusion_ids, output_dir):
             print(f"✅ Đã đọc SM2-C12, tổng số dòng thô: {len(df_sm2)}")
             
             # ÁP DỤNG GIẢM TRỪ CHO SM2-C12
-            df_sm2['BAOHONG_ID_STR'] = df_sm2['BAOHONG_ID'].astype(str)
+            df_sm2['BAOHONG_ID_STR'] = df_sm2['BAOHONG_ID'].apply(normalize_id)
             df_sm2_excluded = df_sm2[~df_sm2['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
             num_excluded_sm2 = len(df_sm2) - len(df_sm2_excluded)
             print(f"✅ Đã loại trừ {num_excluded_sm2} phiếu từ SM2-C12, còn lại {len(df_sm2_excluded)} phiếu")
@@ -1003,10 +1036,13 @@ def create_c12_ti_le_bao_hong_comparison_report(exclusion_ids, output_dir):
         df_brcd['NVKT'] = df_brcd['TEN_KV'].apply(extract_nvkt_name)
         df_brcd = df_brcd[df_brcd['NVKT'].notna()].copy()
         
+        # Chuẩn hóa tên về Title Case để đồng nhất
+        df_brcd['NVKT'] = df_brcd['NVKT'].str.strip().str.title()
+        
         has_ten_doi = 'TEN_DOI' in df_brcd.columns
         
         # Áp dụng giảm trừ
-        df_brcd['BAOHONG_ID_STR'] = df_brcd['BAOHONG_ID'].astype(str)
+        df_brcd['BAOHONG_ID_STR'] = df_brcd['BAOHONG_ID'].apply(normalize_id)
         df_excluded = df_brcd[~df_brcd['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
         num_excluded = len(df_brcd) - len(df_excluded)
         print(f"✅ Loại trừ: {num_excluded} phiếu, còn lại {len(df_excluded)} phiếu")
@@ -1043,7 +1079,16 @@ def create_c12_ti_le_bao_hong_comparison_report(exclusion_ids, output_dir):
         
         df_ref_clean = df_ref[[nvkt_col, 'Tổng TB']].copy()
         df_ref_clean.columns = ['NVKT', 'Tổng TB']
+        
+        # Chuẩn hóa tên NVKT để khớp với dữ liệu từ df_brcd
+        df_ref_clean['NVKT'] = df_ref_clean['NVKT'].apply(extract_nvkt_name)
         df_ref_clean = df_ref_clean.dropna(subset=['NVKT', 'Tổng TB'])
+        
+        # Chuẩn hóa tên về Title Case để đồng nhất
+        df_ref_clean['NVKT'] = df_ref_clean['NVKT'].str.strip().str.title()
+        
+        # Gộp các bản sao (nếu có) - cộng tổng TB
+        df_ref_clean = df_ref_clean.groupby('NVKT', as_index=False).agg({'Tổng TB': 'sum'})
         
         print(f"✅ Đã xử lý file tham chiếu: {len(df_ref_clean)} NVKT")
         
@@ -1176,6 +1221,237 @@ def create_c12_ti_le_bao_hong_comparison_report(exclusion_ids, output_dir):
         return None
 
 
+def load_c14_exclusion_list(exclusion_file="du_lieu_tham_chieu/LOAI_TRU_C1.4.xlsx"):
+    """
+    Đọc danh sách BAOHONG_ID cần loại trừ cho C1.4 từ file Excel
+    
+    Returns:
+        set: Tập hợp các BAOHONG_ID cần loại trừ (dạng string)
+    """
+    try:
+        if not os.path.exists(exclusion_file):
+            print(f"⚠️ Không tìm thấy file loại trừ C1.4: {exclusion_file}")
+            return set()
+        
+        df = pd.read_excel(exclusion_file)
+        
+        if 'BAOHONG_ID' not in df.columns:
+            print(f"⚠️ Không tìm thấy cột 'BAOHONG_ID' trong file {exclusion_file}")
+            return set()
+        
+        # Chuẩn hóa tất cả ID
+        exclusion_ids = {normalize_id(idx) for idx in df['BAOHONG_ID'].tolist() if pd.notna(idx)}
+        exclusion_ids.discard("")
+        
+        print(f"✅ Đã đọc {len(exclusion_ids)} mã BAOHONG_ID loại trừ C1.4")
+        return exclusion_ids
+        
+    except Exception as e:
+        print(f"❌ Lỗi khi đọc file loại trừ C1.4: {e}")
+        return set()
+
+
+def create_c14_comparison_report(exclusion_ids, output_dir):
+    """
+    Tạo báo cáo so sánh C1.4 - Độ hài lòng khách hàng trước/sau giảm trừ
+    
+    Công thức: Tỷ lệ hài lòng = (Tổng phiếu KS thành công - Tổng phiếu KHL) / Tổng phiếu KS thành công * 100
+    
+    Args:
+        exclusion_ids: Set các BAOHONG_ID cần loại trừ
+        output_dir: Thư mục xuất kết quả
+        
+    Returns:
+        dict: Kết quả so sánh hoặc None nếu lỗi
+    """
+    try:
+        print("\n" + "="*80)
+        print("TẠO BÁO CÁO SO SÁNH C1.4 - ĐỘ HÀI LÒNG KHÁCH HÀNG")
+        print("="*80)
+        
+        # Đọc dữ liệu chi tiết C1.4
+        data_file = os.path.join("downloads", "baocao_hanoi", "c1.4_chitiet_report.xlsx")
+        
+        if not os.path.exists(data_file):
+            print(f"❌ Không tìm thấy file dữ liệu C1.4: {data_file}")
+            return None
+        
+        df_raw = pd.read_excel(data_file, sheet_name="Sheet1")
+        print(f"✅ Đã đọc file dữ liệu: {len(df_raw)} phiếu khảo sát")
+        
+        # Chuẩn hóa cột NVKT
+        if 'TEN_NVKT_DB' in df_raw.columns:
+            df_raw['NVKT'] = df_raw['TEN_NVKT_DB'].apply(extract_nvkt_name)
+        elif 'TEN_KV' in df_raw.columns:
+            df_raw['NVKT'] = df_raw['TEN_KV'].apply(extract_nvkt_name)
+        else:
+            print("❌ Không tìm thấy cột tên NVKT")
+            return None
+            
+        df_raw = df_raw[df_raw['NVKT'].notna()].copy()
+        df_raw['NVKT'] = df_raw['NVKT'].str.strip().str.title()
+        
+        # Xác định cột đội
+        if 'DOIVT' in df_raw.columns:
+            df_raw['TEN_DOI'] = df_raw['DOIVT']
+        
+        has_ten_doi = 'TEN_DOI' in df_raw.columns
+        
+        # Kiểm tra cột cần thiết theo logic c1_process.py
+        if 'DO_HL' not in df_raw.columns or 'KHL_KT' not in df_raw.columns:
+            print("❌ Không tìm thấy cột DO_HL hoặc KHL_KT")
+            return None
+        
+        # Lọc chỉ các bản ghi có DO_HL = 'HL' hoặc 'KHL' (phiếu KS thành công)
+        df_ks = df_raw[df_raw['DO_HL'].isin(['HL', 'KHL'])].copy()
+        print(f"✅ Số phiếu KS thành công (DO_HL = 'HL' hoặc 'KHL'): {len(df_ks)}")
+        
+        # Xác định phiếu không hài lòng: KHL_KT != null
+        df_ks['IS_KHL'] = df_ks['KHL_KT'].notna().astype(int)
+        
+        # Áp dụng giảm trừ
+        df_ks['BAOHONG_ID_STR'] = df_ks['BAOHONG_ID'].apply(normalize_id)
+        df_excluded = df_ks[~df_ks['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
+        num_excluded = len(df_ks) - len(df_excluded)
+        print(f"✅ Loại trừ: {num_excluded} phiếu, còn lại {len(df_excluded)} phiếu")
+        
+        # ========== TÍNH TOÁN TRƯỚC GIẢM TRỪ ==========
+        if has_ten_doi:
+            df_before = df_ks.groupby(['TEN_DOI', 'NVKT']).agg({
+                'IS_KHL': 'sum',      # Tổng phiếu KHL (KHL_KT != null)
+                'BAOHONG_ID': 'size'  # Tổng phiếu KS thành công
+            }).reset_index()
+        else:
+            df_before = df_ks.groupby('NVKT').agg({
+                'IS_KHL': 'sum',
+                'BAOHONG_ID': 'size'
+            }).reset_index()
+            
+        df_before.columns = list(df_before.columns[:-2]) + ['Số phiếu KHL', 'Tổng phiếu KS']
+        # Tỷ lệ HL = (Tổng - KHL) / Tổng * 100 = Số phiếu hài lòng / Tổng * 100
+        df_before['Tỷ lệ HL (%)'] = ((df_before['Tổng phiếu KS'] - df_before['Số phiếu KHL']) / 
+                                      df_before['Tổng phiếu KS'].replace(0, 1) * 100).round(2)
+        
+        # ========== TÍNH TOÁN SAU GIẢM TRỪ ==========
+        if has_ten_doi:
+            df_after = df_excluded.groupby(['TEN_DOI', 'NVKT']).agg({
+                'IS_KHL': 'sum',
+                'BAOHONG_ID': 'size'
+            }).reset_index()
+        else:
+            df_after = df_excluded.groupby('NVKT').agg({
+                'IS_KHL': 'sum',
+                'BAOHONG_ID': 'size'
+            }).reset_index()
+            
+        df_after.columns = list(df_after.columns[:-2]) + ['Số phiếu KHL', 'Tổng phiếu KS']
+        df_after['Tỷ lệ HL (%)'] = ((df_after['Tổng phiếu KS'] - df_after['Số phiếu KHL']) / 
+                                     df_after['Tổng phiếu KS'].replace(0, 1) * 100).round(2)
+        
+        # ========== MERGE VÀ SO SÁNH ==========
+        merge_cols = ['TEN_DOI', 'NVKT'] if has_ten_doi else ['NVKT']
+        
+        df_comparison = pd.merge(
+            df_before, df_after,
+            on=merge_cols,
+            how='outer',
+            suffixes=(' (Thô)', ' (Sau GT)')
+        )
+        
+        # Điền giá trị mặc định
+        for col in df_comparison.columns:
+            if 'phiếu' in col.lower():
+                df_comparison[col] = df_comparison[col].fillna(0).astype(int)
+            elif 'Tỷ lệ' in col:
+                df_comparison[col] = df_comparison[col].fillna(100.0)
+        
+        # Tính chênh lệch
+        df_comparison['Chênh lệch %'] = (
+            df_comparison['Tỷ lệ HL (%) (Sau GT)'].fillna(100) - 
+            df_comparison['Tỷ lệ HL (%) (Thô)'].fillna(100)
+        ).round(2)
+        
+        # Sắp xếp cột
+        if has_ten_doi:
+            column_order = [
+                'TEN_DOI', 'NVKT', 
+                'Tổng phiếu KS (Thô)', 'Số phiếu KHL (Thô)', 'Tỷ lệ HL (%) (Thô)',
+                'Tổng phiếu KS (Sau GT)', 'Số phiếu KHL (Sau GT)', 'Tỷ lệ HL (%) (Sau GT)',
+                'Chênh lệch %'
+            ]
+            df_comparison = df_comparison.sort_values(['TEN_DOI', 'NVKT']).reset_index(drop=True)
+        else:
+            column_order = [
+                'NVKT', 
+                'Tổng phiếu KS (Thô)', 'Số phiếu KHL (Thô)', 'Tỷ lệ HL (%) (Thô)',
+                'Tổng phiếu KS (Sau GT)', 'Số phiếu KHL (Sau GT)', 'Tỷ lệ HL (%) (Sau GT)',
+                'Chênh lệch %'
+            ]
+            df_comparison = df_comparison.sort_values('NVKT').reset_index(drop=True)
+        
+        column_order = [c for c in column_order if c in df_comparison.columns]
+        df_comparison = df_comparison[column_order]
+        
+        # Loại bỏ các dòng có NVKT rỗng
+        df_comparison = df_comparison[df_comparison['NVKT'].notna()]
+        
+        # ========== TÍNH THỐNG KÊ TỔNG HỢP ==========
+        tong_ks_tho = df_before['Tổng phiếu KS'].sum()
+        tong_khl_tho = df_before['Số phiếu KHL'].sum()
+        tyle_tho = round((tong_ks_tho - tong_khl_tho) / tong_ks_tho * 100, 2) if tong_ks_tho > 0 else 100
+        
+        tong_ks_sau = df_after['Tổng phiếu KS'].sum()
+        tong_khl_sau = df_after['Số phiếu KHL'].sum()
+        tyle_sau = round((tong_ks_sau - tong_khl_sau) / tong_ks_sau * 100, 2) if tong_ks_sau > 0 else 100
+        
+        df_tongke = pd.DataFrame([{
+            'Chỉ tiêu': 'C1.4 - Độ hài lòng khách hàng',
+            'Tổng phiếu KS (Thô)': tong_ks_tho,
+            'Tổng phiếu KHL (Thô)': tong_khl_tho,
+            'Tổng phiếu KS (Sau GT)': tong_ks_sau,
+            'Tổng phiếu KHL (Sau GT)': tong_khl_sau,
+            'Phiếu loại trừ': num_excluded,
+            'Tỷ lệ HL % (Thô)': tyle_tho,
+            'Tỷ lệ HL % (Sau GT)': tyle_sau,
+            'Thay đổi %': round(tyle_sau - tyle_tho, 2)
+        }])
+        
+        # Lấy danh sách phiếu bị loại trừ (dùng df_ks vì đã có cột BAOHONG_ID_STR)
+        df_loai_tru = df_ks[df_ks['BAOHONG_ID_STR'].isin(exclusion_ids)].copy()
+        cols_to_keep = ['BAOHONG_ID', 'MA_TB', 'TEN_NVKT_DB', 'NGUOI_TL', 'DO_HL', 'KHL_KT', 'NGAY_HOI']
+        cols_available = [c for c in cols_to_keep if c in df_loai_tru.columns]
+        df_loai_tru = df_loai_tru[cols_available]
+        
+        # Ghi vào file Excel
+        output_file = os.path.join(output_dir, "So_sanh_C14.xlsx")
+        print(f"\n✓ Đang ghi kết quả vào: {output_file}")
+        
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            df_comparison.to_excel(writer, sheet_name='So_sanh_chi_tiet', index=False)
+            df_tongke.to_excel(writer, sheet_name='Thong_ke_tong_hop', index=False)
+            df_loai_tru.to_excel(writer, sheet_name='DS_phieu_loai_tru', index=False)
+        
+        print(f"\n✅ Đã tạo báo cáo so sánh C1.4 - Độ hài lòng khách hàng")
+        print(f"   - Tổng phiếu KS: {tong_ks_tho} -> {tong_ks_sau} (loại trừ: {num_excluded})")
+        print(f"   - Phiếu KHL: {tong_khl_tho} -> {tong_khl_sau}")
+        print(f"   - Tỷ lệ HL: {tyle_tho}% -> {tyle_sau}% (Δ: {round(tyle_sau - tyle_tho, 2)}%)")
+        
+        return {
+            'chi_tieu': 'C1.4 Độ hài lòng KH',
+            'tong_tho': tong_ks_tho,
+            'loai_tru': num_excluded,
+            'tong_sau_gt': tong_ks_sau,
+            'tyle_tho': tyle_tho,
+            'tyle_sau_gt': tyle_sau
+        }
+        
+    except Exception as e:
+        print(f"❌ Lỗi khi tạo báo cáo C1.4: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 def process_exclusion_reports():
     """
     Hàm chính: Tạo tất cả báo cáo so sánh giảm trừ
@@ -1229,6 +1505,13 @@ def process_exclusion_reports():
         if result:
             results.append(result)
         
+        # C1.4 - Độ hài lòng khách hàng
+        c14_exclusion_ids = load_c14_exclusion_list()
+        if c14_exclusion_ids:
+            result = create_c14_comparison_report(c14_exclusion_ids, output_dir)
+            if result:
+                results.append(result)
+        
         # 4. Tạo báo cáo tổng hợp tất cả chỉ tiêu
         if results:
             print("\n" + "="*80)
@@ -1258,9 +1541,34 @@ def process_exclusion_reports():
                 print(f"    - Thô: {row['Tỷ lệ % (Thô)']}% -> Sau GT: {row['Tỷ lệ % (Sau GT)']}% (Δ: {row['Thay đổi %']}%)")
             print("-"*80)
         
+        # 5. Tính toán KPI cá nhân sau giảm trừ cho NVKT
         print("\n" + "="*80)
-        print("✅ HOÀN THÀNH TẠO BÁO CÁO SO SÁNH GIẢM TRỪ")
-        print(f"   Kết quả được lưu tại: {output_dir}")
+        print("TÍNH TOÁN KPI CÁ NHÂN SAU GIẢM TRỪ CHO NVKT")
+        print("="*80)
+        
+        # Thư mục chứa dữ liệu gốc (cho C1.4)
+        original_data_folder = "downloads/baocao_hanoi"
+        # Thư mục xuất file KPI (Excel)
+        kpi_output_dir = os.path.join(output_dir, "KPI_sau_GT")
+        
+        # Gọi kpi_calculator để tính điểm
+        df_kpi_nvkt = kpi_calculator.tinh_diem_kpi_nvkt_sau_giam_tru(
+            exclusion_folder=output_dir,
+            original_data_folder=original_data_folder,
+            output_folder=kpi_output_dir
+        )
+        
+        if df_kpi_nvkt is not None:
+            # 6. Tạo báo cáo Word cho từng cá nhân và lưu theo thư mục Đội
+            report_generator.generate_all_individual_reports_after_exclusion(
+                kpi_folder=kpi_output_dir,
+                output_root=output_dir,
+                report_month=None # Tự động lấy tháng hiện tại
+            )
+        
+        print("\n" + "="*80)
+        print("✅ HOÀN THÀNH TẤT CẢ CÁC BƯỚC XỬ LÝ GIẢM TRỪ")
+        print(f"   Dữ liệu so sánh & Báo cáo cá nhân: {output_dir}")
         print("="*80)
         
         return True

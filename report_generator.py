@@ -2488,6 +2488,152 @@ def generate_all_individual_reports(kpi_folder=DEFAULT_KPI_FOLDER, output_folder
     return success_files
 
 
+def generate_all_individual_reports_after_exclusion(kpi_folder, output_root, report_month=None):
+    """
+    Tạo báo cáo cá nhân sau giảm trừ, phân loại theo thư mục Tổ kỹ thuật
+    Lưu tại: {output_root}/ca_nhan/{tên tổ kỹ thuật}/
+    """
+    print("="*60)
+    print("📝 BẮT ĐẦU TẠO BÁO CÁO KPI CÁ NHÂN SAU GIẢM TRỪ")
+    print("="*60)
+    
+    if report_month is None:
+        report_month = datetime.now().strftime("%m/%Y")
+        
+    kpi_path = Path(kpi_folder)
+    detail_file = kpi_path / "KPI_NVKT_SauGiamTru_ChiTiet.xlsx"
+    summary_file = kpi_path / "KPI_NVKT_SauGiamTru_TomTat.xlsx"
+    
+    if not detail_file.exists():
+        print(f"❌ Không tìm thấy file: {detail_file}")
+        return 0
+        
+    df_detail = pd.read_excel(detail_file)
+    nvkt_list = df_detail[['don_vi', 'nvkt']].drop_duplicates()
+    total = len(nvkt_list)
+    
+    print(f"📊 Tìm thấy {total} NVKT sau giảm trừ")
+    
+    success_count = 0
+    for idx, row in nvkt_list.iterrows():
+        don_vi = row['don_vi']
+        nvkt_name = row['nvkt']
+        
+        # Đảm bảo don_vi là chuỗi
+        don_vi_str = str(don_vi) if pd.notna(don_vi) else "Unknown"
+        
+        # Tạo thư mục cho từng Đội (Tổ)
+        team_folder_name = sanitize_filename(don_vi_str)
+        team_output_path = Path(output_root) / "ca_nhan" / team_folder_name
+        team_output_path.mkdir(parents=True, exist_ok=True)
+        
+        current = success_count + 1
+        print(f"   [{current}/{total}] {nvkt_name} ({don_vi})...", end=" ")
+        
+        try:
+            # Tạo document mới
+            doc = Document()
+            
+            # Thiết lập style mặc định cho doc
+            style = doc.styles['Normal']
+            style.font.name = 'Times New Roman'
+            style.font.size = Pt(12)
+            
+            # Lấy data NVKT
+            # Lấy data NVKT - sử dụng logic lọc an toàn với NaN
+            if pd.isna(don_vi):
+                mask = (df_detail['nvkt'] == nvkt_name) & (df_detail['don_vi'].isna())
+            else:
+                mask = (df_detail['nvkt'] == nvkt_name) & (df_detail['don_vi'] == don_vi)
+            
+            nvkt_df_match = df_detail[mask]
+            if nvkt_df_match.empty:
+                print(f"❌ (Không tìm thấy data)")
+                continue
+                
+            nvkt_data = nvkt_df_match.iloc[0].to_dict()
+            
+            short_name = TEAM_SHORT_NAMES.get(don_vi_str, don_vi_str)
+            created_time = datetime.now().strftime("%d/%m/%Y %H:%M")
+            
+            # Header
+            header = doc.sections[0].header
+            p = header.paragraphs[0]
+            p.text = f"BÁO CÁO KẾT QUẢ KPI CÁ NHÂN - THÁNG {report_month} (SAU GIẢM TRỪ)"
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            # Title
+            title = doc.add_heading(level=0)
+            title_run = title.add_run('BÁO CÁO KẾT QUẢ BSC/KPI CÁ NHÂN (SAU GIẢM TRỪ)')
+            title_run.font.size = Pt(18)
+            title_run.font.bold = True
+            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            subtitle = doc.add_heading(level=1)
+            subtitle_run = subtitle.add_run(f'THÁNG {report_month}')
+            subtitle_run.font.size = Pt(16)
+            subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            
+            doc.add_paragraph()
+            
+            # Thông tin cá nhân
+            info_table = doc.add_table(rows=3, cols=2)
+            info_table.style = 'Table Grid'
+            info_data = [
+                ('Họ và tên:', nvkt_name),
+                ('Đơn vị:', short_name),
+                ('Ngày tạo báo cáo:', created_time)
+            ]
+            for i, (label, value) in enumerate(info_data):
+                info_table.rows[i].cells[0].text = label
+                info_table.rows[i].cells[0].paragraphs[0].runs[0].font.bold = True
+                info_table.rows[i].cells[1].text = value
+            
+            doc.add_paragraph()
+            
+            # Phần 1: Tổng quan
+            doc.add_heading('1. TỔNG QUAN ĐIỂM KPI', level=2)
+            add_individual_summary_table(doc, nvkt_data)
+            
+            # Biểu đồ radar
+            try:
+                radar_chart = create_individual_radar_chart(nvkt_data)
+                doc.add_picture(radar_chart, width=Inches(5))
+                doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            except:
+                pass
+                
+            doc.add_page_break()
+            
+            # Chi tiết từng chỉ tiêu
+            add_individual_c11_detail(doc, nvkt_data)
+            doc.add_paragraph()
+            add_individual_c12_detail(doc, nvkt_data)
+            doc.add_paragraph()
+            add_individual_c14_detail(doc, nvkt_data)
+            doc.add_paragraph()
+            add_individual_c15_detail(doc, nvkt_data)
+            
+            # Suy hao cao - truyền data_folder mặc định
+            add_individual_shc_section(doc, nvkt_name, data_folder="downloads/baocao_hanoi")
+            
+            # Lưu file
+            safe_name = sanitize_filename(nvkt_name)
+            filename = f"Bao_cao_KPI_{safe_name}_SauGT_{report_month.replace('/', '_')}.docx"
+            output_file = team_output_path / filename
+            doc.save(output_file)
+            
+            success_count += 1
+            print("✅")
+        except Exception as e:
+            print(f"❌ (Lỗi: {e})")
+            
+    print(f"\n✅ Hoàn thành: Đã tạo {success_count}/{total} báo cáo cá nhân sau giảm trừ.")
+    print(f"📁 Thư mục xuất: {output_root}/ca_nhan/")
+    
+    return success_count
+
+
 # =============================================================================
 # MAIN - Chạy trực tiếp module
 # =============================================================================

@@ -19,9 +19,7 @@ ENV/
 
 # Downloads
 downloads/
-*.xlsx
-*.xls
-*.csv
+
 
 # OTP logs
 otp/
