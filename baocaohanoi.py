@@ -16,7 +16,8 @@ from thuc_tang_process import process_ngung_psc_report, process_hoan_cong_report
 from vat_tu_thu_hoi_download import download_report_vattu_thuhoi
 from vat_tu_thu_hoi_process import vat_tu_thu_hoi_process
 from c1_report_download import download_report_c11, download_report_c12,download_report_c12_chitiet_SM2, download_report_c13, download_report_c14,download_report_c14_chitiet, download_report_c15, download_report_I15,download_report_I15_k2, download_report_c11_chitiet, download_report_c11_chitiet_SM2, download_report_c12_chitiet_SM1, download_report_c15_chitiet
-from c1_process import process_c11_report, process_c11_chitiet_report, process_c12_report, process_c13_report, process_c14_report,process_c14_chitiet_report, process_c15_report,process_c15_chitiet_report, process_I15_report, process_I15_k2_report, process_c11_chitiet_report_SM2, process_c12_chitiet_report_SM1SM2
+from c1_process import process_c11_report, process_c11_chitiet_report, process_c12_report, process_c13_report, process_c14_report,process_c14_chitiet_report, process_c15_report,process_c15_chitiet_report, process_c11_chitiet_report_SM2, process_c12_chitiet_report_SM1SM2
+from i15_process import process_I15_report_with_tracking, process_I15_k2_report_with_tracking
 from suy_hao_reports import generate_daily_comparison_report, generate_daily_comparison_report_k2
 from exclusion_process import process_exclusion_reports
 from kpi_calculator import tao_bao_cao_kpi
@@ -171,7 +172,7 @@ def main():
         # I1.5
         try:
             download_report_I15(page_baocao)
-            process_I15_report()
+            process_I15_report_with_tracking()  # Gọi trực tiếp từ i15_process
         except Exception as e:
             print(f"⚠️ Lỗi khi tải/xử lý báo cáo I1.5: {e}")
             failed_reports.append("I1.5")
@@ -179,7 +180,7 @@ def main():
         # I1.5 K2
         try:
             download_report_I15_k2(page_baocao)
-            process_I15_k2_report()
+            process_I15_k2_report_with_tracking()  # Gọi trực tiếp từ i15_process
         except Exception as e:
             print(f"⚠️ Lỗi khi tải/xử lý báo cáo I1.5 K2: {e}")
             failed_reports.append("I1.5 K2")

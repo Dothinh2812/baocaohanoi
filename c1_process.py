@@ -3107,7 +3107,7 @@ def process_I15_report(force_update=False):
     Args:
         force_update: Nếu True, cho phép ghi đè dữ liệu đã tồn tại (mặc định False)
 
-    NOTE: Sử dụng version V2 từ c1_process_enhanced_v2.py
+    NOTE: Sử dụng version V2 từ i15_process.py
           - Lần 1 trong ngày: Lưu đầy đủ vào DB
           - Lần 2+ trong ngày: Chỉ tạo Excel, không động DB (trừ khi force_update=True)
     """
@@ -3115,7 +3115,7 @@ def process_I15_report(force_update=False):
     import sys
     import os
     sys.path.insert(0, os.path.dirname(__file__))
-    from c1_process_enhanced_v2 import process_I15_report_with_tracking
+    from i15_process import process_I15_report_with_tracking
 
     return process_I15_report_with_tracking(force_update=force_update)
 
@@ -3128,7 +3128,7 @@ def process_I15_k2_report(force_update=False):
     import sys
     import os
     sys.path.insert(0, os.path.dirname(__file__))
-    from c1_process_enhanced_v2 import process_I15_k2_report_with_tracking
+    from i15_process import process_I15_k2_report_with_tracking
 
     return process_I15_k2_report_with_tracking(force_update=force_update)
 

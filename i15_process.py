@@ -28,6 +28,9 @@ def add_tt_column(df):
     if len(df) == 0:
         return df
     df_copy = df.copy()
+    # Xóa cột TT cũ nếu đã tồn tại
+    if 'TT' in df_copy.columns:
+        df_copy = df_copy.drop(columns=['TT'])
     df_copy.insert(0, 'TT', range(1, len(df_copy) + 1))
     return df_copy
 
@@ -99,21 +102,47 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
         if os.path.exists(db_file):
             try:
                 conn = sqlite3.connect(db_file)
-                query = "SELECT MA_TB, THIETBI, SA, KETCUOI FROM danhba"
+                # Thêm DOI_VT và NVKT vào query để cập nhật DOI_ONE và NVKT_DB
+                query = "SELECT MA_TB, THIETBI, SA, KETCUOI, DOI_VT, NVKT FROM danhba"
                 df_danhba = pd.read_sql_query(query, conn)
 
                 print(f"✅ Đã đọc {len(df_danhba)} bản ghi từ danhba.db")
 
                 if 'ACCOUNT_CTS' in df.columns:
-                    cols_to_remove = ['MA_TB', 'THIETBI', 'SA', 'KETCUOI']
+                    # Xóa các cột cũ nếu tồn tại
+                    cols_to_remove = ['MA_TB', 'THIETBI', 'SA', 'KETCUOI', 'DOI_VT_DB', 'NVKT_DB_NEW']
                     for col in cols_to_remove:
                         if col in df.columns:
                             df = df.drop(columns=[col])
 
+                    # Merge để lấy thông tin từ danhba.db
                     df = df.merge(df_danhba, left_on='ACCOUNT_CTS', right_on='MA_TB', how='left')
                     if 'MA_TB' in df.columns:
                         df = df.drop(columns=['MA_TB'])
                     print(f"✅ Đã tra cứu và thêm các cột: THIETBI, SA, KETCUOI")
+                    
+                    # Cập nhật DOI_ONE và NVKT_DB từ danhba.db (nếu có dữ liệu)
+                    updated_doi = 0
+                    updated_nvkt = 0
+                    
+                    if 'DOI_VT' in df.columns and 'DOI_ONE' in df.columns:
+                        # Đếm số bản ghi sẽ được cập nhật
+                        mask_doi = df['DOI_VT'].notna() & (df['DOI_VT'] != df['DOI_ONE'])
+                        updated_doi = mask_doi.sum()
+                        # Cập nhật DOI_ONE từ DOI_VT (danhba.db)
+                        df.loc[df['DOI_VT'].notna(), 'DOI_ONE'] = df.loc[df['DOI_VT'].notna(), 'DOI_VT']
+                        df = df.drop(columns=['DOI_VT'])
+                    
+                    if 'NVKT' in df.columns and 'NVKT_DB' in df.columns:
+                        # Đếm số bản ghi sẽ được cập nhật
+                        mask_nvkt = df['NVKT'].notna() & (df['NVKT'] != df['NVKT_DB'])
+                        updated_nvkt = mask_nvkt.sum()
+                        # Cập nhật NVKT_DB từ NVKT (danhba.db)
+                        df.loc[df['NVKT'].notna(), 'NVKT_DB'] = df.loc[df['NVKT'].notna(), 'NVKT']
+                        df = df.drop(columns=['NVKT'])
+                    
+                    if updated_doi > 0 or updated_nvkt > 0:
+                        print(f"✅ Đã cập nhật từ danhba.db: {updated_doi} DOI_ONE, {updated_nvkt} NVKT_DB")
                 
                 # Đọc bảng thong_ke (cho NVKT)
                 df_thong_ke = pd.read_sql_query(
@@ -642,9 +671,9 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
         print("TẠO FILE EXCEL CHI TIẾT CHO TỪNG NVKT")
         print("="*80)
 
-        # Tạo thư mục gốc
+        # Tạo thư mục gốc (tách riêng cho K1 và K2)
         base_dir = os.path.dirname(input_file)
-        detail_dir = os.path.join(base_dir, "shc_NVKT_danh_sach_chi_tiet")
+        detail_dir = os.path.join(base_dir, f"shc_NVKT_danh_sach_chi_tiet_{k_suffix}")
         if not os.path.exists(detail_dir):
             os.makedirs(detail_dir)
             print(f"✓ Đã tạo thư mục: {detail_dir}")

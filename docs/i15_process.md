@@ -1,4 +1,4 @@
-# Tài liệu Module c1_process_enhanced_v2.py
+# Tài liệu Module i15_process.py
 
 ## Mô tả
 
@@ -13,7 +13,7 @@ Module xử lý báo cáo **I1.5 Suy hao cao (SHC)** với các tính năng nân
 ## Cấu trúc File
 
 ```
-c1_process_enhanced_v2.py
+i15_process.py
 ├── normalize_nvkt()                         # Chuẩn hóa tên NVKT
 ├── process_I15_report_with_tracking()       # Wrapper xử lý K1
 ├── process_I15_k2_report_with_tracking()    # Wrapper xử lý K2
@@ -197,28 +197,28 @@ Tổng hợp theo đơn vị và NVKT mỗi ngày.
 
 ```bash
 # Chạy cả K1 và K2 (mặc định)
-python c1_process_enhanced_v2.py
+python i15_process.py
 
 # Chỉ chạy K1
-python c1_process_enhanced_v2.py --k1
+python i15_process.py --k1
 
 # Chỉ chạy K2
-python c1_process_enhanced_v2.py --k2
+python i15_process.py --k2
 
 # Ghi đè dữ liệu đã tồn tại
-python c1_process_enhanced_v2.py --force
+python i15_process.py --force
 
 # Kết hợp tùy chọn
-python c1_process_enhanced_v2.py --k2 --force
+python i15_process.py --k2 --force
 
 # Xem trợ giúp
-python c1_process_enhanced_v2.py --help
+python i15_process.py --help
 ```
 
 ### Import và sử dụng trong code
 
 ```python
-from c1_process_enhanced_v2 import (
+from i15_process import (
     process_I15_report_with_tracking,
     process_I15_k2_report_with_tracking
 )

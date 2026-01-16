@@ -2508,7 +2508,7 @@ if __name__ == "__main__":
         # download_report_c14_chitiet(page_baocao)
         #download_report_c15_chitiet(page_baocao)
         download_report_I15(page_baocao)
-        download_report_I15_k2(page_baocao)
+        # download_report_I15_k2(page_baocao)
 
         # Đóng browser sau khi hoàn thành
         print("\n=== Đóng browser ===")

@@ -303,7 +303,7 @@ print(f"Thuê bao mới trong file: {current_accounts - db_accounts}")
 **Kiểm tra version đang dùng:**
 ```python
 # Trong c1_process.py, dòng 409
-from c1_process_enhanced_v2 import process_I15_report_with_tracking  # ✅ V2
+from i15_process import process_I15_report_with_tracking  # ✅ V2
 # from c1_process_enhanced import process_I15_report_with_tracking  # ❌ V1 cũ
 ```
 
@@ -312,6 +312,6 @@ from c1_process_enhanced_v2 import process_I15_report_with_tracking  # ✅ V2
 **Phiên bản:** V2
 **Ngày tạo:** 05/11/2025
 **File liên quan:**
-- [c1_process_enhanced_v2.py](c1_process_enhanced_v2.py): Logic V2
+- [i15_process.py](i15_process.py): Logic V2
 - [c1_process.py](c1_process.py): Wrapper function
 - [HUONG_DAN_SU_DUNG_TRACKING.md](HUONG_DAN_SU_DUNG_TRACKING.md): Hướng dẫn tổng quát
