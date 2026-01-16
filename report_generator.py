@@ -166,16 +166,2082 @@ def load_c1x_reports(data_folder="downloads/baocao_hanoi"):
     return reports
 
 
-def add_c1x_overview_table(doc, c1x_reports):
+def load_exclusion_comparison_data(exclusion_folder="downloads/kq_sau_giam_tru"):
     """
-    Thêm bảng tổng quan chi tiết từ các báo cáo C1.x vào document
+    Đọc dữ liệu so sánh trước/sau giảm trừ từ các file Excel
+    
+    Args:
+        exclusion_folder: Thư mục chứa các file kết quả sau giảm trừ
+        
+    Returns:
+        dict: Dictionary chứa DataFrames cho từng chỉ tiêu
+              - 'c11_sm4': So sánh C1.1 SM4 (Sửa chữa báo hỏng)
+              - 'c11_sm2': So sánh C1.1 SM2 (Sửa chữa chủ động)
+              - 'c12_sm1': So sánh C1.2 SM1 (Hỏng lặp lại)
+              - 'c12_sm4': So sánh C1.2 SM4 (Tỷ lệ báo hỏng BRCĐ)
+              - 'c14': So sánh C1.4 (Độ hài lòng)
+              - 'tong_hop': Tổng hợp tất cả chỉ tiêu
+    """
+    data_path = Path(exclusion_folder)
+    comparison_data = {}
+    
+    if not data_path.exists():
+        print(f"   ⚠️ Không tìm thấy thư mục giảm trừ: {exclusion_folder}")
+        return comparison_data
+    
+    # C1.1 SM4 - Sửa chữa báo hỏng đúng quy định
+    try:
+        c11_sm4_file = data_path / "So_sanh_C11_SM4.xlsx"
+        if c11_sm4_file.exists():
+            comparison_data['c11_sm4'] = {
+                'chi_tiet': pd.read_excel(c11_sm4_file, sheet_name='So_sanh_chi_tiet'),
+                'tong_hop': pd.read_excel(c11_sm4_file, sheet_name='Thong_ke_tong_hop')
+            }
+            print("   ✅ Đọc So_sanh_C11_SM4.xlsx thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc So_sanh_C11_SM4.xlsx: {e}")
+    
+    # C1.1 SM2 - Sửa chữa chủ động
+    try:
+        c11_sm2_file = data_path / "So_sanh_C11_SM2.xlsx"
+        if c11_sm2_file.exists():
+            comparison_data['c11_sm2'] = {
+                'chi_tiet': pd.read_excel(c11_sm2_file, sheet_name='So_sanh_chi_tiet'),
+                'tong_hop': pd.read_excel(c11_sm2_file, sheet_name='Thong_ke_tong_hop')
+            }
+            print("   ✅ Đọc So_sanh_C11_SM2.xlsx thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc So_sanh_C11_SM2.xlsx: {e}")
+    
+    # C1.2 SM1 - Hỏng lặp lại
+    try:
+        c12_sm1_file = data_path / "So_sanh_C12_SM1.xlsx"
+        if c12_sm1_file.exists():
+            comparison_data['c12_sm1'] = {
+                'chi_tiet': pd.read_excel(c12_sm1_file, sheet_name='So_sanh_chi_tiet'),
+                'tong_hop': pd.read_excel(c12_sm1_file, sheet_name='Thong_ke_tong_hop')
+            }
+            print("   ✅ Đọc So_sanh_C12_SM1.xlsx thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc So_sanh_C12_SM1.xlsx: {e}")
+    
+    # C1.2 SM4 - Tỷ lệ báo hỏng BRCĐ
+    try:
+        c12_sm4_file = data_path / "SM4-C12-ti-le-su-co-dv-brcd.xlsx"
+        if c12_sm4_file.exists():
+            comparison_data['c12_sm4'] = {
+                'chi_tiet': pd.read_excel(c12_sm4_file, sheet_name='So_sanh_chi_tiet'),
+                'tong_hop': pd.read_excel(c12_sm4_file, sheet_name='Thong_ke_tong_hop')
+            }
+            print("   ✅ Đọc SM4-C12-ti-le-su-co-dv-brcd.xlsx thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc SM4-C12: {e}")
+    
+    # C1.4 - Độ hài lòng khách hàng
+    try:
+        c14_file = data_path / "So_sanh_C14.xlsx"
+        if c14_file.exists():
+            comparison_data['c14'] = {
+                'chi_tiet': pd.read_excel(c14_file, sheet_name='So_sanh_chi_tiet'),
+                'tong_hop': pd.read_excel(c14_file, sheet_name='Thong_ke_tong_hop')
+            }
+            print("   ✅ Đọc So_sanh_C14.xlsx thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc So_sanh_C14.xlsx: {e}")
+    
+    # Tổng hợp giảm trừ
+    try:
+        tong_hop_file = data_path / "Tong_hop_giam_tru.xlsx"
+        if tong_hop_file.exists():
+            comparison_data['tong_hop'] = pd.read_excel(tong_hop_file)
+            print("   ✅ Đọc Tong_hop_giam_tru.xlsx thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc Tong_hop_giam_tru.xlsx: {e}")
+    
+    return comparison_data
+
+
+def load_unit_level_exclusion_data(exclusion_folder="downloads/kq_sau_giam_tru"):
+    """
+    Đọc dữ liệu thống kê theo đơn vị (Tổ) từ sheet Thong_ke_theo_don_vi
+    
+    Returns:
+        dict: Dictionary chứa DataFrames thống kê theo đơn vị cho từng chỉ tiêu
+    """
+    data_path = Path(exclusion_folder)
+    unit_data = {}
+    
+    if not data_path.exists():
+        print(f"   ⚠️ Không tìm thấy thư mục giảm trừ: {exclusion_folder}")
+        return unit_data
+    
+    # C1.1 SM4
+    try:
+        c11_sm4_file = data_path / "So_sanh_C11_SM4.xlsx"
+        if c11_sm4_file.exists():
+            unit_data['c11_sm4'] = pd.read_excel(c11_sm4_file, sheet_name='Thong_ke_theo_don_vi')
+            print("   ✅ Đọc unit stats C1.1 SM4 thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc unit stats C1.1 SM4: {e}")
+    
+    # C1.1 SM2
+    try:
+        c11_sm2_file = data_path / "So_sanh_C11_SM2.xlsx"
+        if c11_sm2_file.exists():
+            unit_data['c11_sm2'] = pd.read_excel(c11_sm2_file, sheet_name='Thong_ke_theo_don_vi')
+            print("   ✅ Đọc unit stats C1.1 SM2 thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc unit stats C1.1 SM2: {e}")
+    
+    # C1.2 SM1
+    try:
+        c12_sm1_file = data_path / "So_sanh_C12_SM1.xlsx"
+        if c12_sm1_file.exists():
+            unit_data['c12_sm1'] = pd.read_excel(c12_sm1_file, sheet_name='Thong_ke_theo_don_vi')
+            print("   ✅ Đọc unit stats C1.2 SM1 thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc unit stats C1.2 SM1: {e}")
+    
+    # C1.4
+    try:
+        c14_file = data_path / "So_sanh_C14.xlsx"
+        if c14_file.exists():
+            unit_data['c14'] = pd.read_excel(c14_file, sheet_name='Thong_ke_theo_don_vi')
+            print("   ✅ Đọc unit stats C1.4 thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc unit stats C1.4: {e}")
+    
+    # C1.5
+    try:
+        c15_file = data_path / "So_sanh_C15.xlsx"
+        if c15_file.exists():
+            unit_data['c15'] = pd.read_excel(c15_file, sheet_name='Thong_ke_theo_don_vi')
+            print("   ✅ Đọc unit stats C1.5 thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc unit stats C1.5: {e}")
+    
+    return unit_data
+
+
+def load_nvkt_exclusion_summary(exclusion_folder="downloads/kq_sau_giam_tru"):
+    """
+    Đọc dữ liệu KPI sau giảm trừ theo NVKT từ file tổng hợp
+    
+    Returns:
+        DataFrame chứa điểm KPI sau giảm trừ theo NVKT
+    """
+    file_path = Path(exclusion_folder) / "KPI_sau_GT" / "KPI_NVKT_SauGiamTru_TomTat.xlsx"
+    if file_path.exists():
+        try:
+            df = pd.read_excel(file_path)
+            print("   ✅ Đọc dữ liệu KPI sau giảm trừ theo NVKT thành công")
+            return df
+        except Exception as e:
+            print(f"   ⚠️ Không thể đọc KPI sau giảm trừ theo NVKT: {e}")
+    return None
+
+
+def add_kpi_summary_table_after_exclusion(doc, df_exclusion, team_name):
+    """
+    Thêm bảng tổng hợp KPI sau giảm trừ vào document cho 1 tổ
     
     Args:
         doc: Document Word
+        df_exclusion: DataFrame dữ liệu sau giảm trừ
+        team_name: Tên tổ cần lọc
+    """
+    if df_exclusion is None or df_exclusion.empty:
+        doc.add_paragraph("(Không có dữ liệu sau giảm trừ)")
+        return
+    
+    # Lọc theo tổ
+    df = df_exclusion[df_exclusion['don_vi'] == team_name].copy()
+    if df.empty:
+        doc.add_paragraph("(Không có dữ liệu sau giảm trừ cho tổ này)")
+        return
+    
+    # Sắp xếp
+    df = df.sort_values('nvkt')
+
+    # Tạo bảng - bao gồm C1.1, C1.2, C1.4, C1.5 sau giảm trừ
+    headers = ['STT', 'NVKT', 'C1.1', 'C1.2', 'C1.4', 'C1.5']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+
+    # Header
+    header_cells = table.rows[0].cells
+    for i, header in enumerate(headers):
+        header_cells[i].text = header
+        header_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(header_cells[i], '2E7D32')  # Màu xanh lá để phân biệt với bảng thô
+        run = header_cells[i].paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(10)
+
+    # Dữ liệu
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+
+        data = [
+            str(idx),
+            row.get('nvkt', ''),
+            format_number(row.get('Diem_C1.1', np.nan)),
+            format_number(row.get('Diem_C1.2', np.nan)),
+            format_number(row.get('Diem_C1.4', np.nan)),
+            format_number(row.get('Diem_C1.5', np.nan))
+        ]
+        
+        for i, value in enumerate(data):
+            cells[i].text = str(value)
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(10)
+            
+            # Màu nền xen kẽ
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'E8F5E9')  # Xanh lá nhạt
+            
+            # Tô màu điểm theo mức (chỉ các cột điểm)
+            if i >= 2:
+                try:
+                    val = float(value) if value and value != 'N/A' else None
+                    if val is not None:
+                        if val >= 4.5:
+                            run.font.color.rgb = RGBColor(0, 128, 0)
+                            run.font.bold = True
+                        elif val < 3:
+                            run.font.color.rgb = RGBColor(255, 0, 0)
+                            run.font.bold = True
+                except (ValueError, TypeError):
+                    pass
+
+
+def load_nvkt_exclusion_detail(exclusion_folder="downloads/kq_sau_giam_tru"):
+    """
+    Đọc dữ liệu KPI chi tiết sau giảm trừ theo NVKT
+    
+    Returns:
+        DataFrame chứa điểm KPI chi tiết sau giảm trừ theo NVKT
+    """
+    file_path = Path(exclusion_folder) / "KPI_sau_GT" / "KPI_NVKT_SauGiamTru_ChiTiet.xlsx"
+    if file_path.exists():
+        try:
+            df = pd.read_excel(file_path)
+            print("   ✅ Đọc dữ liệu KPI chi tiết sau giảm trừ thành công")
+            return df
+        except Exception as e:
+            print(f"   ⚠️ Không thể đọc KPI chi tiết sau giảm trừ: {e}")
+    return None
+
+
+def add_c11_detail_table_after_exclusion(doc, df_exclusion_detail, team_name):
+    """
+    Thêm bảng chi tiết C1.1 sau giảm trừ
+    """
+    if df_exclusion_detail is None or df_exclusion_detail.empty:
+        doc.add_paragraph("(Không có dữ liệu chi tiết C1.1 sau giảm trừ)")
+        return
+    
+    df = df_exclusion_detail[df_exclusion_detail['don_vi'] == team_name].copy()
+    if df.empty:
+        doc.add_paragraph("(Không có dữ liệu chi tiết C1.1 sau giảm trừ cho tổ này)")
+        return
+    
+    df = df.sort_values('nvkt')
+    
+    doc.add_heading('Chi tiết chỉ tiêu C1.1 - Chất lượng sửa chữa thuê bao BRCĐ (sau giảm trừ)', level=3)
+    
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 Chú thích: ').bold = True
+    p.add_run('TP1 = Sửa chữa chủ động (SCCD ≤72h) | TP2 = Sửa chữa theo báo hỏng (SC BH) | Sau GT = Sau giảm trừ')
+    
+    headers = ['STT', 'NVKT', 'Tổng SCCD', 'Đạt ≤72h', 'TL(%)', 'Điểm TP1',
+               'Tổng SC BH', 'Đúng hạn', 'TL(%)', 'Điểm TP2', 'Điểm C1.1']
+    
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    # Header - màu xanh lá đậm hơn để phân biệt
+    for i, header in enumerate(table.rows[0].cells):
+        header.text = headers[i]
+        header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(header, '1B5E20')  # Xanh lá đậm
+        run = header.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(8)
+    
+    # Dữ liệu
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        data = [
+            str(idx),
+            row['nvkt'],
+            format_number(row.get('c11_tp1_tong_phieu', np.nan), 0),
+            format_number(row.get('c11_tp1_phieu_dat', np.nan), 0),
+            format_number(row.get('c11_tp1_ty_le', np.nan)),
+            format_number(row.get('diem_c11_tp1', np.nan)),
+            format_number(row.get('c11_tp2_tong_phieu', np.nan), 0),
+            format_number(row.get('c11_tp2_phieu_dat', np.nan), 0),
+            format_number(row.get('c11_tp2_ty_le', np.nan)),
+            format_number(row.get('diem_c11_tp2', np.nan)),
+            format_number(row.get('Diem_C1.1', np.nan))
+        ]
+        
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(8)
+            
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'C8E6C9')  # Xanh lá nhạt hơn
+
+
+def add_c12_detail_table_after_exclusion(doc, df_exclusion_detail, team_name):
+    """
+    Thêm bảng chi tiết C1.2 sau giảm trừ
+    """
+    if df_exclusion_detail is None or df_exclusion_detail.empty:
+        doc.add_paragraph("(Không có dữ liệu chi tiết C1.2 sau giảm trừ)")
+        return
+    
+    df = df_exclusion_detail[df_exclusion_detail['don_vi'] == team_name].copy()
+    if df.empty:
+        doc.add_paragraph("(Không có dữ liệu chi tiết C1.2 sau giảm trừ cho tổ này)")
+        return
+    
+    df = df.sort_values('nvkt')
+    
+    doc.add_heading('Chi tiết chỉ tiêu C1.2 - Tỷ lệ thuê bao báo hỏng (sau giảm trừ)', level=3)
+    
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 Chú thích: ').bold = True
+    p.add_run('TP1 = Hỏng lặp (≥2 lần/7 ngày) | TP2 = Tỷ lệ BH/TB quản lý | Sau GT = Sau giảm trừ')
+    
+    headers = ['STT', 'NVKT', 'Hỏng lặp', 'Tổng BH', 'TL(%)', 'Điểm TP1',
+               'Phiếu BH', 'TB QL', 'TL(‰)', 'Điểm TP2', 'Điểm C1.2']
+    
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    # Header - màu xanh dương đậm hơn
+    for i, header in enumerate(table.rows[0].cells):
+        header.text = headers[i]
+        header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(header, '0D47A1')  # Xanh dương đậm
+        run = header.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(8)
+    
+    # Dữ liệu
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        data = [
+            str(idx),
+            row['nvkt'],
+            format_number(row.get('c12_tp1_phieu_hll', np.nan), 0),
+            format_number(row.get('c12_tp1_phieu_bh', np.nan), 0),
+            format_number(row.get('c12_tp1_ty_le', np.nan)),
+            format_number(row.get('diem_c12_tp1', np.nan)),
+            format_number(row.get('c12_tp2_phieu_bh', np.nan), 0),
+            format_number(row.get('c12_tp2_tong_tb', np.nan), 0),
+            format_number(row.get('c12_tp2_ty_le', np.nan)),
+            format_number(row.get('diem_c12_tp2', np.nan)),
+            format_number(row.get('Diem_C1.2', np.nan))
+        ]
+        
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(8)
+            
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'BBDEFB')  # Xanh dương nhạt
+
+
+def add_c14_detail_table_after_exclusion(doc, df_exclusion_detail, team_name):
+    """
+    Thêm bảng chi tiết C1.4 sau giảm trừ - Độ hài lòng khách hàng
+    """
+    if df_exclusion_detail is None or df_exclusion_detail.empty:
+        doc.add_paragraph("(Không có dữ liệu chi tiết C1.4 sau giảm trừ)")
+        return
+    
+    df = df_exclusion_detail[df_exclusion_detail['don_vi'] == team_name].copy()
+    if df.empty:
+        doc.add_paragraph("(Không có dữ liệu chi tiết C1.4 sau giảm trừ cho tổ này)")
+        return
+    
+    df = df.sort_values('nvkt')
+    
+    doc.add_heading('Chi tiết chỉ tiêu C1.4 - Độ hài lòng khách hàng (sau giảm trừ)', level=3)
+    
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 Chú thích: ').bold = True
+    p.add_run('KS = Khảo sát | Không HL = Không hài lòng | Sau GT = Sau giảm trừ')
+    
+    headers = ['STT', 'NVKT', 'Tổng KS', 'Không HL', 'Tỷ lệ HL (%)', 'Điểm C1.4']
+    
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    # Header - màu cam đậm hơn
+    for i, header in enumerate(table.rows[0].cells):
+        header.text = headers[i]
+        header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(header, 'E65100')  # Cam đậm
+        run = header.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+    
+    # Dữ liệu
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        data = [
+            str(idx),
+            row['nvkt'],
+            format_number(row.get('c14_phieu_ks', np.nan), 0),
+            format_number(row.get('c14_phieu_khl', np.nan), 0),
+            format_number(row.get('c14_ty_le', np.nan)),
+            format_number(row.get('Diem_C1.4', np.nan))
+        ]
+        
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'FFE0B2')  # Cam nhạt
+
+
+def add_c15_detail_table_after_exclusion(doc, df_exclusion_detail, team_name):
+    """
+    Thêm bảng chi tiết C1.5 sau giảm trừ - Thiết lập dịch vụ BRCĐ
+    """
+    if df_exclusion_detail is None or df_exclusion_detail.empty:
+        doc.add_paragraph("(Không có dữ liệu chi tiết C1.5 sau giảm trừ)")
+        return
+
+    df = df_exclusion_detail[df_exclusion_detail['don_vi'] == team_name].copy()
+    if df.empty:
+        doc.add_paragraph("(Không có dữ liệu chi tiết C1.5 sau giảm trừ cho tổ này)")
+        return
+
+    df = df.sort_values('nvkt')
+
+    doc.add_heading('Chi tiết chỉ tiêu C1.5 - Thiết lập dịch vụ BRCĐ đạt thời gian quy định (sau giảm trừ)', level=3)
+
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 Chú thích: ').bold = True
+    p.add_run('Đạt TG = Hoàn thành đúng thời gian | Sau GT = Sau giảm trừ (loại bỏ phiếu loại trừ)')
+
+    headers = ['STT', 'NVKT', 'Đạt TG', 'Không đạt', 'Tổng phiếu', 'Tỷ lệ (%)', 'Điểm C1.5']
+
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+
+    # Header - màu tím đậm hơn để phân biệt với bảng trước
+    for i, header in enumerate(table.rows[0].cells):
+        header.text = headers[i]
+        header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(header, '4A148C')  # Tím đậm
+        run = header.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+
+    # Dữ liệu
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        data = [
+            str(idx),
+            row['nvkt'],
+            format_number(row.get('c15_phieu_dat', np.nan), 0),
+            format_number(row.get('c15_phieu_khong_dat', np.nan), 0),
+            format_number(row.get('c15_tong_phieu', np.nan), 0),
+            format_number(row.get('c15_ty_le', np.nan)),
+            format_number(row.get('Diem_C1.5', np.nan))
+        ]
+
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'EDE7F6')  # Tím nhạt
+
+
+def create_nvkt_bar_chart_after_exclusion(df_exclusion, team_name, output_path=None):
+    """
+    Tạo biểu đồ cột so sánh điểm KPI sau giảm trừ theo NVKT trong 1 tổ
+    
+    Args:
+        df_exclusion: DataFrame chứa dữ liệu KPI sau giảm trừ
+        team_name: Tên tổ cần tạo biểu đồ
+        output_path: Đường dẫn lưu file (None = trả về bytes)
+    
+    Returns:
+        bytes hoặc str, None nếu không có dữ liệu
+    """
+    if df_exclusion is None or df_exclusion.empty:
+        return None
+    
+    # Lọc theo tổ
+    df = df_exclusion[df_exclusion['don_vi'] == team_name].copy()
+    if df.empty or len(df) == 0:
+        return None
+    
+    # Sắp xếp theo tên
+    df = df.sort_values('nvkt')
+    
+    # Lấy tên ngắn của tổ
+    short_name = TEAM_SHORT_NAMES.get(team_name, team_name)
+    
+    # Chuẩn bị dữ liệu
+    nvkts = df['nvkt'].tolist()
+    c11 = df['Diem_C1.1'].fillna(0).tolist()
+    c12 = df['Diem_C1.2'].fillna(0).tolist()
+    c14 = df['Diem_C1.4'].fillna(0).tolist()
+    c15 = df['Diem_C1.5'].fillna(0).tolist()
+
+    # Tạo biểu đồ
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    x = np.arange(len(nvkts))
+    width = 0.2
+
+    # Các cột - bao gồm C1.1, C1.2, C1.4, C1.5 sau giảm trừ
+    bars1 = ax.bar(x - 1.5*width, c11, width, label='C1.1', color='#66BB6A')  # Xanh lá
+    bars2 = ax.bar(x - 0.5*width, c12, width, label='C1.2', color='#42A5F5')  # Xanh dương
+    bars3 = ax.bar(x + 0.5*width, c14, width, label='C1.4', color='#FFA726')  # Cam
+    bars4 = ax.bar(x + 1.5*width, c15, width, label='C1.5', color='#AB47BC')  # Tím
+
+    # Thêm giá trị lên cột
+    for bars in [bars1, bars2, bars3, bars4]:
+        for bar in bars:
+            height = bar.get_height()
+            if height > 0:
+                ax.annotate(f'{height:.1f}',
+                           xy=(bar.get_x() + bar.get_width() / 2, height),
+                           xytext=(0, 3),
+                           textcoords="offset points",
+                           ha='center', va='bottom', fontsize=7)
+    
+    ax.set_xlabel('Nhân viên kỹ thuật', fontsize=11)
+    ax.set_ylabel('Điểm KPI', fontsize=11)
+    ax.set_title(f'SO SÁNH ĐIỂM KPI SAU GIẢM TRỪ - {short_name.upper()}', fontsize=13, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(nvkts, rotation=45, ha='right', fontsize=9)
+    ax.set_ylim(0, 6)
+    ax.legend(loc='upper right')
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        return output_path
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
+        buf.seek(0)
+        return buf
+
+
+def create_unit_comparison_chart(unit_data, chi_tieu='c11_sm4', output_path=None):
+    """
+    Tạo biểu đồ grouped bar so sánh tỷ lệ trước/sau GT theo đơn vị
+    
+    Args:
+        unit_data: Dictionary từ load_unit_level_exclusion_data()
+        chi_tieu: 'c11_sm4', 'c11_sm2', 'c12_sm1', 'c14'
+        output_path: Đường dẫn lưu file
+    """
+    if not unit_data or chi_tieu not in unit_data:
+        return None
+    
+    df = unit_data[chi_tieu]
+    
+    # Lấy cột tỷ lệ
+    tyle_tho_col = None
+    tyle_sau_col = None
+    for col in df.columns:
+        if 'Tỷ lệ' in col and 'Thô' in col:
+            tyle_tho_col = col
+        elif 'Tỷ lệ' in col and 'Sau GT' in col:
+            tyle_sau_col = col
+    
+    if not tyle_tho_col or not tyle_sau_col:
+        return None
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    x = np.arange(len(df))
+    width = 0.35
+    
+    don_vi = df['Đơn vị'].values
+    tyle_tho = df[tyle_tho_col].fillna(0).values
+    tyle_sau = df[tyle_sau_col].fillna(0).values
+    
+    bars1 = ax.bar(x - width/2, tyle_tho, width, label='Trước giảm trừ', color='#EF5350', alpha=0.8)
+    bars2 = ax.bar(x + width/2, tyle_sau, width, label='Sau giảm trừ', color='#66BB6A', alpha=0.8)
+    
+    # Thêm giá trị lên cột
+    for bar, val in zip(bars1, tyle_tho):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.3,
+               f'{val:.1f}%', ha='center', va='bottom', fontsize=9)
+    for bar, val in zip(bars2, tyle_sau):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.3,
+               f'{val:.1f}%', ha='center', va='bottom', fontsize=9)
+    
+    # Tiêu đề theo chỉ tiêu
+    titles = {
+        'c11_sm4': 'C1.1 SM4 - Sửa chữa báo hỏng',
+        'c11_sm2': 'C1.1 SM2 - Sửa chữa chủ động', 
+        'c12_sm1': 'C1.2 SM1 - Hỏng lặp lại',
+        'c14': 'C1.4 - Độ hài lòng khách hàng'
+    }
+    
+    ax.set_xlabel('Đơn vị', fontsize=11)
+    ax.set_ylabel('Tỷ lệ (%)', fontsize=11)
+    ax.set_title(f'SO SÁNH TRƯỚC/SAU GIẢM TRỪ THEO ĐƠN VỊ\n{titles.get(chi_tieu, chi_tieu)}', 
+                fontsize=12, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(don_vi, rotation=15, ha='right', fontsize=10)
+    ax.legend(loc='upper right')
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        return output_path
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
+        buf.seek(0)
+        return buf
+
+
+def add_unit_exclusion_table(doc, unit_data, chi_tieu='c11_sm4'):
+    """
+    Thêm bảng thống kê theo đơn vị vào document
+    
+    Args:
+        doc: Document Word
+        unit_data: Dictionary từ load_unit_level_exclusion_data()
+        chi_tieu: 'c11_sm4', 'c11_sm2', 'c12_sm1', 'c14'
+    """
+    if not unit_data or chi_tieu not in unit_data:
+        return
+    
+    df = unit_data[chi_tieu]
+    
+    # Định nghĩa tiêu đề và màu theo chỉ tiêu
+    config = {
+        'c11_sm4': {'title': 'C1.1 SM4 - Sửa chữa báo hỏng theo đơn vị (Sau GT)', 'color': 'C62828'},
+        'c11_sm2': {'title': 'C1.1 SM2 - Sửa chữa chủ động theo đơn vị (Sau GT)', 'color': 'AD1457'},
+        'c12_sm1': {'title': 'C1.2 SM1 - Hỏng lặp lại theo đơn vị (Sau GT)', 'color': '0D47A1'},
+        'c14': {'title': 'C1.4 - Độ hài lòng theo đơn vị (Sau GT)', 'color': 'E65100'}
+    }
+    
+    cfg = config.get(chi_tieu, {'title': chi_tieu, 'color': '333333'})
+    
+    doc.add_heading(cfg['title'], level=4)
+    
+    # Lấy các cột cần hiển thị
+    display_cols = ['Đơn vị', 'Tổng phiếu (Thô)', 'Phiếu loại trừ', 'Tổng phiếu (Sau GT)']
+    tyle_cols = [c for c in df.columns if 'Tỷ lệ' in c]
+    thay_doi_cols = [c for c in df.columns if 'Thay đổi' in c]
+    
+    headers = display_cols + tyle_cols[:2] + thay_doi_cols[:1]
+    headers = [h for h in headers if h in df.columns]
+    
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    # Header
+    for i, header in enumerate(table.rows[0].cells):
+        # Rút gọn tên header
+        h = headers[i]
+        short_h = h.replace('(Thô)', '(T)').replace('(Sau GT)', '(S)').replace('Tổng phiếu', 'Tổng')
+        header.text = short_h
+        header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(header, cfg['color'])
+        run = header.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(8)
+    
+    # Dữ liệu
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        for i, h in enumerate(headers):
+            val = row.get(h, '')
+            if pd.isna(val):
+                val = ''
+            elif isinstance(val, (int, float)):
+                if 'Tỷ lệ' in h or 'Thay đổi' in h:
+                    val = f"{val:.2f}%"
+                else:
+                    val = str(int(val))
+            cells[i].text = str(val)
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(8)
+            
+            # Tô màu cho dòng TTVT
+            if 'TTVT' in str(row.get('Đơn vị', '')):
+                run.font.bold = True
+                set_cell_shading(cells[i], 'E0E0E0')
+            elif idx % 2 == 0:
+                set_cell_shading(cells[i], 'F5F5F5')
+    
+    doc.add_paragraph()
+
+
+def add_unit_level_exclusion_section(doc, unit_data, c1x_reports=None):
+    """
+    Thêm phần thống kê giảm trừ theo đơn vị vào document
+    Bao gồm biểu đồ BSC sau giảm trừ, bảng và biểu đồ chi tiết cho từng chỉ tiêu
+    """
+    if not unit_data:
+        return
+    
+    doc.add_heading('Thống kê giảm trừ theo đơn vị (Tổ)', level=3)
+    
+    p = doc.add_paragraph()
+    p.add_run('📊 Số liệu dưới đây thể hiện kết quả các chỉ tiêu BSC trước và sau giảm trừ, ')
+    p.add_run('được tổng hợp theo từng Tổ kỹ thuật và toàn TTVT Sơn Tây.')
+    doc.add_paragraph()
+    
+    # (Biểu đồ BSC sau giảm trừ đã được đặt ở section 1.1.b - trước phần này)
+    
+    # C1.1 SM4
+    if 'c11_sm4' in unit_data:
+        add_unit_exclusion_table(doc, unit_data, 'c11_sm4')
+        try:
+            chart = create_unit_comparison_chart(unit_data, 'c11_sm4')
+            if chart:
+                doc.add_picture(chart, width=Inches(6))
+                doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        except Exception as e:
+            print(f"   ⚠️ Không thể tạo biểu đồ C1.1 SM4: {e}")
+        doc.add_paragraph()
+    
+    # C1.1 SM2
+    if 'c11_sm2' in unit_data:
+        add_unit_exclusion_table(doc, unit_data, 'c11_sm2')
+        doc.add_paragraph()
+    
+    # C1.2 SM1
+    if 'c12_sm1' in unit_data:
+        add_unit_exclusion_table(doc, unit_data, 'c12_sm1')
+        try:
+            chart = create_unit_comparison_chart(unit_data, 'c12_sm1')
+            if chart:
+                doc.add_picture(chart, width=Inches(6))
+                doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        except Exception as e:
+            print(f"   ⚠️ Không thể tạo biểu đồ C1.2 SM1: {e}")
+        doc.add_paragraph()
+    
+    # C1.4
+    if 'c14' in unit_data:
+        add_unit_exclusion_table(doc, unit_data, 'c14')
+        try:
+            chart = create_unit_comparison_chart(unit_data, 'c14')
+            if chart:
+                doc.add_picture(chart, width=Inches(6))
+                doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        except Exception as e:
+            print(f"   ⚠️ Không thể tạo biểu đồ C1.4: {e}")
+        doc.add_paragraph()
+
+
+def create_comparison_bar_chart(comparison_data, output_path=None):
+    """
+    Tạo biểu đồ grouped bar so sánh tỷ lệ trước/sau giảm trừ
+    
+    Args:
+        comparison_data: Dictionary từ load_exclusion_comparison_data()
+        output_path: Đường dẫn lưu file (None = trả về bytes)
+    
+    Returns:
+        bytes hoặc str: Dữ liệu ảnh
+    """
+    if not comparison_data or 'tong_hop' not in comparison_data:
+        return None
+    
+    df = comparison_data['tong_hop']
+    
+    # Sắp xếp theo thứ tự
+    chi_tieu_order = ['C1.1 SM4', 'C1.1 SM2', 'C1.2', 'C1.2 Tỷ lệ BRCĐ báo hỏng', 'C1.4 Độ hài lòng KH']
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    x = np.arange(len(df))
+    width = 0.35
+    
+    tyle_tho = df['Tỷ lệ % (Thô)'].fillna(0).values
+    tyle_sau = df['Tỷ lệ % (Sau GT)'].fillna(0).values
+    chi_tieu = df['Chỉ tiêu'].values
+    
+    bars1 = ax.bar(x - width/2, tyle_tho, width, label='Trước giảm trừ', color='#E57373', alpha=0.8)
+    bars2 = ax.bar(x + width/2, tyle_sau, width, label='Sau giảm trừ', color='#81C784', alpha=0.8)
+    
+    # Thêm giá trị lên cột
+    for bar, val in zip(bars1, tyle_tho):
+        if val > 0:
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                   f'{val:.1f}%', ha='center', va='bottom', fontsize=8)
+    for bar, val in zip(bars2, tyle_sau):
+        if val > 0:
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+                   f'{val:.1f}%', ha='center', va='bottom', fontsize=8)
+    
+    ax.set_xlabel('Chỉ tiêu', fontsize=11)
+    ax.set_ylabel('Tỷ lệ (%)', fontsize=11)
+    ax.set_title('SO SÁNH TỶ LỆ TRƯỚC/SAU GIẢM TRỪ', fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(chi_tieu, rotation=15, ha='right', fontsize=9)
+    ax.legend(loc='upper right')
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        return output_path
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
+        buf.seek(0)
+        return buf
+
+
+def add_exclusion_summary_table(doc, comparison_data):
+    """
+    Thêm bảng tổng hợp so sánh trước/sau giảm trừ vào document
+    
+    Args:
+        doc: Document Word
+        comparison_data: Dictionary từ load_exclusion_comparison_data()
+    """
+    if not comparison_data or 'tong_hop' not in comparison_data:
+        doc.add_paragraph("⚠️ Không có dữ liệu giảm trừ")
+        return
+    
+    df = comparison_data['tong_hop']
+    
+    doc.add_heading('BẢNG TỔNG HỢP SO SÁNH TRƯỚC/SAU GIẢM TRỪ', level=3)
+    
+    headers = ['Chỉ tiêu', 'Tổng phiếu (Thô)', 'Loại trừ', 'Tổng phiếu (Sau GT)', 
+               'Tỷ lệ % (Thô)', 'Tỷ lệ % (Sau GT)', 'Thay đổi %']
+    
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    # Header
+    for i, header in enumerate(table.rows[0].cells):
+        header.text = headers[i]
+        header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(header, 'D32F2F')  # Đỏ đậm
+        run = header.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+    
+    # Dữ liệu
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        
+        thay_doi = row.get('Thay đổi %', 0)
+        if pd.isna(thay_doi):
+            thay_doi = 0
+        
+        data = [
+            str(row.get('Chỉ tiêu', '')),
+            str(int(row.get('Tổng phiếu (Thô)', 0))) if pd.notna(row.get('Tổng phiếu (Thô)')) else 'N/A',
+            str(int(row.get('Phiếu loại trừ', 0))) if pd.notna(row.get('Phiếu loại trừ')) else 'N/A',
+            str(int(row.get('Tổng phiếu (Sau GT)', 0))) if pd.notna(row.get('Tổng phiếu (Sau GT)')) else 'N/A',
+            format_number(row.get('Tỷ lệ % (Thô)', 0)) + '%',
+            format_number(row.get('Tỷ lệ % (Sau GT)', 0)) + '%',
+            f"{thay_doi:+.2f}%"
+        ]
+        
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            
+            # Tô màu chênh lệch
+            if i == 6:  # Cột thay đổi
+                if thay_doi > 0:
+                    run.font.color.rgb = RGBColor(0, 128, 0)  # Xanh lá (tăng)
+                elif thay_doi < 0:
+                    run.font.color.rgb = RGBColor(200, 0, 0)  # Đỏ (giảm)
+            
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'FFEBEE')  # Hồng nhạt
+    
+    doc.add_paragraph()
+
+
+def add_c1x_detail_with_exclusion(doc, c1x_reports, comparison_data, chi_tieu='c11'):
+    """
+    Thêm bảng chi tiết cho 1 chỉ tiêu với cả dữ liệu trước và sau giảm trừ
+    
+    Args:
+        doc: Document Word
+        c1x_reports: Dictionary từ load_c1x_reports()
+        comparison_data: Dictionary từ load_exclusion_comparison_data()
+        chi_tieu: 'c11', 'c12', hoặc 'c14'
+    """
+    if chi_tieu == 'c11':
+        title = 'C1.1 - Tỷ lệ sửa chữa phiếu chất lượng & báo hỏng'
+        # Hiển thị bảng gốc
+        if 'c11' in c1x_reports:
+            doc.add_heading(f'{title} (DỮ LIỆU THÔ)', level=3)
+            df = c1x_reports['c11']
+            _add_c11_table(doc, df)
+        
+        # Hiển thị bảng sau giảm trừ nếu có
+        if 'c11_sm4' in comparison_data:
+            doc.add_heading(f'{title} (SAU GIẢM TRỪ)', level=3)
+            df_sau = comparison_data['c11_sm4']['tong_hop']
+            _add_exclusion_summary_mini(doc, df_sau, 'C1.1 SM4')
+        
+        if 'c11_sm2' in comparison_data:
+            df_sau = comparison_data['c11_sm2']['tong_hop']
+            _add_exclusion_summary_mini(doc, df_sau, 'C1.1 SM2')
+    
+    elif chi_tieu == 'c12':
+        title = 'C1.2 - Tỷ lệ báo hỏng lặp lại & Tỷ lệ sự cố dịch vụ'
+        if 'c12' in c1x_reports:
+            doc.add_heading(f'{title} (DỮ LIỆU THÔ)', level=3)
+            df = c1x_reports['c12']
+            _add_c12_table(doc, df)
+        
+        if 'c12_sm1' in comparison_data:
+            doc.add_heading(f'{title} (SAU GIẢM TRỪ)', level=3)
+            df_sau = comparison_data['c12_sm1']['tong_hop']
+            _add_exclusion_summary_mini(doc, df_sau, 'C1.2 SM1')
+    
+    elif chi_tieu == 'c14':
+        title = 'C1.4 - Độ hài lòng khách hàng sau sửa chữa'
+        if 'c14' in c1x_reports:
+            doc.add_heading(f'{title} (DỮ LIỆU THÔ)', level=3)
+            df = c1x_reports['c14']
+            _add_c14_table(doc, df)
+        
+        if 'c14' in comparison_data:
+            doc.add_heading(f'{title} (SAU GIẢM TRỪ)', level=3)
+            df_sau = comparison_data['c14']['tong_hop']
+            _add_exclusion_summary_mini(doc, df_sau, 'C1.4')
+
+
+def _add_exclusion_summary_mini(doc, df_tong_hop, label):
+    """Helper: Thêm mini summary table cho 1 chỉ tiêu sau giảm trừ"""
+    p = doc.add_paragraph()
+    p.add_run(f'📊 {label}: ').bold = True
+    
+    if df_tong_hop is not None and len(df_tong_hop) > 0:
+        row = df_tong_hop.iloc[0]
+        tyle_tho = row.get('Tỷ lệ % (Thô)', row.get('Tỷ lệ HLL % (Thô)', 0))
+        tyle_sau = row.get('Tỷ lệ % (Sau GT)', row.get('Tỷ lệ HLL % (Sau GT)', 0))
+        thay_doi = row.get('Thay đổi %', 0)
+        
+        if pd.isna(tyle_tho):
+            tyle_tho = 0
+        if pd.isna(tyle_sau):
+            tyle_sau = 0
+        if pd.isna(thay_doi):
+            thay_doi = 0
+        
+        p.add_run(f'Trước GT: {tyle_tho:.2f}% → Sau GT: {tyle_sau:.2f}% ')
+        
+        thay_doi_run = p.add_run(f'(Δ: {thay_doi:+.2f}%)')
+        if thay_doi > 0:
+            thay_doi_run.font.color.rgb = RGBColor(0, 128, 0)
+        elif thay_doi < 0:
+            thay_doi_run.font.color.rgb = RGBColor(200, 0, 0)
+
+
+def _add_c11_table(doc, df):
+    """Helper: Thêm bảng C1.1 gốc"""
+    headers = ['Đơn vị', 'SC Chủ động (SM1)', 'Đạt (SM2)', 'TL SC CĐ (%)', 
+               'Báo hỏng (SM3)', 'Đạt ĐH (SM4)', 'TL SCBH (%)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '2E7D32')
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+    
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        short_name = TEAM_SHORT_NAMES.get(row['Đơn vị'], row['Đơn vị'])
+        if short_name == 'Tổng':
+            short_name = 'TTVT Sơn Tây'
+        data = [
+            short_name,
+            str(int(row.get('SM1', 0))),
+            str(int(row.get('SM2', 0))),
+            format_number(row.get('Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu', 0)),
+            str(int(row.get('SM3', 0))),
+            str(int(row.get('SM4', 0))),
+            format_number(row.get('Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn', 0)),
+            format_number(row.get('Chỉ tiêu BSC', 0))
+        ]
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'E8F5E9')
+            if short_name == 'TTVT Sơn Tây':
+                run.font.bold = True
+                set_cell_shading(cells[i], 'C8E6C9')
+    doc.add_paragraph()
+
+
+def _add_c12_table(doc, df):
+    """Helper: Thêm bảng C1.2 gốc"""
+    headers = ['Đơn vị', 'HLL (SM1)', 'BH (SM2)', 'TL HLL (%)', 
+               'BH SC (SM3)', 'TB (SM4)', 'TL SC (%)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '1565C0')
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+    
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        short_name = TEAM_SHORT_NAMES.get(row['Đơn vị'], row['Đơn vị'])
+        if short_name == 'Tổng':
+            short_name = 'TTVT Sơn Tây'
+        data = [
+            short_name,
+            str(int(row.get('SM1', 0))),
+            str(int(row.get('SM2', 0))),
+            format_number(row.get('Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại', 0)),
+            str(int(row.get('SM3', 0))),
+            str(int(row.get('SM4', 0))),
+            format_number(row.get('Tỷ lệ sự cố dịch vụ BRCĐ', 0)),
+            format_number(row.get('Chỉ tiêu BSC', 0))
+        ]
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'E3F2FD')
+            if short_name == 'TTVT Sơn Tây':
+                run.font.bold = True
+                set_cell_shading(cells[i], 'BBDEFB')
+    doc.add_paragraph()
+
+
+def _add_c14_table(doc, df):
+    """Helper: Thêm bảng C1.4 gốc"""
+    headers = ['Đơn vị', 'Tổng phiếu', 'Đã KS', 'KS TC', 'KH HL', 
+               'KHL KT PV', 'TL HL PV (%)', 'TL KH HL (%)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, 'F57C00')
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(8)
+    
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        short_name = TEAM_SHORT_NAMES.get(row['Đơn vị'], row['Đơn vị'])
+        if short_name == 'Tổng':
+            short_name = 'TTVT Sơn Tây'
+        data = [
+            short_name,
+            str(int(row.get('Tổng phiếu', 0))),
+            str(int(row.get('SL đã KS', 0))),
+            str(int(row.get('SL KS thành công', 0))),
+            str(int(row.get('SL KH hài lòng', 0))),
+            str(int(row.get('Không HL KT phục vụ', 0))),
+            format_number(row.get('Tỷ lệ HL KT phục vụ', 0)),
+            format_number(row.get('Tỷ lệ KH hài lòng', 0)),
+            format_number(row.get('Điểm BSC', 0))
+        ]
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(8)
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'FFF3E0')
+            if short_name == 'TTVT Sơn Tây':
+                run.font.bold = True
+                set_cell_shading(cells[i], 'FFE0B2')
+def add_c11_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
+    """
+    Thêm bảng C1.1 tổng hợp theo đơn vị (cấp tổ) sau giảm trừ
+    Tương tự bảng C1.1 gốc nhưng với số liệu sau giảm trừ
+
+    Args:
+        doc: Document Word
+        unit_data: Dictionary từ load_unit_level_exclusion_data()
+        c1x_reports: Dictionary chứa báo cáo C1.x gốc (để lấy số liệu SM1, SM3)
+    """
+    if not unit_data:
+        return
+
+    # Kiểm tra có dữ liệu C1.1 không
+    if 'c11_sm2' not in unit_data or 'c11_sm4' not in unit_data:
+        return
+
+    doc.add_heading('C1.1 - Tỷ lệ sửa chữa phiếu chất lượng & báo hỏng (sau giảm trừ)', level=3)
+
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 GHI CHÚ: ').bold = True
+    p.add_run('Bảng này hiển thị số liệu C1.1 tổng hợp theo đơn vị sau khi loại bỏ các phiếu thuộc diện giảm trừ. ')
+    p.add_run('SM1, SM3 là số liệu thô (không áp dụng giảm trừ). SM2, SM4 là số liệu sau giảm trừ.')
+    doc.add_paragraph()
+
+    df_sm2 = unit_data['c11_sm2']
+    df_sm4 = unit_data['c11_sm4']
+
+    # Lấy danh sách đơn vị
+    team_order = ['Tổ Kỹ thuật Địa bàn Phúc Thọ', 'Tổ Kỹ thuật Địa bàn Quảng Oai',
+                  'Tổ Kỹ thuật Địa bàn Suối hai', 'Tổ Kỹ thuật Địa bàn Sơn Tây']
+
+    # Tạo bảng
+    headers = ['Đơn vị', 'SC Chủ động (SM1)', 'Đạt (SM2)', 'TL SC CĐ (%)',
+               'Báo hỏng (SM3)', 'Đạt ĐH (SM4)', 'TL SCBH (%)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+
+    # Header - sử dụng màu xanh lá đậm hơn để phân biệt với bảng gốc
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '1B5E20')  # Xanh lá đậm
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+
+    # Hàm tính điểm BSC cho C1.1
+    def tinh_diem_C11_TP1(tyle):
+        """Tính điểm TP1 (30%) - Sửa chữa chủ động"""
+        if pd.isna(tyle): return 5
+        if tyle >= 0.99: return 5
+        elif tyle > 0.96: return 1 + 4 * (tyle - 0.96) / 0.03
+        else: return 1
+
+    def tinh_diem_C11_TP2(tyle):
+        """Tính điểm TP2 (70%) - Sửa chữa báo hỏng"""
+        if pd.isna(tyle): return 5
+        if tyle >= 0.85: return 5
+        elif tyle >= 0.82: return 4 + (tyle - 0.82) / 0.03
+        elif tyle >= 0.79: return 3 + (tyle - 0.79) / 0.03
+        elif tyle >= 0.76: return 2
+        else: return 1
+
+    # Xử lý từng đơn vị
+    for idx, don_vi in enumerate(team_order, 1):
+        cells = table.add_row().cells
+        short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+
+        # Lấy dữ liệu SM2 (sửa chữa chủ động)
+        sm2_row = df_sm2[df_sm2['Đơn vị'] == don_vi]
+        if sm2_row.empty:
+            sm1 = 0
+            sm2 = 0
+            tyle_sm2 = 0
+        else:
+            sm2_row = sm2_row.iloc[0]
+            sm1 = sm2_row.get('Tổng phiếu (Thô)', 0)
+            sm2 = sm2_row.get('Phiếu đạt (Sau GT)', 0)
+            tyle_sm2 = sm2_row.get('Tỷ lệ % (Sau GT)', 0)
+            if pd.notna(tyle_sm2) and tyle_sm2 > 1:
+                tyle_sm2 = tyle_sm2 / 100
+
+        # Lấy dữ liệu SM4 (sửa chữa báo hỏng)
+        sm4_row = df_sm4[df_sm4['Đơn vị'] == don_vi]
+        if sm4_row.empty:
+            sm3 = 0
+            sm4 = 0
+            tyle_sm4 = 0
+        else:
+            sm4_row = sm4_row.iloc[0]
+            sm3 = sm4_row.get('Tổng phiếu (Thô)', 0)
+            sm4 = sm4_row.get('Phiếu đạt (Sau GT)', 0)
+            tyle_sm4 = sm4_row.get('Tỷ lệ % (Sau GT)', 0)
+            if pd.notna(tyle_sm4) and tyle_sm4 > 1:
+                tyle_sm4 = tyle_sm4 / 100
+
+        # Tính điểm BSC
+        diem_tp1 = tinh_diem_C11_TP1(tyle_sm2)
+        diem_tp2 = tinh_diem_C11_TP2(tyle_sm4)
+        diem_bsc = 0.30 * diem_tp1 + 0.70 * diem_tp2
+
+        data = [
+            short_name,
+            str(int(sm1)) if pd.notna(sm1) else '0',
+            str(int(sm2)) if pd.notna(sm2) else '0',
+            format_number(tyle_sm2 * 100 if pd.notna(tyle_sm2) else 0),
+            str(int(sm3)) if pd.notna(sm3) else '0',
+            str(int(sm4)) if pd.notna(sm4) else '0',
+            format_number(tyle_sm4 * 100 if pd.notna(tyle_sm4) else 0),
+            format_number(diem_bsc)
+        ]
+
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'E8F5E9')
+
+    # Thêm dòng tổng (TTVT Sơn Tây)
+    cells = table.add_row().cells
+
+    # Lấy dữ liệu tổng từ SM2
+    sm2_tong = df_sm2[df_sm2['Đơn vị'] == 'TTVT Sơn Tây']
+    if sm2_tong.empty:
+        sm1_tong = 0
+        sm2_tong_dat = 0
+        tyle_sm2_tong = 0
+    else:
+        sm2_tong = sm2_tong.iloc[0]
+        sm1_tong = sm2_tong.get('Tổng phiếu (Thô)', 0)
+        sm2_tong_dat = sm2_tong.get('Phiếu đạt (Sau GT)', 0)
+        tyle_sm2_tong = sm2_tong.get('Tỷ lệ % (Sau GT)', 0)
+        if pd.notna(tyle_sm2_tong) and tyle_sm2_tong > 1:
+            tyle_sm2_tong = tyle_sm2_tong / 100
+
+    # Lấy dữ liệu tổng từ SM4
+    sm4_tong = df_sm4[df_sm4['Đơn vị'] == 'TTVT Sơn Tây']
+    if sm4_tong.empty:
+        sm3_tong = 0
+        sm4_tong_dat = 0
+        tyle_sm4_tong = 0
+    else:
+        sm4_tong = sm4_tong.iloc[0]
+        sm3_tong = sm4_tong.get('Tổng phiếu (Thô)', 0)
+        sm4_tong_dat = sm4_tong.get('Phiếu đạt (Sau GT)', 0)
+        tyle_sm4_tong = sm4_tong.get('Tỷ lệ % (Sau GT)', 0)
+        if pd.notna(tyle_sm4_tong) and tyle_sm4_tong > 1:
+            tyle_sm4_tong = tyle_sm4_tong / 100
+
+    # Tính điểm BSC tổng
+    diem_tp1_tong = tinh_diem_C11_TP1(tyle_sm2_tong)
+    diem_tp2_tong = tinh_diem_C11_TP2(tyle_sm4_tong)
+    diem_bsc_tong = 0.30 * diem_tp1_tong + 0.70 * diem_tp2_tong
+
+    data_tong = [
+        'TTVT Sơn Tây',
+        str(int(sm1_tong)) if pd.notna(sm1_tong) else '0',
+        str(int(sm2_tong_dat)) if pd.notna(sm2_tong_dat) else '0',
+        format_number(tyle_sm2_tong * 100 if pd.notna(tyle_sm2_tong) else 0),
+        str(int(sm3_tong)) if pd.notna(sm3_tong) else '0',
+        str(int(sm4_tong_dat)) if pd.notna(sm4_tong_dat) else '0',
+        format_number(tyle_sm4_tong * 100 if pd.notna(tyle_sm4_tong) else 0),
+        format_number(diem_bsc_tong)
+    ]
+
+    for i, value in enumerate(data_tong):
+        cells[i].text = value
+        cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = cells[i].paragraphs[0].runs[0]
+        run.font.size = Pt(9)
+        run.font.bold = True
+        set_cell_shading(cells[i], 'A5D6A7')  # Xanh lá đậm hơn cho dòng tổng
+
+    doc.add_paragraph()
+
+
+def add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
+    """
+    Thêm bảng C1.2 tổng hợp theo đơn vị (cấp tổ) sau giảm trừ
+
+    Args:
+        doc: Document Word
+        unit_data: Dictionary từ load_unit_level_exclusion_data()
+        c1x_reports: Dictionary chứa báo cáo C1.x gốc (để lấy số liệu SM3, SM4 cho TP2)
+    """
+    if not unit_data or 'c12_sm1' not in unit_data:
+        return
+
+    if not c1x_reports or 'c12' not in c1x_reports:
+        return
+
+    doc.add_heading('C1.2 - Tỷ lệ báo hỏng lặp lại & Tỷ lệ sự cố dịch vụ (sau giảm trừ)', level=3)
+
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 GHI CHÚ: ').bold = True
+    p.add_run('HLL (SM1) là số liệu sau giảm trừ. SM2, SM3, SM4 và Tỷ lệ sự cố là số liệu thô (không áp dụng giảm trừ).')
+    doc.add_paragraph()
+
+    df_sm1 = unit_data['c12_sm1']
+    df_c12_orig = c1x_reports['c12']
+
+    team_order = ['Tổ Kỹ thuật Địa bàn Phúc Thọ', 'Tổ Kỹ thuật Địa bàn Quảng Oai',
+                  'Tổ Kỹ thuật Địa bàn Suối hai', 'Tổ Kỹ thuật Địa bàn Sơn Tây']
+
+    # Tạo bảng
+    headers = ['Đơn vị', 'HLL (SM1)', 'BH (SM2)', 'TL HLL (%)',
+               'BH SC (SM3)', 'TB (SM4)', 'TL SC (‰)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+
+    # Header
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '0D47A1')  # Xanh dương đậm
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+
+    # Hàm tính điểm BSC cho C1.2
+    def tinh_diem_C12_TP1(tyle):
+        """Tính điểm TP1 (50%) - Hỏng lặp lại"""
+        if pd.isna(tyle): return 5
+        if tyle <= 0.025: return 5
+        elif tyle < 0.04: return 5 - 4 * (tyle - 0.025) / 0.015
+        else: return 1
+
+    def tinh_diem_C12_TP2(tyle_permil):
+        """Tính điểm TP2 (50%) - Tỷ lệ sự cố (‰)"""
+        if pd.isna(tyle_permil): return 5
+        if tyle_permil <= 1.5: return 5
+        elif tyle_permil < 2.5: return 5 - 4 * (tyle_permil - 1.5) / 1.0
+        else: return 1
+
+    # Xử lý từng đơn vị
+    for idx, don_vi in enumerate(team_order, 1):
+        cells = table.add_row().cells
+        short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+
+        # Lấy dữ liệu SM1 (hỏng lặp lại sau giảm trừ)
+        sm1_row = df_sm1[df_sm1['Đơn vị'] == don_vi]
+        if sm1_row.empty:
+            sm1 = 0
+            tyle_hll = 0
+        else:
+            sm1_row = sm1_row.iloc[0]
+            sm1 = sm1_row.get('Phiếu HLL (Sau GT)', 0)
+            tyle_hll = sm1_row.get('Tỷ lệ HLL % (Sau GT)', 0)
+            if pd.notna(tyle_hll) and tyle_hll > 1:
+                tyle_hll = tyle_hll / 100
+
+        # Lấy dữ liệu gốc (SM2, SM3, SM4) từ c1x_reports
+        orig_row = df_c12_orig[df_c12_orig['Đơn vị'] == don_vi]
+        if orig_row.empty:
+            sm2 = 0
+            sm3 = 0
+            sm4 = 0
+            tyle_sc = 0
+        else:
+            orig_row = orig_row.iloc[0]
+            sm2 = orig_row.get('SM2', 0)
+            sm3 = orig_row.get('SM3', 0)
+            sm4 = orig_row.get('SM4', 0)
+            tyle_sc = orig_row.get('Tỷ lệ sự cố dịch vụ BRCĐ', 0)
+
+        # Tính điểm BSC
+        diem_tp1 = tinh_diem_C12_TP1(tyle_hll)
+        diem_tp2 = tinh_diem_C12_TP2(tyle_sc)
+        diem_bsc = 0.50 * diem_tp1 + 0.50 * diem_tp2
+
+        data = [
+            short_name,
+            str(int(sm1)) if pd.notna(sm1) else '0',
+            str(int(sm2)) if pd.notna(sm2) else '0',
+            format_number(tyle_hll * 100 if pd.notna(tyle_hll) else 0),
+            str(int(sm3)) if pd.notna(sm3) else '0',
+            str(int(sm4)) if pd.notna(sm4) else '0',
+            format_number(tyle_sc),
+            format_number(diem_bsc)
+        ]
+
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'E3F2FD')
+
+    # Thêm dòng tổng (TTVT Sơn Tây)
+    cells = table.add_row().cells
+
+    sm1_tong_row = df_sm1[df_sm1['Đơn vị'] == 'TTVT Sơn Tây']
+    if sm1_tong_row.empty:
+        sm1_tong = 0
+        tyle_hll_tong = 0
+    else:
+        sm1_tong_row = sm1_tong_row.iloc[0]
+        sm1_tong = sm1_tong_row.get('Phiếu HLL (Sau GT)', 0)
+        tyle_hll_tong = sm1_tong_row.get('Tỷ lệ HLL % (Sau GT)', 0)
+        if pd.notna(tyle_hll_tong) and tyle_hll_tong > 1:
+            tyle_hll_tong = tyle_hll_tong / 100
+
+    # Lấy dữ liệu tổng từ c1x_reports
+    tong_row = df_c12_orig[df_c12_orig['Đơn vị'] == 'Tổng']
+    if tong_row.empty:
+        sm2_tong = 0
+        sm3_tong = 0
+        sm4_tong = 0
+        tyle_sc_tong = 0
+    else:
+        tong_row = tong_row.iloc[0]
+        sm2_tong = tong_row.get('SM2', 0)
+        sm3_tong = tong_row.get('SM3', 0)
+        sm4_tong = tong_row.get('SM4', 0)
+        tyle_sc_tong = tong_row.get('Tỷ lệ sự cố dịch vụ BRCĐ', 0)
+
+    diem_tp1_tong = tinh_diem_C12_TP1(tyle_hll_tong)
+    diem_tp2_tong = tinh_diem_C12_TP2(tyle_sc_tong)
+    diem_bsc_tong = 0.50 * diem_tp1_tong + 0.50 * diem_tp2_tong
+
+    data_tong = [
+        'TTVT Sơn Tây',
+        str(int(sm1_tong)) if pd.notna(sm1_tong) else '0',
+        str(int(sm2_tong)) if pd.notna(sm2_tong) else '0',
+        format_number(tyle_hll_tong * 100 if pd.notna(tyle_hll_tong) else 0),
+        str(int(sm3_tong)) if pd.notna(sm3_tong) else '0',
+        str(int(sm4_tong)) if pd.notna(sm4_tong) else '0',
+        format_number(tyle_sc_tong),
+        format_number(diem_bsc_tong)
+    ]
+
+    for i, value in enumerate(data_tong):
+        cells[i].text = value
+        cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = cells[i].paragraphs[0].runs[0]
+        run.font.size = Pt(9)
+        run.font.bold = True
+        set_cell_shading(cells[i], 'BBDEFB')
+
+    doc.add_paragraph()
+
+
+def add_c14_unit_level_exclusion_table(doc, unit_data):
+    """
+    Thêm bảng C1.4 tổng hợp theo đơn vị (cấp tổ) sau giảm trừ
+
+    Args:
+        doc: Document Word
+        unit_data: Dictionary từ load_unit_level_exclusion_data()
+    """
+    if not unit_data or 'c14' not in unit_data:
+        return
+
+    doc.add_heading('C1.4 - Độ hài lòng khách hàng sau sửa chữa (sau giảm trừ)', level=3)
+
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 GHI CHÚ: ').bold = True
+    p.add_run('Số liệu sau khi loại bỏ các phiếu khảo sát thuộc diện giảm trừ.')
+    doc.add_paragraph()
+
+    df_c14 = unit_data['c14']
+
+    team_order = ['Tổ Kỹ thuật Địa bàn Phúc Thọ', 'Tổ Kỹ thuật Địa bàn Quảng Oai',
+                  'Tổ Kỹ thuật Địa bàn Suối hai', 'Tổ Kỹ thuật Địa bàn Sơn Tây']
+
+    # Tạo bảng
+    headers = ['Đơn vị', 'Tổng phiếu', 'KH hài lòng', 'KH không HL', 'TL HL (%)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+
+    # Header
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, 'E65100')  # Cam đậm
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+
+    # Hàm tính điểm BSC cho C1.4
+    def tinh_diem_C14(tyle):
+        """Tính điểm C1.4 - Độ hài lòng"""
+        if pd.isna(tyle): return 5
+        if tyle >= 0.995: return 5
+        elif tyle > 0.95: return 1 + 4 * (tyle - 0.95) / 0.045
+        else: return 1
+
+    # Xử lý từng đơn vị
+    for idx, don_vi in enumerate(team_order, 1):
+        cells = table.add_row().cells
+        short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+
+        # Lấy dữ liệu C1.4
+        c14_row = df_c14[df_c14['Đơn vị'] == don_vi]
+        if c14_row.empty:
+            tong_phieu = 0
+            phieu_khl = 0
+            tyle_hl = 0
+        else:
+            c14_row = c14_row.iloc[0]
+            tong_phieu = c14_row.get('Tổng phiếu (Sau GT)', 0)
+            phieu_khl = c14_row.get('Phiếu KHL (Sau GT)', 0)
+            tyle_hl = c14_row.get('Tỷ lệ HL % (Sau GT)', 0)
+            if pd.notna(tyle_hl) and tyle_hl > 1:
+                tyle_hl = tyle_hl / 100
+
+        phieu_hl = tong_phieu - phieu_khl if pd.notna(tong_phieu) and pd.notna(phieu_khl) else 0
+        diem_bsc = tinh_diem_C14(tyle_hl)
+
+        data = [
+            short_name,
+            str(int(tong_phieu)) if pd.notna(tong_phieu) else '0',
+            str(int(phieu_hl)) if pd.notna(phieu_hl) else '0',
+            str(int(phieu_khl)) if pd.notna(phieu_khl) else '0',
+            format_number(tyle_hl * 100 if pd.notna(tyle_hl) else 0),
+            format_number(diem_bsc)
+        ]
+
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'FFE0B2')
+
+    # Thêm dòng tổng (TTVT Sơn Tây)
+    cells = table.add_row().cells
+
+    c14_tong_row = df_c14[df_c14['Đơn vị'] == 'TTVT Sơn Tây']
+    if c14_tong_row.empty:
+        tong_phieu_tong = 0
+        phieu_khl_tong = 0
+        tyle_hl_tong = 0
+    else:
+        c14_tong_row = c14_tong_row.iloc[0]
+        tong_phieu_tong = c14_tong_row.get('Tổng phiếu (Sau GT)', 0)
+        phieu_khl_tong = c14_tong_row.get('Phiếu KHL (Sau GT)', 0)
+        tyle_hl_tong = c14_tong_row.get('Tỷ lệ HL % (Sau GT)', 0)
+        if pd.notna(tyle_hl_tong) and tyle_hl_tong > 1:
+            tyle_hl_tong = tyle_hl_tong / 100
+
+    phieu_hl_tong = tong_phieu_tong - phieu_khl_tong if pd.notna(tong_phieu_tong) and pd.notna(phieu_khl_tong) else 0
+    diem_bsc_tong = tinh_diem_C14(tyle_hl_tong)
+
+    data_tong = [
+        'TTVT Sơn Tây',
+        str(int(tong_phieu_tong)) if pd.notna(tong_phieu_tong) else '0',
+        str(int(phieu_hl_tong)) if pd.notna(phieu_hl_tong) else '0',
+        str(int(phieu_khl_tong)) if pd.notna(phieu_khl_tong) else '0',
+        format_number(tyle_hl_tong * 100 if pd.notna(tyle_hl_tong) else 0),
+        format_number(diem_bsc_tong)
+    ]
+
+    for i, value in enumerate(data_tong):
+        cells[i].text = value
+        cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = cells[i].paragraphs[0].runs[0]
+        run.font.size = Pt(9)
+        run.font.bold = True
+        set_cell_shading(cells[i], 'FFCC80')
+
+    doc.add_paragraph()
+
+
+def add_c15_unit_level_exclusion_table(doc, unit_data):
+    """
+    Thêm bảng C1.5 tổng hợp theo đơn vị (cấp tổ) sau giảm trừ
+
+    Args:
+        doc: Document Word
+        unit_data: Dictionary từ load_unit_level_exclusion_data()
+    """
+    if not unit_data or 'c15' not in unit_data:
+        return
+
+    doc.add_heading('C1.5 - Tỷ lệ thiết lập dịch vụ đạt thời gian quy định (sau giảm trừ)', level=3)
+
+    # Chú thích
+    p = doc.add_paragraph()
+    p.add_run('📋 GHI CHÚ: ').bold = True
+    p.add_run('Số liệu sau khi loại bỏ các phiếu lắp đặt thuộc diện giảm trừ.')
+    doc.add_paragraph()
+
+    df_c15 = unit_data['c15']
+
+    team_order = ['Tổ Kỹ thuật Địa bàn Phúc Thọ', 'Tổ Kỹ thuật Địa bàn Quảng Oai',
+                  'Tổ Kỹ thuật Địa bàn Suối hai', 'Tổ Kỹ thuật Địa bàn Sơn Tây']
+
+    # Tạo bảng
+    headers = ['Đơn vị', 'Phiếu đạt', 'Phiếu không đạt', 'Tổng phiếu', 'Tỷ lệ đạt (%)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+
+    # Header
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '00695C')  # Xanh ngọc đậm
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+
+    # Hàm tính điểm BSC cho C1.5
+    def tinh_diem_C15(tyle):
+        """Tính điểm C1.5 - Thiết lập dịch vụ"""
+        if pd.isna(tyle): return 5
+        if tyle >= 0.995: return 5
+        elif tyle > 0.895: return 1 + 4 * (tyle - 0.895) / 0.10
+        else: return 1
+
+    # Xử lý từng đơn vị
+    for idx, don_vi in enumerate(team_order, 1):
+        cells = table.add_row().cells
+        short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+
+        # Lấy dữ liệu C1.5
+        c15_row = df_c15[df_c15['Đơn vị'] == don_vi]
+        if c15_row.empty:
+            phieu_dat = 0
+            tong_phieu = 0
+            tyle_dat = 0
+        else:
+            c15_row = c15_row.iloc[0]
+            phieu_dat = c15_row.get('Phiếu đạt (Sau GT)', 0)
+            tong_phieu = c15_row.get('Tổng phiếu (Sau GT)', 0)
+            tyle_dat = c15_row.get('Tỷ lệ đạt % (Sau GT)', 0)
+            if pd.notna(tyle_dat) and tyle_dat > 1:
+                tyle_dat = tyle_dat / 100
+
+        phieu_ko_dat = tong_phieu - phieu_dat if pd.notna(tong_phieu) and pd.notna(phieu_dat) else 0
+        diem_bsc = tinh_diem_C15(tyle_dat)
+
+        data = [
+            short_name,
+            str(int(phieu_dat)) if pd.notna(phieu_dat) else '0',
+            str(int(phieu_ko_dat)) if pd.notna(phieu_ko_dat) else '0',
+            str(int(tong_phieu)) if pd.notna(tong_phieu) else '0',
+            format_number(tyle_dat * 100 if pd.notna(tyle_dat) else 0),
+            format_number(diem_bsc)
+        ]
+
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'B2DFDB')
+
+    # Thêm dòng tổng (TTVT Sơn Tây)
+    cells = table.add_row().cells
+
+    c15_tong_row = df_c15[df_c15['Đơn vị'] == 'TTVT Sơn Tây']
+    if c15_tong_row.empty:
+        phieu_dat_tong = 0
+        tong_phieu_tong = 0
+        tyle_dat_tong = 0
+    else:
+        c15_tong_row = c15_tong_row.iloc[0]
+        phieu_dat_tong = c15_tong_row.get('Phiếu đạt (Sau GT)', 0)
+        tong_phieu_tong = c15_tong_row.get('Tổng phiếu (Sau GT)', 0)
+        tyle_dat_tong = c15_tong_row.get('Tỷ lệ đạt % (Sau GT)', 0)
+        if pd.notna(tyle_dat_tong) and tyle_dat_tong > 1:
+            tyle_dat_tong = tyle_dat_tong / 100
+
+    phieu_ko_dat_tong = tong_phieu_tong - phieu_dat_tong if pd.notna(tong_phieu_tong) and pd.notna(phieu_dat_tong) else 0
+    diem_bsc_tong = tinh_diem_C15(tyle_dat_tong)
+
+    data_tong = [
+        'TTVT Sơn Tây',
+        str(int(phieu_dat_tong)) if pd.notna(phieu_dat_tong) else '0',
+        str(int(phieu_ko_dat_tong)) if pd.notna(phieu_ko_dat_tong) else '0',
+        str(int(tong_phieu_tong)) if pd.notna(tong_phieu_tong) else '0',
+        format_number(tyle_dat_tong * 100 if pd.notna(tyle_dat_tong) else 0),
+        format_number(diem_bsc_tong)
+    ]
+
+    for i, value in enumerate(data_tong):
+        cells[i].text = value
+        cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = cells[i].paragraphs[0].runs[0]
+        run.font.size = Pt(9)
+        run.font.bold = True
+        set_cell_shading(cells[i], '80CBC4')
+
+    doc.add_paragraph()
+
+
+def add_c11_exclusion_table(doc, comparison_data):
+    """
+    Thêm bảng C1.1 sau giảm trừ chi tiết theo NVKT (riêng biệt)
+    """
+    if not comparison_data:
+        return
+
+    has_data = False
+    
+    # C1.1 SM4 - Sửa chữa báo hỏng
+    if 'c11_sm4' in comparison_data:
+        has_data = True
+        doc.add_heading('C1.1 - SAU GIẢM TRỪ (SM4 - Sửa chữa báo hỏng)', level=4)
+        df = comparison_data['c11_sm4']['chi_tiet']
+        
+        headers = ['NVKT', 'Tổng phiếu (Thô)', 'Tổng phiếu (Sau GT)', 
+                   'Số phiếu đạt (Thô)', 'Số phiếu đạt (Sau GT)',
+                   'Tỷ lệ % (Thô)', 'Tỷ lệ % (Sau GT)', 'Chênh lệch %']
+        table = doc.add_table(rows=1, cols=len(headers))
+        table.style = 'Table Grid'
+        set_table_border(table)
+        
+        for i, cell in enumerate(table.rows[0].cells):
+            cell.text = headers[i]
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            set_cell_shading(cell, 'C62828')  # Đỏ đậm
+            run = cell.paragraphs[0].runs[0]
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(255, 255, 255)
+            run.font.size = Pt(8)
+        
+        for idx, (_, row) in enumerate(df.iterrows(), 1):
+            cells = table.add_row().cells
+            chenh_lech = row.get('Chênh lệch %', 0)
+            if pd.isna(chenh_lech):
+                chenh_lech = 0
+            data = [
+                str(row.get('NVKT', '')),
+                str(int(row.get('Tổng phiếu (Thô)', 0))) if pd.notna(row.get('Tổng phiếu (Thô)')) else '0',
+                str(int(row.get('Tổng phiếu (Sau GT)', 0))) if pd.notna(row.get('Tổng phiếu (Sau GT)')) else '0',
+                str(int(row.get('Số phiếu đạt (Thô)', 0))) if pd.notna(row.get('Số phiếu đạt (Thô)')) else '0',
+                str(int(row.get('Số phiếu đạt (Sau GT)', 0))) if pd.notna(row.get('Số phiếu đạt (Sau GT)')) else '0',
+                format_number(row.get('Tỷ lệ % (Thô)', 0)),
+                format_number(row.get('Tỷ lệ % (Sau GT)', 0)),
+                f"{chenh_lech:+.2f}%"
+            ]
+            for i, value in enumerate(data):
+                cells[i].text = value
+                cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = cells[i].paragraphs[0].runs[0]
+                run.font.size = Pt(8)
+                if i == 7:  # Cột chênh lệch
+                    if chenh_lech > 0:
+                        run.font.color.rgb = RGBColor(0, 128, 0)
+                    elif chenh_lech < 0:
+                        run.font.color.rgb = RGBColor(200, 0, 0)
+                if idx % 2 == 0:
+                    set_cell_shading(cells[i], 'FFEBEE')
+        
+        # Thêm tổng hợp
+        if 'tong_hop' in comparison_data['c11_sm4']:
+            df_th = comparison_data['c11_sm4']['tong_hop']
+            if len(df_th) > 0:
+                row_th = df_th.iloc[0]
+                p = doc.add_paragraph()
+                p.add_run('📊 Tổng hợp C1.1 SM4: ').bold = True
+                tyle_tho = row_th.get('Tỷ lệ % (Thô)', 0)
+                tyle_sau = row_th.get('Tỷ lệ % (Sau GT)', 0)
+                thay_doi = row_th.get('Thay đổi %', 0)
+                if pd.isna(thay_doi): thay_doi = 0
+                p.add_run(f'Trước: {tyle_tho:.2f}% → Sau: {tyle_sau:.2f}% (Δ: {thay_doi:+.2f}%)')
+        
+        doc.add_paragraph()
+    
+    # C1.1 SM2 - Sửa chữa chủ động
+    if 'c11_sm2' in comparison_data:
+        has_data = True
+        doc.add_heading('C1.1 - SAU GIẢM TRỪ (SM2 - Sửa chữa chủ động)', level=4)
+        df = comparison_data['c11_sm2']['chi_tiet']
+        
+        headers = ['NVKT', 'Tổng phiếu (Thô)', 'Tổng phiếu (Sau GT)', 
+                   'Số phiếu đạt (Thô)', 'Số phiếu đạt (Sau GT)',
+                   'Tỷ lệ % (Thô)', 'Tỷ lệ % (Sau GT)', 'Chênh lệch %']
+        table = doc.add_table(rows=1, cols=len(headers))
+        table.style = 'Table Grid'
+        set_table_border(table)
+        
+        for i, cell in enumerate(table.rows[0].cells):
+            cell.text = headers[i]
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            set_cell_shading(cell, 'AD1457')  # Hồng đậm
+            run = cell.paragraphs[0].runs[0]
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(255, 255, 255)
+            run.font.size = Pt(8)
+        
+        for idx, (_, row) in enumerate(df.iterrows(), 1):
+            cells = table.add_row().cells
+            chenh_lech = row.get('Chênh lệch %', 0)
+            if pd.isna(chenh_lech):
+                chenh_lech = 0
+            data = [
+                str(row.get('NVKT', '')),
+                str(int(row.get('Tổng phiếu (Thô)', 0))) if pd.notna(row.get('Tổng phiếu (Thô)')) else '0',
+                str(int(row.get('Tổng phiếu (Sau GT)', 0))) if pd.notna(row.get('Tổng phiếu (Sau GT)')) else '0',
+                str(int(row.get('Số phiếu đạt (Thô)', 0))) if pd.notna(row.get('Số phiếu đạt (Thô)')) else '0',
+                str(int(row.get('Số phiếu đạt (Sau GT)', 0))) if pd.notna(row.get('Số phiếu đạt (Sau GT)')) else '0',
+                format_number(row.get('Tỷ lệ % (Thô)', 0)),
+                format_number(row.get('Tỷ lệ % (Sau GT)', 0)),
+                f"{chenh_lech:+.2f}%"
+            ]
+            for i, value in enumerate(data):
+                cells[i].text = value
+                cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = cells[i].paragraphs[0].runs[0]
+                run.font.size = Pt(8)
+                if i == 7:
+                    if chenh_lech > 0:
+                        run.font.color.rgb = RGBColor(0, 128, 0)
+                    elif chenh_lech < 0:
+                        run.font.color.rgb = RGBColor(200, 0, 0)
+                if idx % 2 == 0:
+                    set_cell_shading(cells[i], 'FCE4EC')
+        
+        doc.add_paragraph()
+
+
+def add_c12_exclusion_table(doc, comparison_data):
+    """
+    Thêm bảng C1.2 sau giảm trừ (riêng biệt)
+    """
+    if not comparison_data:
+        return
+    
+    # C1.2 SM1 - Hỏng lặp lại
+    if 'c12_sm1' in comparison_data:
+        doc.add_heading('C1.2 - SAU GIẢM TRỪ (SM1 - Hỏng lặp lại)', level=4)
+        df = comparison_data['c12_sm1']['chi_tiet']
+        
+        headers = ['NVKT', 'Phiếu HLL (Thô)', 'Phiếu HLL (Sau GT)', 
+                   'Phiếu BH (Thô)', 'Phiếu BH (Sau GT)',
+                   'Tỷ lệ HLL % (Thô)', 'Tỷ lệ HLL % (Sau GT)', 'Chênh lệch %']
+        table = doc.add_table(rows=1, cols=len(headers))
+        table.style = 'Table Grid'
+        set_table_border(table)
+        
+        for i, cell in enumerate(table.rows[0].cells):
+            cell.text = headers[i]
+            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            set_cell_shading(cell, '0D47A1')  # Xanh dương đậm
+            run = cell.paragraphs[0].runs[0]
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(255, 255, 255)
+            run.font.size = Pt(8)
+        
+        for idx, (_, row) in enumerate(df.iterrows(), 1):
+            cells = table.add_row().cells
+            chenh_lech = row.get('Chênh lệch %', 0)
+            if pd.isna(chenh_lech):
+                chenh_lech = 0
+            data = [
+                str(row.get('NVKT', '')),
+                str(int(row.get('Số phiếu HLL (Thô)', 0))) if pd.notna(row.get('Số phiếu HLL (Thô)')) else '0',
+                str(int(row.get('Số phiếu HLL (Sau GT)', 0))) if pd.notna(row.get('Số phiếu HLL (Sau GT)')) else '0',
+                str(int(row.get('Số phiếu báo hỏng (Thô)', 0))) if pd.notna(row.get('Số phiếu báo hỏng (Thô)')) else '0',
+                str(int(row.get('Số phiếu báo hỏng (Sau GT)', 0))) if pd.notna(row.get('Số phiếu báo hỏng (Sau GT)')) else '0',
+                format_number(row.get('Tỷ lệ HLL % (Thô)', 0)),
+                format_number(row.get('Tỷ lệ HLL % (Sau GT)', 0)),
+                f"{chenh_lech:+.2f}%"
+            ]
+            for i, value in enumerate(data):
+                cells[i].text = value
+                cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = cells[i].paragraphs[0].runs[0]
+                run.font.size = Pt(8)
+                if i == 7:
+                    if chenh_lech > 0:
+                        run.font.color.rgb = RGBColor(0, 128, 0)
+                    elif chenh_lech < 0:
+                        run.font.color.rgb = RGBColor(200, 0, 0)
+                if idx % 2 == 0:
+                    set_cell_shading(cells[i], 'E3F2FD')
+        
+        doc.add_paragraph()
+
+
+def add_c14_exclusion_table(doc, comparison_data):
+    """
+    Thêm bảng C1.4 sau giảm trừ (riêng biệt)
+    """
+    if not comparison_data or 'c14' not in comparison_data:
+        return
+    
+    doc.add_heading('C1.4 - SAU GIẢM TRỪ (Độ hài lòng khách hàng)', level=4)
+    df = comparison_data['c14']['chi_tiet']
+    
+    headers = ['NVKT', 'Tổng KS (Thô)', 'KHL (Thô)', 'Tỷ lệ HL % (Thô)',
+               'Tổng KS (Sau GT)', 'KHL (Sau GT)', 'Tỷ lệ HL % (Sau GT)', 'Chênh lệch %']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, 'E65100')  # Cam đậm
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(8)
+    
+    for idx, (_, row) in enumerate(df.iterrows(), 1):
+        cells = table.add_row().cells
+        chenh_lech = row.get('Chênh lệch %', 0)
+        if pd.isna(chenh_lech):
+            chenh_lech = 0
+        data = [
+            str(row.get('NVKT', '')),
+            str(int(row.get('Tổng phiếu KS (Thô)', 0))) if pd.notna(row.get('Tổng phiếu KS (Thô)')) else '0',
+            str(int(row.get('Số phiếu KHL (Thô)', 0))) if pd.notna(row.get('Số phiếu KHL (Thô)')) else '0',
+            format_number(row.get('Tỷ lệ HL (%) (Thô)', 0)),
+            str(int(row.get('Tổng phiếu KS (Sau GT)', 0))) if pd.notna(row.get('Tổng phiếu KS (Sau GT)')) else '0',
+            str(int(row.get('Số phiếu KHL (Sau GT)', 0))) if pd.notna(row.get('Số phiếu KHL (Sau GT)')) else '0',
+            format_number(row.get('Tỷ lệ HL (%) (Sau GT)', 0)),
+            f"{chenh_lech:+.2f}%"
+        ]
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(8)
+            if i == 7:
+                if chenh_lech > 0:
+                    run.font.color.rgb = RGBColor(0, 128, 0)
+                elif chenh_lech < 0:
+                    run.font.color.rgb = RGBColor(200, 0, 0)
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'FFF3E0')
+    
+    doc.add_paragraph()
+
+
+def create_exclusion_bar_chart(comparison_data, output_path=None):
+    """
+    Tạo biểu đồ bar riêng cho dữ liệu sau giảm trừ
+    """
+    if not comparison_data or 'tong_hop' not in comparison_data:
+        return None
+    
+    df = comparison_data['tong_hop']
+    
+    fig, ax = plt.subplots(figsize=(12, 6))
+    
+    x = np.arange(len(df))
+    
+    tyle_sau = df['Tỷ lệ % (Sau GT)'].fillna(0).values
+    chi_tieu = df['Chỉ tiêu'].values
+    
+    # Màu sắc theo mức độ tốt/xấu
+    colors = []
+    for val in tyle_sau:
+        if val >= 95:
+            colors.append('#4CAF50')  # Xanh lá - tốt
+        elif val >= 90:
+            colors.append('#FFC107')  # Vàng - trung bình
+        else:
+            colors.append('#F44336')  # Đỏ - cần cải thiện
+    
+    bars = ax.bar(x, tyle_sau, color=colors, alpha=0.8, edgecolor='black', linewidth=0.5)
+    
+    # Thêm giá trị lên cột
+    for bar, val in zip(bars, tyle_sau):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
+               f'{val:.1f}%', ha='center', va='bottom', fontsize=10, fontweight='bold')
+    
+    ax.set_xlabel('Chỉ tiêu', fontsize=12)
+    ax.set_ylabel('Tỷ lệ (%)', fontsize=12)
+    ax.set_title('TỶ LỆ CÁC CHỈ TIÊU SAU GIẢM TRỪ', fontsize=14, fontweight='bold')
+    ax.set_xticks(x)
+    ax.set_xticklabels(chi_tieu, rotation=15, ha='right', fontsize=10)
+    ax.grid(axis='y', linestyle='--', alpha=0.5)
+    ax.set_ylim(0, max(tyle_sau) * 1.15 if len(tyle_sau) > 0 else 100)
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        return output_path
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
+        buf.seek(0)
+        return buf
+
+
+def add_c1x_overview_table(doc, c1x_reports, comparison_data=None, unit_data=None):
+    """
+    Thêm bảng tổng quan chi tiết từ các báo cáo C1.x vào document
+    Nếu có comparison_data, sẽ thêm bảng số liệu sau giảm trừ ngay sau bảng thô
+
+    Args:
+        doc: Document Word
         c1x_reports: Dictionary chứa các DataFrame từ load_c1x_reports()
+        comparison_data: Dictionary chứa dữ liệu so sánh từ load_exclusion_comparison_data()
+        unit_data: Dictionary chứa dữ liệu thống kê theo đơn vị từ load_unit_level_exclusion_data()
     """
     doc.add_heading('1.3. Số liệu chi tiết các chỉ tiêu BSC theo Đội/TTVT', level=2)
-    
+
     # =========================================================================
     # Bảng C1.1 - Tỷ lệ sửa chữa
     # =========================================================================
@@ -228,6 +2294,14 @@ def add_c1x_overview_table(doc, c1x_reports):
                     set_cell_shading(cells[i], 'C8E6C9')
         
         doc.add_paragraph()
+
+    # Thêm bảng C1.1 tổng hợp theo đơn vị (tổ) sau giảm trừ nếu có
+    if unit_data:
+        add_c11_unit_level_exclusion_table(doc, unit_data, c1x_reports)
+
+    # Thêm bảng C1.1 chi tiết theo NVKT sau giảm trừ nếu có
+    if comparison_data:
+        add_c11_exclusion_table(doc, comparison_data)
     
     # =========================================================================
     # Bảng C1.2 - Tỷ lệ báo hỏng lặp lại & sự cố
@@ -278,6 +2352,14 @@ def add_c1x_overview_table(doc, c1x_reports):
                     set_cell_shading(cells[i], 'BBDEFB')
         
         doc.add_paragraph()
+
+    # Thêm bảng C1.2 tổng hợp theo đơn vị (tổ) sau giảm trừ nếu có
+    if unit_data:
+        add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports)
+
+    # Thêm bảng C1.2 chi tiết theo NVKT sau giảm trừ nếu có
+    if comparison_data:
+        add_c12_exclusion_table(doc, comparison_data)
     
     # =========================================================================
     # Bảng C1.3 - Kênh TSL
@@ -381,6 +2463,14 @@ def add_c1x_overview_table(doc, c1x_reports):
                     set_cell_shading(cells[i], 'FFE0B2')
         
         doc.add_paragraph()
+
+    # Thêm bảng C1.4 tổng hợp theo đơn vị (tổ) sau giảm trừ nếu có
+    if unit_data:
+        add_c14_unit_level_exclusion_table(doc, unit_data)
+
+    # Thêm bảng C1.4 chi tiết theo NVKT sau giảm trừ nếu có
+    if comparison_data:
+        add_c14_exclusion_table(doc, comparison_data)
     
     # =========================================================================
     # Bảng C1.5 - Tỷ lệ thiết lập dịch vụ đạt
@@ -425,8 +2515,12 @@ def add_c1x_overview_table(doc, c1x_reports):
                 if 'TTVT' in don_vi:
                     run.font.bold = True
                     set_cell_shading(cells[i], 'B2DFDB')
-        
+
         doc.add_paragraph()
+
+    # Thêm bảng C1.5 tổng hợp theo đơn vị (tổ) sau giảm trừ nếu có
+    if unit_data:
+        add_c15_unit_level_exclusion_table(doc, unit_data)
 
 
 # =============================================================================
@@ -546,6 +2640,229 @@ def create_team_comparison_chart(c1x_reports, output_path=None):
         buf.seek(0)
         return buf
 
+
+def create_team_bsc_after_exclusion_chart(unit_data, c1x_reports=None, output_path=None):
+    """
+    Tạo biểu đồ so sánh điểm BSC SAU GIẢM TRỪ giữa 4 tổ
+    Tính điểm BSC từ tỷ lệ sau giảm trừ trong unit_data
+    Sử dụng đúng công thức từ kpi_calculator.py:
+    - C1.1 = 0.30 * tinh_diem_C11_TP1 + 0.70 * tinh_diem_C11_TP2
+    - C1.2 = 0.50 * tinh_diem_C12_TP1 + 0.50 * tinh_diem_C12_TP2
+    """
+    teams_order = ['Phúc Thọ', 'Quảng Oai', 'Suối Hai', 'Sơn Tây']
+    
+    # Khởi tạo dict chứa điểm BSC
+    bsc_scores = {team: {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0} for team in teams_order}
+    
+    # ================================================================
+    # Các hàm tính điểm BSC (theo đúng kpi_calculator.py)
+    # ================================================================
+    def tinh_diem_C11_TP1(kq):
+        """C1.1 TP1 (30%): Tỷ lệ sửa chữa chủ động - kq là thập phân"""
+        if pd.isna(kq) or kq is None: return 5
+        if kq >= 0.99: return 5
+        elif kq > 0.96: return 1 + 4 * (kq - 0.96) / 0.03
+        else: return 1
+    
+    def tinh_diem_C11_TP2(kq):
+        """C1.1 TP2 (70%): Tỷ lệ sửa chữa báo hỏng đúng quy định - kq là thập phân"""
+        if pd.isna(kq) or kq is None: return 5
+        if kq >= 0.85: return 5
+        elif kq >= 0.82: return 4 + (kq - 0.82) / 0.03
+        elif kq >= 0.79: return 3 + (kq - 0.79) / 0.03
+        elif kq >= 0.76: return 2
+        else: return 1
+    
+    def tinh_diem_C12_TP1(kq):
+        """C1.2 TP1 (50%): Tỷ lệ báo hỏng lặp lại - kq là thập phân, càng thấp càng tốt"""
+        if pd.isna(kq) or kq is None: return 5
+        if kq <= 0.025: return 5
+        elif kq < 0.04: return 5 - 4 * (kq - 0.025) / 0.015
+        else: return 1
+    
+    def tinh_diem_C12_TP2(kq):
+        """C1.2 TP2 (50%): Tỷ lệ sự cố dịch vụ BRCĐ - kq là thập phân, càng thấp càng tốt"""
+        if pd.isna(kq) or kq is None: return 5
+        if kq <= 0.02: return 5
+        elif kq < 0.03: return 5 - 4 * (kq - 0.02) / 0.01
+        else: return 1
+    
+    def tinh_diem_C14(kq):
+        """C1.4: Độ hài lòng khách hàng - kq là thập phân"""
+        if pd.isna(kq) or kq is None: return 5
+        if kq >= 0.995: return 5
+        elif kq > 0.95: return 1 + 4 * (kq - 0.95) / 0.045
+        else: return 1
+    
+    def tinh_diem_C15(kq):
+        """C1.5: Tỉ lệ thiết lập dịch vụ đạt - kq là thập phân"""
+        if pd.isna(kq) or kq is None: return 5
+        if kq >= 0.995: return 5
+        elif kq > 0.895: return 1 + 4 * (kq - 0.895) / 0.10
+        else: return 1
+    
+    # Mapping tên đội trong Excel -> tên ngắn
+    team_name_map = {
+        'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
+        'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
+    }
+    
+    def get_short_name(don_vi):
+        if not don_vi: return None
+        for orig, short in team_name_map.items():
+            if orig in str(don_vi) or short == don_vi:
+                return short
+        return None
+    
+    # ================================================================
+    # Tính C1.1 = 0.30*TP1 + 0.70*TP2
+    # ================================================================
+    # TP1 từ c11_sm2 (Sửa chữa chủ động), TP2 từ c11_sm4 (Sửa chữa BH)
+    c11_tp1 = {}  # team -> tỷ lệ thập phân
+    c11_tp2 = {}  # team -> tỷ lệ thập phân
+    
+    if unit_data and 'c11_sm2' in unit_data:
+        df = unit_data['c11_sm2']
+        for _, row in df.iterrows():
+            short = get_short_name(row.get('Đơn vị', ''))
+            if short and short in teams_order:
+                tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
+                c11_tp1[short] = tyle / 100 if tyle > 1 else tyle  # Chuyển về thập phân
+    
+    if unit_data and 'c11_sm4' in unit_data:
+        df = unit_data['c11_sm4']
+        for _, row in df.iterrows():
+            short = get_short_name(row.get('Đơn vị', ''))
+            if short and short in teams_order:
+                tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
+                c11_tp2[short] = tyle / 100 if tyle > 1 else tyle
+    
+    for team in teams_order:
+        tp1 = c11_tp1.get(team)
+        tp2 = c11_tp2.get(team)
+        diem_tp1 = tinh_diem_C11_TP1(tp1)
+        diem_tp2 = tinh_diem_C11_TP2(tp2)
+        bsc_scores[team]['C1.1'] = round(0.30 * diem_tp1 + 0.70 * diem_tp2, 2)
+    
+    # ================================================================
+    # Tính C1.2 = 0.50*TP1 + 0.50*TP2
+    # ================================================================
+    # TP1 từ c12_sm1 (HLL), TP2 từ báo cáo gốc (không có trong unit_data chưa)
+    c12_tp1 = {}  # team -> tỷ lệ HLL thập phân
+    
+    if unit_data and 'c12_sm1' in unit_data:
+        df = unit_data['c12_sm1']
+        for _, row in df.iterrows():
+            short = get_short_name(row.get('Đơn vị', ''))
+            if short and short in teams_order:
+                tyle_col = [c for c in df.columns if 'Tỷ lệ' in c and 'Sau GT' in c]
+                if tyle_col:
+                    tyle = row.get(tyle_col[0], 0) or 0
+                    c12_tp1[short] = tyle / 100 if tyle > 1 else tyle
+    
+    # C1.2 TP2 - lấy từ c1x_reports nếu có, không thì giả định 5 điểm
+    c12_tp2 = {}
+    if c1x_reports and 'c12' in c1x_reports:
+        df = c1x_reports['c12']
+        for _, row in df.iterrows():
+            don_vi = row.get('Đơn vị', '')
+            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+            if short_name in teams_order:
+                # Lấy điểm TP2 trực tiếp từ báo cáo gốc
+                diem_tp2 = row.get('Điểm C1.2 TP2', 5)  # Default 5 nếu không có
+                c12_tp2[short_name] = diem_tp2
+    
+    for team in teams_order:
+        tp1 = c12_tp1.get(team)
+        diem_tp1 = tinh_diem_C12_TP1(tp1)
+        diem_tp2 = c12_tp2.get(team, 5)  # Default 5 nếu không có dữ liệu
+        bsc_scores[team]['C1.2'] = round(0.50 * diem_tp1 + 0.50 * diem_tp2, 2)
+    
+    # ================================================================
+    # C1.3 - giữ nguyên từ c1x_reports (không có giảm trừ)
+    # ================================================================
+    if c1x_reports and 'c13' in c1x_reports:
+        df = c1x_reports['c13']
+        for _, row in df.iterrows():
+            don_vi = row.get('Đơn vị', '')
+            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+            if short_name in teams_order:
+                bsc_scores[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0) or 0
+    
+    # ================================================================
+    # C1.4 - sau giảm trừ
+    # ================================================================
+    if unit_data and 'c14' in unit_data:
+        df = unit_data['c14']
+        for _, row in df.iterrows():
+            short = get_short_name(row.get('Đơn vị', ''))
+            if short and short in teams_order:
+                tyle_col = [c for c in df.columns if 'Tỷ lệ HL' in c and 'Sau GT' in c]
+                if tyle_col:
+                    tyle = row.get(tyle_col[0], 0) or 0
+                    tyle_dec = tyle / 100 if tyle > 1 else tyle
+                    bsc_scores[short]['C1.4'] = round(tinh_diem_C14(tyle_dec), 2)
+    
+    # ================================================================
+    # C1.5 - giữ nguyên từ c1x_reports (không có giảm trừ)
+    # ================================================================
+    if c1x_reports and 'c15_ttvtst' in c1x_reports:
+        df = c1x_reports['c15_ttvtst']
+        for _, row in df.iterrows():
+            don_vi = row.get('DOIVT', '')
+            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+            if short_name in teams_order:
+                ty_le = row.get('Tỉ lệ đạt (%)', 0) or 0
+                ty_le_dec = ty_le / 100 if ty_le > 1 else ty_le
+                bsc_scores[short_name]['C1.5'] = round(tinh_diem_C15(ty_le_dec), 2)
+    
+    # Tạo DataFrame từ dữ liệu
+    chart_data = pd.DataFrame(bsc_scores).T
+    chart_data = chart_data.reindex(teams_order)
+    
+    # Tạo biểu đồ
+    fig, ax = plt.subplots(figsize=(14, 6))
+    
+    x = np.arange(len(teams_order))
+    width = 0.15
+    
+    metrics = ['C1.1', 'C1.2', 'C1.3', 'C1.4', 'C1.5']
+    
+    for i, metric in enumerate(metrics):
+        values = chart_data[metric].fillna(0).values
+        bars = ax.bar(x + i*width, values, width, label=metric, color=BAR_COLORS[i])
+        for bar, val in zip(bars, values):
+            if val > 0:
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.05,
+                       f'{val:.2f}', ha='center', va='bottom', fontsize=8)
+    
+    ax.set_xlabel('Tổ Kỹ thuật', fontsize=12)
+    ax.set_ylabel('Điểm BSC', fontsize=12)
+    ax.set_title('ĐIỂM BSC SAU GIẢM TRỪ GIỮA CÁC TỔ', fontsize=14, fontweight='bold')
+    ax.set_xticks(x + width * 2)
+    ax.set_xticklabels(teams_order, fontsize=11)
+    ax.set_ylim(0, 6)
+    ax.legend(loc='upper right')
+    ax.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    plt.tight_layout()
+    
+    if output_path:
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.close()
+        return output_path
+    else:
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+        plt.close()
+        buf.seek(0)
+        return buf
 
 def create_nvkt_bar_chart(df_summary, team_name, output_path=None):
     """
@@ -1295,7 +3612,8 @@ def add_shc_unit_section(doc, unit_name, data_folder="downloads/baocao_hanoi"):
 # =============================================================================
 
 def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUTPUT_FOLDER, 
-                         report_month=None, report_title=None):
+                         report_month=None, report_title=None, include_exclusion=True,
+                         exclusion_folder="downloads/kq_sau_giam_tru"):
     """
     Tạo báo cáo Word hoàn chỉnh với bảng biểu và biểu đồ KPI
     
@@ -1304,6 +3622,8 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
         output_folder: Thư mục xuất báo cáo Word
         report_month: Tháng báo cáo (vd: "01/2026"), mặc định là tháng hiện tại
         report_title: Tiêu đề tùy chỉnh
+        include_exclusion: Bao gồm dữ liệu sau giảm trừ (mặc định True)
+        exclusion_folder: Thư mục chứa dữ liệu sau giảm trừ
         
     Returns:
         str: Đường dẫn file Word đã tạo
@@ -1359,6 +3679,12 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     print("📊 Đọc dữ liệu chi tiết từ các báo cáo C1.x...")
     c1x_reports = load_c1x_reports()
     
+    # Đọc dữ liệu giảm trừ nếu được yêu cầu
+    comparison_data = None
+    if include_exclusion:
+        print("📊 Đọc dữ liệu so sánh trước/sau giảm trừ...")
+        comparison_data = load_exclusion_comparison_data(exclusion_folder)
+    
     # 1.1 Biểu đồ so sánh điểm BSC thực tế 4 tổ
     doc.add_heading('1.1. So sánh điểm BSC thực tế giữa các tổ', level=2)
     if c1x_reports:
@@ -1369,6 +3695,20 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     else:
         doc.add_paragraph("(Không có dữ liệu C1.x để tạo biểu đồ)")
     doc.add_paragraph()
+    
+    # 1.1.b Biểu đồ BSC SAU GIẢM TRỪ (ngay sau biểu đồ thô)
+    if include_exclusion and comparison_data:
+        doc.add_heading('1.1.b. So sánh điểm BSC sau giảm trừ giữa các tổ', level=2)
+        try:
+            unit_data = load_unit_level_exclusion_data(exclusion_folder)
+            if unit_data:
+                bsc_after_chart = create_team_bsc_after_exclusion_chart(unit_data, c1x_reports)
+                if bsc_after_chart:
+                    doc.add_picture(bsc_after_chart, width=Inches(6.5))
+                    doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        except Exception as e:
+            print(f"   ⚠️ Không thể tạo biểu đồ BSC sau giảm trừ: {e}")
+        doc.add_paragraph()
     
     # 1.2 Thêm bảng thống kê tổng hợp theo tổ - sử dụng điểm BSC thực tế
     doc.add_heading('1.2. Thống kê điểm BSC theo đơn vị', level=2)
@@ -1538,13 +3878,339 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     
     doc.add_paragraph()
     
+    # 1.2.b Thống kê điểm BSC theo đơn vị (sau giảm trừ)
+    if include_exclusion:
+        unit_data = load_unit_level_exclusion_data(exclusion_folder)
+        if unit_data:
+            doc.add_heading('1.2.b. Thống kê điểm BSC theo đơn vị (sau giảm trừ)', level=2)
+            
+            # Chú thích
+            p_note = doc.add_paragraph()
+            p_note.add_run('📋 GHI CHÚ: ').bold = True
+            p_note.add_run('Điểm BSC sau giảm trừ được tính sau khi loại bỏ các phiếu báo hỏng và lắp đặt thuộc diện loại trừ. C1.3 không áp dụng giảm trừ.')
+            doc.add_paragraph()
+            
+            # Các hàm tính điểm BSC
+            def tinh_diem_C11_TP1(kq):
+                if pd.isna(kq) or kq is None: return 5
+                if kq >= 0.99: return 5
+                elif kq > 0.96: return 1 + 4 * (kq - 0.96) / 0.03
+                else: return 1
+            
+            def tinh_diem_C11_TP2(kq):
+                if pd.isna(kq) or kq is None: return 5
+                if kq >= 0.85: return 5
+                elif kq >= 0.82: return 4 + (kq - 0.82) / 0.03
+                elif kq >= 0.79: return 3 + (kq - 0.79) / 0.03
+                elif kq >= 0.76: return 2
+                else: return 1
+            
+            def tinh_diem_C12_TP1(kq):
+                if pd.isna(kq) or kq is None: return 5
+                if kq <= 0.025: return 5
+                elif kq < 0.04: return 5 - 4 * (kq - 0.025) / 0.015
+                else: return 1
+            
+            def tinh_diem_C14(kq):
+                if pd.isna(kq) or kq is None: return 5
+                if kq >= 0.995: return 5
+                elif kq > 0.95: return 1 + 4 * (kq - 0.95) / 0.045
+                else: return 1
+            
+            def tinh_diem_C15(kq):
+                if pd.isna(kq) or kq is None: return 5
+                if kq >= 0.995: return 5
+                elif kq > 0.895: return 1 + 4 * (kq - 0.895) / 0.10
+                else: return 1
+            
+            team_name_map = {
+                'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
+                'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
+                'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
+                'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
+                'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
+                'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
+                'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
+                'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
+            }
+            
+            def get_short_name(don_vi):
+                if not don_vi: return None
+                for orig, short in team_name_map.items():
+                    if orig in str(don_vi) or short == don_vi:
+                        return short
+                return None
+            
+            # Tính điểm BSC sau giảm trừ cho từng đơn vị
+            bsc_scores_gt = {team: {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0} for team in teams_order}
+            
+            # C1.1 = 0.30*TP1 + 0.70*TP2
+            c11_tp1 = {}
+            c11_tp2 = {}
+            
+            if 'c11_sm2' in unit_data:
+                df = unit_data['c11_sm2']
+                for _, row in df.iterrows():
+                    short = get_short_name(row.get('Đơn vị', ''))
+                    if short and short in teams_order:
+                        tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
+                        c11_tp1[short] = tyle / 100 if tyle > 1 else tyle
+            
+            if 'c11_sm4' in unit_data:
+                df = unit_data['c11_sm4']
+                for _, row in df.iterrows():
+                    short = get_short_name(row.get('Đơn vị', ''))
+                    if short and short in teams_order:
+                        tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
+                        c11_tp2[short] = tyle / 100 if tyle > 1 else tyle
+            
+            for team in teams_order:
+                tp1 = c11_tp1.get(team)
+                tp2 = c11_tp2.get(team)
+                diem_tp1 = tinh_diem_C11_TP1(tp1)
+                diem_tp2 = tinh_diem_C11_TP2(tp2)
+                bsc_scores_gt[team]['C1.1'] = round(0.30 * diem_tp1 + 0.70 * diem_tp2, 2)
+            
+            # C1.2 = 0.50*TP1 + 0.50*TP2
+            c12_tp1 = {}
+            if 'c12_sm1' in unit_data:
+                df = unit_data['c12_sm1']
+                for _, row in df.iterrows():
+                    short = get_short_name(row.get('Đơn vị', ''))
+                    if short and short in teams_order:
+                        tyle_col = [c for c in df.columns if 'Tỷ lệ' in c and 'Sau GT' in c]
+                        if tyle_col:
+                            tyle = row.get(tyle_col[0], 0) or 0
+                            c12_tp1[short] = tyle / 100 if tyle > 1 else tyle
+            
+            c12_tp2 = {}
+            if c1x_reports and 'c12' in c1x_reports:
+                df = c1x_reports['c12']
+                for _, row in df.iterrows():
+                    don_vi = row.get('Đơn vị', '')
+                    short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+                    if short_name in teams_order:
+                        diem_tp2 = row.get('Điểm C1.2 TP2', 5)
+                        c12_tp2[short_name] = diem_tp2
+            
+            for team in teams_order:
+                tp1 = c12_tp1.get(team)
+                diem_tp1 = tinh_diem_C12_TP1(tp1)
+                diem_tp2 = c12_tp2.get(team, 5)
+                bsc_scores_gt[team]['C1.2'] = round(0.50 * diem_tp1 + 0.50 * diem_tp2, 2)
+            
+            # C1.3 - giữ nguyên từ c1x_reports
+            if c1x_reports and 'c13' in c1x_reports:
+                for _, row in c1x_reports['c13'].iterrows():
+                    don_vi = row.get('Đơn vị', '')
+                    short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+                    if short_name in teams_order:
+                        bsc_scores_gt[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0) or 0
+            
+            # C1.4 sau giảm trừ
+            if 'c14' in unit_data:
+                df = unit_data['c14']
+                for _, row in df.iterrows():
+                    short = get_short_name(row.get('Đơn vị', ''))
+                    if short and short in teams_order:
+                        tyle_col = [c for c in df.columns if 'Tỷ lệ HL' in c and 'Sau GT' in c]
+                        if tyle_col:
+                            tyle = row.get(tyle_col[0], 0) or 0
+                            tyle_dec = tyle / 100 if tyle > 1 else tyle
+                            bsc_scores_gt[short]['C1.4'] = round(tinh_diem_C14(tyle_dec), 2)
+            
+            # C1.5 sau giảm trừ
+            if 'c15' in unit_data:
+                df = unit_data['c15']
+                for _, row in df.iterrows():
+                    short = get_short_name(row.get('Đơn vị', ''))
+                    if short and short in teams_order:
+                        tyle_col = [c for c in df.columns if 'Tỷ lệ đạt % (Sau GT)' in c]
+                        if tyle_col:
+                            tyle = row.get(tyle_col[0], 0) or 0
+                            tyle_dec = tyle / 100 if tyle > 1 else tyle
+                            bsc_scores_gt[short]['C1.5'] = round(tinh_diem_C15(tyle_dec), 2)
+            
+            # Tính điểm TTVT Sơn Tây sau giảm trừ (tổng hợp)
+            ttvt_scores_gt = {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0}
+            
+            # Lấy tỷ lệ tổng hợp từ dòng "Tổng" trong unit_data
+            if 'c11_sm2' in unit_data:
+                for _, row in unit_data['c11_sm2'].iterrows():
+                    if row.get('Đơn vị', '') == 'Tổng':
+                        tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
+                        ttvt_c11_tp1 = tyle / 100 if tyle > 1 else tyle
+                        break
+                else:
+                    ttvt_c11_tp1 = None
+            else:
+                ttvt_c11_tp1 = None
+            
+            if 'c11_sm4' in unit_data:
+                for _, row in unit_data['c11_sm4'].iterrows():
+                    if row.get('Đơn vị', '') == 'Tổng':
+                        tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
+                        ttvt_c11_tp2 = tyle / 100 if tyle > 1 else tyle
+                        break
+                else:
+                    ttvt_c11_tp2 = None
+            else:
+                ttvt_c11_tp2 = None
+            
+            ttvt_scores_gt['C1.1'] = round(0.30 * tinh_diem_C11_TP1(ttvt_c11_tp1) + 0.70 * tinh_diem_C11_TP2(ttvt_c11_tp2), 2)
+            
+            # C1.2 TTVT
+            if 'c12_sm1' in unit_data:
+                for _, row in unit_data['c12_sm1'].iterrows():
+                    if row.get('Đơn vị', '') == 'Tổng':
+                        tyle_col = [c for c in unit_data['c12_sm1'].columns if 'Tỷ lệ' in c and 'Sau GT' in c]
+                        if tyle_col:
+                            tyle = row.get(tyle_col[0], 0) or 0
+                            ttvt_c12_tp1 = tyle / 100 if tyle > 1 else tyle
+                        break
+                else:
+                    ttvt_c12_tp1 = None
+            else:
+                ttvt_c12_tp1 = None
+            
+            ttvt_c12_tp2_score = 5
+            if c1x_reports and 'c12' in c1x_reports:
+                for _, row in c1x_reports['c12'].iterrows():
+                    if row.get('Đơn vị', '') == 'Tổng':
+                        ttvt_c12_tp2_score = row.get('Điểm C1.2 TP2', 5)
+                        break
+            
+            ttvt_scores_gt['C1.2'] = round(0.50 * tinh_diem_C12_TP1(ttvt_c12_tp1) + 0.50 * ttvt_c12_tp2_score, 2)
+            
+            # C1.3 TTVT
+            if c1x_reports and 'c13' in c1x_reports:
+                for _, row in c1x_reports['c13'].iterrows():
+                    if row.get('Đơn vị', '') == 'Tổng':
+                        ttvt_scores_gt['C1.3'] = row.get('Chỉ tiêu BSC', 0) or 0
+                        break
+            
+            # C1.4 TTVT sau giảm trừ
+            if 'c14' in unit_data:
+                for _, row in unit_data['c14'].iterrows():
+                    if row.get('Đơn vị', '') == 'Tổng':
+                        tyle_col = [c for c in unit_data['c14'].columns if 'Tỷ lệ HL' in c and 'Sau GT' in c]
+                        if tyle_col:
+                            tyle = row.get(tyle_col[0], 0) or 0
+                            tyle_dec = tyle / 100 if tyle > 1 else tyle
+                            ttvt_scores_gt['C1.4'] = round(tinh_diem_C14(tyle_dec), 2)
+                        break
+            
+            # C1.5 TTVT sau giảm trừ
+            if 'c15' in unit_data:
+                for _, row in unit_data['c15'].iterrows():
+                    # Chỉ lấy tổng của TTVT Sơn Tây (thường là dòng có 'TTVT')
+                    if 'TTVT' in str(row.get('Đơn vị', '')) or row.get('Đơn vị', '') == 'Tổng':
+                         tyle_col = [c for c in unit_data['c15'].columns if 'Tỷ lệ đạt % (Sau GT)' in c]
+                         if tyle_col:
+                            tyle = row.get(tyle_col[0], 0) or 0
+                            tyle_dec = tyle / 100 if tyle > 1 else tyle
+                            ttvt_scores_gt['C1.5'] = round(tinh_diem_C15(tyle_dec), 2)
+                            break
+            
+            # Tạo bảng BSC sau giảm trừ
+            headers_gt = ['Đơn vị', 'C1.1', 'C1.2', 'C1.3', 'C1.4', 'C1.5']
+            table_gt = doc.add_table(rows=1, cols=len(headers_gt))
+            table_gt.style = 'Table Grid'
+            set_table_border(table_gt)
+            
+            for i, header in enumerate(table_gt.rows[0].cells):
+                header.text = headers_gt[i]
+                header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                set_cell_shading(header, '388E3C')  # Màu xanh lá để phân biệt với bảng trước
+                run = header.paragraphs[0].runs[0]
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(255, 255, 255)
+                run.font.size = Pt(10)
+            
+            for idx, team in enumerate(teams_order, 1):
+                cells = table_gt.add_row().cells
+                scores = bsc_scores_gt[team]
+                data = [
+                    team,
+                    format_number(scores['C1.1']),
+                    format_number(scores['C1.2']),
+                    format_number(scores['C1.3']),
+                    format_number(scores['C1.4']),
+                    format_number(scores['C1.5'])
+                ]
+                for i, value in enumerate(data):
+                    cells[i].text = value
+                    cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    run = cells[i].paragraphs[0].runs[0]
+                    run.font.size = Pt(10)
+                    if idx % 2 == 0:
+                        set_cell_shading(cells[i], 'E8F5E9')  # Màu xanh lá nhạt
+            
+            # Thêm dòng TTVT Sơn Tây
+            cells = table_gt.add_row().cells
+            ttvt_data_gt = [
+                'TTVT Sơn Tây',
+                format_number(ttvt_scores_gt['C1.1']),
+                format_number(ttvt_scores_gt['C1.2']),
+                format_number(ttvt_scores_gt['C1.3']),
+                format_number(ttvt_scores_gt['C1.4']),
+                format_number(ttvt_scores_gt['C1.5'])
+            ]
+            for i, value in enumerate(ttvt_data_gt):
+                cells[i].text = value
+                cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                run = cells[i].paragraphs[0].runs[0]
+                run.font.size = Pt(10)
+                run.font.bold = True
+                set_cell_shading(cells[i], 'A5D6A7')  # Màu xanh lá đậm hơn
+            
+            doc.add_paragraph()
+    
     # 1.4 Số liệu chi tiết các chỉ tiêu BSC theo Đội/TTVT (sử dụng c1x_reports đã load)
+    # Nếu có comparison_data, sẽ thêm bảng sau giảm trừ ngay sau mỗi bảng thô
     if c1x_reports:
-        add_c1x_overview_table(doc, c1x_reports)
+        # Load unit_data nếu cần cho bảng tổng hợp sau giảm trừ
+        unit_data = None
+        if include_exclusion:
+            unit_data = load_unit_level_exclusion_data(exclusion_folder)
+        add_c1x_overview_table(doc, c1x_reports, comparison_data, unit_data)
     
     # 1.5 Tổng quan Suy Hao Cao
     print("📊 Thêm phần Suy Hao Cao...")
     add_shc_overview_section(doc, data_folder="downloads/baocao_hanoi")
+    
+    # 1.5 SỐ LIỆU SAU GIẢM TRỪ - TỔNG HỢP (nếu có)
+    if include_exclusion and comparison_data:
+        print("📊 Thêm phần tổng hợp số liệu sau giảm trừ...")
+        doc.add_heading('1.5. Tổng hợp số liệu sau giảm trừ', level=2)
+        
+        # Chú thích
+        p_note = doc.add_paragraph()
+        p_note.add_run('📋 GHI CHÚ: ').bold = True
+        p_note.add_run('Số liệu sau giảm trừ được tính sau khi loại bỏ các phiếu báo hỏng thuộc diện loại trừ. Bảng chi tiết đã được hiển thị ngay sau mỗi bảng chỉ tiêu ở phần 1.3.')
+        doc.add_paragraph()
+        
+        # Bảng tổng hợp so sánh
+        add_exclusion_summary_table(doc, comparison_data)
+        
+        # Biểu đồ riêng cho dữ liệu sau giảm trừ
+        doc.add_heading('Biểu đồ tỷ lệ sau giảm trừ', level=3)
+        try:
+            exclusion_chart = create_exclusion_bar_chart(comparison_data)
+            if exclusion_chart:
+                doc.add_picture(exclusion_chart, width=Inches(6.5))
+                last_paragraph = doc.paragraphs[-1]
+                last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        except Exception as e:
+            print(f"   ⚠️ Không thể tạo biểu đồ sau giảm trừ: {e}")
+        
+        doc.add_paragraph()
+        
+        # Phần thống kê theo đơn vị (Tổ và TTVT)
+        print("📊 Thêm phần thống kê theo đơn vị...")
+        unit_data = load_unit_level_exclusion_data(exclusion_folder)
+        if unit_data:
+            add_unit_level_exclusion_section(doc, unit_data, c1x_reports)
     
     doc.add_page_break()
     
@@ -1553,6 +4219,13 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     # =========================================================================
     print("📋 Tạo phần Chi tiết theo tổ...")
     doc.add_heading('PHẦN 2: CHI TIẾT THEO TỪNG TỔ', level=1)
+    
+    # Đọc dữ liệu KPI sau giảm trừ theo NVKT
+    df_exclusion_nvkt = None
+    df_exclusion_detail = None
+    if include_exclusion:
+        df_exclusion_nvkt = load_nvkt_exclusion_summary(exclusion_folder)
+        df_exclusion_detail = load_nvkt_exclusion_detail(exclusion_folder)
     
     for team_idx, team_name in enumerate(teams, 1):
         short_name = TEAM_SHORT_NAMES.get(team_name, team_name)
@@ -1565,6 +4238,12 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
         add_kpi_summary_table(doc, df_summary, team_name)
         doc.add_paragraph()
         
+        # Bảng KPI sau giảm trừ (nếu có)
+        if df_exclusion_nvkt is not None:
+            doc.add_heading('Bảng điểm KPI tổng hợp (sau giảm trừ)', level=3)
+            add_kpi_summary_table_after_exclusion(doc, df_exclusion_nvkt, team_name)
+            doc.add_paragraph()
+        
         # Biểu đồ cột so sánh NVKT
         doc.add_heading(f'Biểu đồ so sánh điểm KPI theo NVKT', level=3)
         nvkt_chart = create_nvkt_bar_chart(df_summary, team_name)
@@ -1574,18 +4253,49 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
             last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         doc.add_paragraph()
         
+        # Biểu đồ sau giảm trừ (nếu có)
+        if df_exclusion_nvkt is not None:
+            doc.add_heading('Biểu đồ so sánh điểm KPI theo NVKT (sau giảm trừ)', level=3)
+            nvkt_chart_gt = create_nvkt_bar_chart_after_exclusion(df_exclusion_nvkt, team_name)
+            if nvkt_chart_gt:
+                doc.add_picture(nvkt_chart_gt, width=Inches(6.5))
+                last_paragraph = doc.paragraphs[-1]
+                last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            doc.add_paragraph()
+        
         # Bảng chi tiết từng chỉ tiêu
         add_c11_detail_table(doc, df_detail, team_name)
         doc.add_paragraph()
         
+        # C1.1 chi tiết sau giảm trừ
+        if df_exclusion_detail is not None:
+            add_c11_detail_table_after_exclusion(doc, df_exclusion_detail, team_name)
+            doc.add_paragraph()
+        
         add_c12_detail_table(doc, df_detail, team_name)
         doc.add_paragraph()
+        
+        # C1.2 chi tiết sau giảm trừ
+        if df_exclusion_detail is not None:
+            add_c12_detail_table_after_exclusion(doc, df_exclusion_detail, team_name)
+            doc.add_paragraph()
         
         add_c14_detail_table(doc, df_detail, team_name)
         doc.add_paragraph()
         
-        add_c15_detail_table(doc, df_detail, team_name)
+        # C1.4 chi tiết sau giảm trừ
+        if df_exclusion_detail is not None:
+            add_c14_detail_table_after_exclusion(doc, df_exclusion_detail, team_name)
+            doc.add_paragraph()
         
+        add_c15_detail_table(doc, df_detail, team_name)
+        doc.add_paragraph()
+
+        # C1.5 chi tiết sau giảm trừ
+        if df_exclusion_detail is not None:
+            add_c15_detail_table_after_exclusion(doc, df_exclusion_detail, team_name)
+            doc.add_paragraph()
+
         # Số liệu Suy Hao Cao cho tổ
         add_shc_unit_section(doc, team_name, data_folder="downloads/baocao_hanoi")
         

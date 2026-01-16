@@ -23,7 +23,7 @@ def normalize_id(id_val):
     """
     Chuẩn hóa BAOHONG_ID:
     - Chuyển về string
-    - Loại bỏ ký tự lạ _x000d_, khoảng trắng, xuống dòng
+    - Loại bỏ ký tự lạ _x000d_, _x000D_ (carriage return từ Excel), khoảng trắng, xuống dòng
     - Loại bỏ hậu tố .0 nếu có (do pandas đọc nhầm thành float)
     """
     if pd.isna(id_val):
@@ -32,8 +32,10 @@ def normalize_id(id_val):
     # Chuyển về string và loại bỏ khoảng trắng
     s = str(id_val).strip()
     
-    # Loại bỏ _x000d_ và các ký tự điều khiển
-    s = s.replace('_x000d_', '').strip()
+    # Loại bỏ _x000d_ và _x000D_ (case-insensitive) - đây là ký tự carriage return từ Excel
+    s = re.sub(r'_x000[dD]_', '', s).strip()
+    
+    # Loại bỏ các ký tự điều khiển khác
     s = re.sub(r'[\r\n\t]', '', s)
     
     # Loại bỏ .0 nếu là số
@@ -145,6 +147,100 @@ def calculate_statistics(df, has_ten_doi=True, dat_column='DAT_TT_KO_HEN', dat_v
             })
     
     return pd.DataFrame(report_data)
+
+
+def calculate_unit_stats(df_before, df_after, ten_doi_col='TEN_DOI', 
+                         tong_col='Tổng phiếu', dat_col='Số phiếu đạt'):
+    """
+    Tính thống kê theo từng đơn vị (Tổ) trước và sau giảm trừ
+    
+    Args:
+        df_before: DataFrame thống kê TRƯỚC giảm trừ (nhóm theo NVKT)
+        df_after: DataFrame thống kê SAU giảm trừ (nhóm theo NVKT)
+        ten_doi_col: Tên cột đơn vị
+        tong_col: Tên cột tổng phiếu
+        dat_col: Tên cột số phiếu đạt
+        
+    Returns:
+        DataFrame với thống kê theo từng đơn vị + dòng Tổng TTVT
+    """
+    # Mapping tên đội ngắn
+    TEAM_SHORT_NAMES = {
+        'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật địa bàn Suối Hai': 'Suối Hai',
+        'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
+    }
+    
+    unit_stats = []
+    
+    # Nếu có cột TEN_DOI, nhóm theo đơn vị
+    if ten_doi_col in df_before.columns:
+        # Nhóm theo đơn vị TRƯỚC giảm trừ
+        unit_before = df_before.groupby(ten_doi_col).agg({
+            tong_col: 'sum',
+            dat_col: 'sum'
+        }).reset_index()
+        
+        # Nhóm theo đơn vị SAU giảm trừ
+        unit_after = df_after.groupby(ten_doi_col).agg({
+            tong_col: 'sum',
+            dat_col: 'sum'
+        }).reset_index()
+        
+        # Merge để có cả 2
+        unit_merged = pd.merge(
+            unit_before, unit_after,
+            on=ten_doi_col, how='outer',
+            suffixes=(' (Thô)', ' (Sau GT)')
+        )
+        
+        for _, row in unit_merged.iterrows():
+            ten_doi = row[ten_doi_col]
+            short_name = TEAM_SHORT_NAMES.get(ten_doi, ten_doi)
+            
+            tong_tho = row.get(f'{tong_col} (Thô)', 0) or 0
+            tong_sau = row.get(f'{tong_col} (Sau GT)', 0) or 0
+            dat_tho = row.get(f'{dat_col} (Thô)', 0) or 0
+            dat_sau = row.get(f'{dat_col} (Sau GT)', 0) or 0
+            
+            tyle_tho = round((dat_tho / tong_tho * 100), 2) if tong_tho > 0 else 0
+            tyle_sau = round((dat_sau / tong_sau * 100), 2) if tong_sau > 0 else 0
+            
+            unit_stats.append({
+                'Đơn vị': short_name,
+                'Tổng phiếu (Thô)': int(tong_tho),
+                'Phiếu loại trừ': int(tong_tho - tong_sau),
+                'Tổng phiếu (Sau GT)': int(tong_sau),
+                'Phiếu đạt (Thô)': int(dat_tho),
+                'Phiếu đạt (Sau GT)': int(dat_sau),
+                'Tỷ lệ % (Thô)': tyle_tho,
+                'Tỷ lệ % (Sau GT)': tyle_sau,
+                'Thay đổi %': round(tyle_sau - tyle_tho, 2)
+            })
+    
+    # Thêm dòng TỔNG TTVT
+    tong_tho_all = df_before[tong_col].sum()
+    tong_sau_all = df_after[tong_col].sum()
+    dat_tho_all = df_before[dat_col].sum()
+    dat_sau_all = df_after[dat_col].sum()
+    
+    tyle_tho_all = round((dat_tho_all / tong_tho_all * 100), 2) if tong_tho_all > 0 else 0
+    tyle_sau_all = round((dat_sau_all / tong_sau_all * 100), 2) if tong_sau_all > 0 else 0
+    
+    unit_stats.append({
+        'Đơn vị': 'TTVT Sơn Tây',
+        'Tổng phiếu (Thô)': int(tong_tho_all),
+        'Phiếu loại trừ': int(tong_tho_all - tong_sau_all),
+        'Tổng phiếu (Sau GT)': int(tong_sau_all),
+        'Phiếu đạt (Thô)': int(dat_tho_all),
+        'Phiếu đạt (Sau GT)': int(dat_sau_all),
+        'Tỷ lệ % (Thô)': tyle_tho_all,
+        'Tỷ lệ % (Sau GT)': tyle_sau_all,
+        'Thay đổi %': round(tyle_sau_all - tyle_tho_all, 2)
+    })
+    
+    return pd.DataFrame(unit_stats)
 
 
 def create_c11_comparison_report(exclusion_ids, output_dir):
@@ -278,12 +374,16 @@ def create_c11_comparison_report(exclusion_ids, output_dir):
         cols_available = [c for c in cols_to_keep if c in df_loai_tru.columns]
         df_loai_tru = df_loai_tru[cols_available]
         
+        # Tính thống kê theo đơn vị (Tổ)
+        df_unit_stats = calculate_unit_stats(df_stats_before, df_stats_after)
+        
         # Ghi vào file Excel
         output_file = os.path.join(output_dir, "So_sanh_C11_SM4.xlsx")
         print(f"\n✓ Đang ghi kết quả vào: {output_file}")
         
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             df_comparison.to_excel(writer, sheet_name='So_sanh_chi_tiet', index=False)
+            df_unit_stats.to_excel(writer, sheet_name='Thong_ke_theo_don_vi', index=False)
             df_tongke.to_excel(writer, sheet_name='Thong_ke_tong_hop', index=False)
             df_loai_tru.to_excel(writer, sheet_name='DS_phieu_loai_tru', index=False)
         
@@ -449,12 +549,16 @@ def create_c11_sm2_comparison_report(exclusion_ids, output_dir):
         cols_available = [c for c in cols_to_keep if c in df_loai_tru.columns]
         df_loai_tru = df_loai_tru[cols_available]
         
+        # Tính thống kê theo đơn vị (Tổ)
+        df_unit_stats = calculate_unit_stats(df_stats_before, df_stats_after)
+        
         # Ghi vào file Excel
         output_file = os.path.join(output_dir, "So_sanh_C11_SM2.xlsx")
         print(f"\n✓ Đang ghi kết quả vào: {output_file}")
         
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             df_comparison.to_excel(writer, sheet_name='So_sanh_chi_tiet', index=False)
+            df_unit_stats.to_excel(writer, sheet_name='Thong_ke_theo_don_vi', index=False)
             df_tongke.to_excel(writer, sheet_name='Thong_ke_tong_hop', index=False)
             df_loai_tru.to_excel(writer, sheet_name='DS_phieu_loai_tru', index=False)
         
@@ -708,12 +812,27 @@ def create_c12_comparison_report(exclusion_ids, output_dir):
         df_loai_tru_sm2 = df_loai_tru_sm2[cols_sm2]
         df_loai_tru_sm2['Nguồn'] = 'SM2-C12'
         
+        # Tính thống kê theo đơn vị (Tổ) cho C1.2
+        df_unit_stats = calculate_unit_stats(
+            df_before, df_after, 
+            tong_col='Số phiếu báo hỏng', 
+            dat_col='Số phiếu HLL'
+        )
+        # Đổi tên cột cho phù hợp với C1.2
+        df_unit_stats = df_unit_stats.rename(columns={
+            'Phiếu đạt (Thô)': 'Phiếu HLL (Thô)',
+            'Phiếu đạt (Sau GT)': 'Phiếu HLL (Sau GT)',
+            'Tỷ lệ % (Thô)': 'Tỷ lệ HLL % (Thô)',
+            'Tỷ lệ % (Sau GT)': 'Tỷ lệ HLL % (Sau GT)'
+        })
+        
         # Ghi vào file Excel
         output_file = os.path.join(output_dir, "So_sanh_C12_SM1.xlsx")
         print(f"\n✓ Đang ghi kết quả vào: {output_file}")
         
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             df_comparison.to_excel(writer, sheet_name='So_sanh_chi_tiet', index=False)
+            df_unit_stats.to_excel(writer, sheet_name='Thong_ke_theo_don_vi', index=False)
             df_tongke.to_excel(writer, sheet_name='Thong_ke_tong_hop', index=False)
             df_loai_tru_sm1.to_excel(writer, sheet_name='DS_loai_tru_SM1', index=False)
             df_loai_tru_sm2.to_excel(writer, sheet_name='DS_loai_tru_SM2', index=False)
@@ -1422,12 +1541,31 @@ def create_c14_comparison_report(exclusion_ids, output_dir):
         cols_available = [c for c in cols_to_keep if c in df_loai_tru.columns]
         df_loai_tru = df_loai_tru[cols_available]
         
+        # Tính thống kê theo đơn vị (Tổ) cho C1.4
+        df_unit_stats = calculate_unit_stats(
+            df_before, df_after,
+            tong_col='Tổng phiếu KS',
+            dat_col='Số phiếu KHL'
+        )
+        # Đổi tên cột cho phù hợp với C1.4
+        df_unit_stats = df_unit_stats.rename(columns={
+            'Phiếu đạt (Thô)': 'Phiếu KHL (Thô)',
+            'Phiếu đạt (Sau GT)': 'Phiếu KHL (Sau GT)',
+            'Tỷ lệ % (Thô)': 'Tỷ lệ KHL % (Thô)',
+            'Tỷ lệ % (Sau GT)': 'Tỷ lệ KHL % (Sau GT)'
+        })
+        # Tính tỷ lệ HL (ngược lại với KHL)
+        df_unit_stats['Tỷ lệ HL % (Thô)'] = (100 - df_unit_stats['Tỷ lệ KHL % (Thô)']).round(2)
+        df_unit_stats['Tỷ lệ HL % (Sau GT)'] = (100 - df_unit_stats['Tỷ lệ KHL % (Sau GT)']).round(2)
+        df_unit_stats['Thay đổi HL %'] = (df_unit_stats['Tỷ lệ HL % (Sau GT)'] - df_unit_stats['Tỷ lệ HL % (Thô)']).round(2)
+        
         # Ghi vào file Excel
         output_file = os.path.join(output_dir, "So_sanh_C14.xlsx")
         print(f"\n✓ Đang ghi kết quả vào: {output_file}")
         
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             df_comparison.to_excel(writer, sheet_name='So_sanh_chi_tiet', index=False)
+            df_unit_stats.to_excel(writer, sheet_name='Thong_ke_theo_don_vi', index=False)
             df_tongke.to_excel(writer, sheet_name='Thong_ke_tong_hop', index=False)
             df_loai_tru.to_excel(writer, sheet_name='DS_phieu_loai_tru', index=False)
         
@@ -1447,6 +1585,250 @@ def create_c14_comparison_report(exclusion_ids, output_dir):
         
     except Exception as e:
         print(f"❌ Lỗi khi tạo báo cáo C1.4: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+def load_c15_exclusion_list(exclusion_file="du_lieu_tham_chieu/LOAI_TRU_C1.5.xlsx"):
+    """
+    Đọc danh sách HDTB_ID cần loại trừ cho C1.5 từ file Excel
+    
+    Returns:
+        set: Tập hợp các HDTB_ID cần loại trừ (dạng string)
+    """
+    try:
+        if not os.path.exists(exclusion_file):
+            print(f"⚠️ Không tìm thấy file loại trừ C1.5: {exclusion_file}")
+            return set()
+        
+        df = pd.read_excel(exclusion_file)
+        
+        if 'HDTB_ID' not in df.columns:
+            print(f"⚠️ Không tìm thấy cột 'HDTB_ID' trong file {exclusion_file}")
+            return set()
+        
+        # Chuẩn hóa tất cả ID
+        exclusion_ids = {normalize_id(idx) for idx in df['HDTB_ID'].tolist() if pd.notna(idx)}
+        exclusion_ids.discard("")
+        
+        print(f"✅ Đã đọc {len(exclusion_ids)} mã HDTB_ID loại trừ C1.5")
+        return exclusion_ids
+        
+    except Exception as e:
+        print(f"❌ Lỗi khi đọc file loại trừ C1.5: {e}")
+        return set()
+
+
+def create_c15_comparison_report(exclusion_ids, output_dir):
+    """
+    Tạo báo cáo so sánh C1.5 - Tỷ lệ thiết lập dịch vụ BRCĐ đạt thời gian quy định trước/sau giảm trừ
+    
+    Công thức: Tỷ lệ đạt = Phiếu đạt / Tổng Hoàn công * 100
+    
+    Phiếu đạt: CHITIEU = 'PT1' (đạt thời gian quy định)
+    Phiếu không đạt: CHITIEU = 'PT2' (không đạt thời gian quy định)
+    
+    Args:
+        exclusion_ids: Set các HDTB_ID cần loại trừ
+        output_dir: Thư mục xuất kết quả
+        
+    Returns:
+        dict: Kết quả so sánh hoặc None nếu lỗi
+    """
+    try:
+        print("\n" + "="*80)
+        print("TẠO BÁO CÁO SO SÁNH C1.5 - TỶ LỆ THIẾT LẬP DỊCH VỤ BRCĐ ĐẠT THỜI GIAN QUY ĐỊNH")
+        print("="*80)
+        
+        # Đọc dữ liệu chi tiết C1.5 từ sheet DATA
+        data_file = os.path.join("downloads", "baocao_hanoi", "c1.5_chitiet_report.xlsx")
+        
+        if not os.path.exists(data_file):
+            print(f"❌ Không tìm thấy file dữ liệu C1.5: {data_file}")
+            return None
+        
+        df_raw = pd.read_excel(data_file, sheet_name="DATA")
+        print(f"✅ Đã đọc file dữ liệu: {len(df_raw)} bản ghi tổng")
+        
+        # Kiểm tra cột cần thiết
+        required_cols = ['HDTB_ID', 'TEN_NVKT', 'DOIVT', 'NGAY_HC', 'PT2_KR16']
+        missing_cols = [col for col in required_cols if col not in df_raw.columns]
+        if missing_cols:
+            print(f"❌ Không tìm thấy các cột: {missing_cols}")
+            return None
+        
+        # Lọc chỉ các phiếu đã hoàn công (NGAY_HC không null)
+        df_hc = df_raw[df_raw['NGAY_HC'].notna()].copy()
+        print(f"✅ Số phiếu đã hoàn công (NGAY_HC != null): {len(df_hc)}")
+        
+        # Chuẩn hóa cột NVKT
+        df_hc['NVKT'] = df_hc['TEN_NVKT'].apply(extract_nvkt_name)
+        df_hc = df_hc[df_hc['NVKT'].notna()].copy()
+        df_hc['NVKT'] = df_hc['NVKT'].str.strip().str.title()
+        
+        # Xác định đội
+        df_hc['TEN_DOI'] = df_hc['DOIVT']
+        has_ten_doi = 'TEN_DOI' in df_hc.columns
+        
+        # Xác định phiếu đạt: PT2_KR16 != 1 (phiếu không bị trễ)
+        # PT2_KR16 = 1 nghĩa là không đạt thời gian quy định (trễ)
+        df_hc['IS_DAT'] = (df_hc['PT2_KR16'] != 1).astype(int)
+        
+        # Áp dụng giảm trừ
+        df_hc['HDTB_ID_STR'] = df_hc['HDTB_ID'].apply(normalize_id)
+        df_excluded = df_hc[~df_hc['HDTB_ID_STR'].isin(exclusion_ids)].copy()
+        num_excluded = len(df_hc) - len(df_excluded)
+        print(f"✅ Loại trừ: {num_excluded} phiếu, còn lại {len(df_excluded)} phiếu")
+        
+        # ========== TÍNH TOÁN TRƯỚC GIẢM TRỪ ==========
+        if has_ten_doi:
+            df_before = df_hc.groupby(['TEN_DOI', 'NVKT']).agg({
+                'IS_DAT': 'sum',       # Tổng phiếu đạt
+                'HDTB_ID': 'size'      # Tổng phiếu hoàn công
+            }).reset_index()
+        else:
+            df_before = df_hc.groupby('NVKT').agg({
+                'IS_DAT': 'sum',
+                'HDTB_ID': 'size'
+            }).reset_index()
+            
+        df_before.columns = list(df_before.columns[:-2]) + ['Phiếu đạt', 'Tổng Hoàn công']
+        df_before['Phiếu không đạt'] = df_before['Tổng Hoàn công'] - df_before['Phiếu đạt']
+        df_before['Tỷ lệ đạt (%)'] = (df_before['Phiếu đạt'] / 
+                                      df_before['Tổng Hoàn công'].replace(0, 1) * 100).round(2)
+        
+        # ========== TÍNH TOÁN SAU GIẢM TRỪ ==========
+        if has_ten_doi:
+            df_after = df_excluded.groupby(['TEN_DOI', 'NVKT']).agg({
+                'IS_DAT': 'sum',
+                'HDTB_ID': 'size'
+            }).reset_index()
+        else:
+            df_after = df_excluded.groupby('NVKT').agg({
+                'IS_DAT': 'sum',
+                'HDTB_ID': 'size'
+            }).reset_index()
+            
+        df_after.columns = list(df_after.columns[:-2]) + ['Phiếu đạt', 'Tổng Hoàn công']
+        df_after['Phiếu không đạt'] = df_after['Tổng Hoàn công'] - df_after['Phiếu đạt']
+        df_after['Tỷ lệ đạt (%)'] = (df_after['Phiếu đạt'] / 
+                                     df_after['Tổng Hoàn công'].replace(0, 1) * 100).round(2)
+        
+        # ========== MERGE VÀ SO SÁNH ==========
+        merge_cols = ['TEN_DOI', 'NVKT'] if has_ten_doi else ['NVKT']
+        
+        df_comparison = pd.merge(
+            df_before, df_after,
+            on=merge_cols,
+            how='outer',
+            suffixes=(' (Thô)', ' (Sau GT)')
+        )
+        
+        # Điền giá trị mặc định
+        for col in df_comparison.columns:
+            if 'Phiếu' in col or 'Hoàn công' in col:
+                df_comparison[col] = df_comparison[col].fillna(0).astype(int)
+            elif 'Tỷ lệ' in col:
+                df_comparison[col] = df_comparison[col].fillna(100.0)
+        
+        # Tính chênh lệch
+        df_comparison['Chênh lệch %'] = (
+            df_comparison['Tỷ lệ đạt (%) (Sau GT)'].fillna(100) - 
+            df_comparison['Tỷ lệ đạt (%) (Thô)'].fillna(100)
+        ).round(2)
+        
+        # Sắp xếp cột
+        if has_ten_doi:
+            column_order = [
+                'TEN_DOI', 'NVKT', 
+                'Tổng Hoàn công (Thô)', 'Phiếu đạt (Thô)', 'Phiếu không đạt (Thô)', 'Tỷ lệ đạt (%) (Thô)',
+                'Tổng Hoàn công (Sau GT)', 'Phiếu đạt (Sau GT)', 'Phiếu không đạt (Sau GT)', 'Tỷ lệ đạt (%) (Sau GT)',
+                'Chênh lệch %'
+            ]
+            df_comparison = df_comparison.sort_values(['TEN_DOI', 'NVKT']).reset_index(drop=True)
+        else:
+            column_order = [
+                'NVKT', 
+                'Tổng Hoàn công (Thô)', 'Phiếu đạt (Thô)', 'Phiếu không đạt (Thô)', 'Tỷ lệ đạt (%) (Thô)',
+                'Tổng Hoàn công (Sau GT)', 'Phiếu đạt (Sau GT)', 'Phiếu không đạt (Sau GT)', 'Tỷ lệ đạt (%) (Sau GT)',
+                'Chênh lệch %'
+            ]
+            df_comparison = df_comparison.sort_values('NVKT').reset_index(drop=True)
+        
+        column_order = [c for c in column_order if c in df_comparison.columns]
+        df_comparison = df_comparison[column_order]
+        
+        # Loại bỏ các dòng có NVKT rỗng
+        df_comparison = df_comparison[df_comparison['NVKT'].notna()]
+        
+        # ========== TÍNH THỐNG KÊ TỔNG HỢP ==========
+        tong_hc_tho = df_before['Tổng Hoàn công'].sum()
+        tong_dat_tho = df_before['Phiếu đạt'].sum()
+        tyle_tho = round(tong_dat_tho / tong_hc_tho * 100, 2) if tong_hc_tho > 0 else 100
+        
+        tong_hc_sau = df_after['Tổng Hoàn công'].sum()
+        tong_dat_sau = df_after['Phiếu đạt'].sum()
+        tyle_sau = round(tong_dat_sau / tong_hc_sau * 100, 2) if tong_hc_sau > 0 else 100
+        
+        df_tongke = pd.DataFrame([{
+            'Chỉ tiêu': 'C1.5 - Tỷ lệ thiết lập dịch vụ BRCĐ đạt TG quy định',
+            'Tổng Hoàn công (Thô)': tong_hc_tho,
+            'Phiếu đạt (Thô)': tong_dat_tho,
+            'Tổng Hoàn công (Sau GT)': tong_hc_sau,
+            'Phiếu đạt (Sau GT)': tong_dat_sau,
+            'Phiếu loại trừ': num_excluded,
+            'Tỷ lệ đạt % (Thô)': tyle_tho,
+            'Tỷ lệ đạt % (Sau GT)': tyle_sau,
+            'Thay đổi %': round(tyle_sau - tyle_tho, 2)
+        }])
+        
+        # Lấy danh sách phiếu bị loại trừ
+        df_loai_tru = df_hc[df_hc['HDTB_ID_STR'].isin(exclusion_ids)].copy()
+        cols_to_keep = ['HDTB_ID', 'MA_TB', 'TEN_NVKT', 'DOIVT', 'PT2_KR16', 'NGAY_HC', 'NGAY_BT']
+        cols_available = [c for c in cols_to_keep if c in df_loai_tru.columns]
+        df_loai_tru = df_loai_tru[cols_available]
+        
+        # Tính thống kê theo đơn vị (Tổ) cho C1.5
+        df_unit_stats = calculate_unit_stats(
+            df_before, df_after,
+            tong_col='Tổng Hoàn công',
+            dat_col='Phiếu đạt'
+        )
+        # Đổi tên cột cho phù hợp với C1.5
+        df_unit_stats = df_unit_stats.rename(columns={
+            'Phiếu đạt (Thô)': 'Phiếu đạt (Thô)',
+            'Phiếu đạt (Sau GT)': 'Phiếu đạt (Sau GT)',
+            'Tỷ lệ % (Thô)': 'Tỷ lệ đạt % (Thô)',
+            'Tỷ lệ % (Sau GT)': 'Tỷ lệ đạt % (Sau GT)'
+        })
+        
+        # Ghi vào file Excel
+        output_file = os.path.join(output_dir, "So_sanh_C15.xlsx")
+        print(f"\n✓ Đang ghi kết quả vào: {output_file}")
+        
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            df_comparison.to_excel(writer, sheet_name='So_sanh_chi_tiet', index=False)
+            df_unit_stats.to_excel(writer, sheet_name='Thong_ke_theo_don_vi', index=False)
+            df_tongke.to_excel(writer, sheet_name='Thong_ke_tong_hop', index=False)
+            df_loai_tru.to_excel(writer, sheet_name='DS_phieu_loai_tru', index=False)
+        
+        print(f"\n✅ Đã tạo báo cáo so sánh C1.5 - Tỷ lệ thiết lập dịch vụ BRCĐ")
+        print(f"   - Tổng Hoàn công: {tong_hc_tho} -> {tong_hc_sau} (loại trừ: {num_excluded})")
+        print(f"   - Phiếu đạt: {tong_dat_tho} -> {tong_dat_sau}")
+        print(f"   - Tỷ lệ đạt: {tyle_tho}% -> {tyle_sau}% (Δ: {round(tyle_sau - tyle_tho, 2)}%)")
+        
+        return {
+            'chi_tieu': 'C1.5 Tỷ lệ thiết lập BRCĐ',
+            'tong_tho': tong_hc_tho,
+            'loai_tru': num_excluded,
+            'tong_sau_gt': tong_hc_sau,
+            'tyle_tho': tyle_tho,
+            'tyle_sau_gt': tyle_sau
+        }
+        
+    except Exception as e:
+        print(f"❌ Lỗi khi tạo báo cáo C1.5: {e}")
         import traceback
         traceback.print_exc()
         return None
@@ -1509,6 +1891,13 @@ def process_exclusion_reports():
         c14_exclusion_ids = load_c14_exclusion_list()
         if c14_exclusion_ids:
             result = create_c14_comparison_report(c14_exclusion_ids, output_dir)
+            if result:
+                results.append(result)
+        
+        # C1.5 - Tỷ lệ thiết lập dịch vụ BRCĐ đạt thời gian quy định
+        c15_exclusion_ids = load_c15_exclusion_list()
+        if c15_exclusion_ids:
+            result = create_c15_comparison_report(c15_exclusion_ids, output_dir)
             if result:
                 results.append(result)
         

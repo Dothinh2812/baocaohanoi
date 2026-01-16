@@ -489,6 +489,57 @@ def doc_C14_sau_giam_tru(exclusion_folder):
     return df
 
 
+def doc_C15_sau_giam_tru(exclusion_folder):
+    """
+    Đọc dữ liệu C1.5 SAU GIẢM TRỪ: Tỷ lệ thiết lập dịch vụ BRCĐ
+    File: So_sanh_C15.xlsx, Sheet: So_sanh_chi_tiet
+    """
+    file_path = Path(exclusion_folder) / "So_sanh_C15.xlsx"
+    
+    if not file_path.exists():
+        print(f"⚠️ Không tìm thấy file C1.5 sau giảm trừ: {file_path}")
+        return None
+    
+    df = pd.read_excel(file_path, sheet_name="So_sanh_chi_tiet")
+    
+    # Lấy các cột cần thiết (sau giảm trừ)
+    cols_needed = ['TEN_DOI', 'NVKT', 'Tổng Hoàn công (Sau GT)', 'Phiếu đạt (Sau GT)', 'Tỷ lệ đạt (%) (Sau GT)']
+    cols_available = [c for c in cols_needed if c in df.columns]
+    
+    if 'TEN_DOI' in df.columns:
+        df = df[cols_available].copy()
+        df.columns = ['don_vi', 'nvkt', 'c15_tong_phieu', 'c15_phieu_dat', 'c15_ty_le']
+    else:
+        cols_needed = ['NVKT', 'Tổng Hoàn công (Sau GT)', 'Phiếu đạt (Sau GT)', 'Tỷ lệ đạt (%) (Sau GT)']
+        df = df[[c for c in cols_needed if c in df.columns]].copy()
+        df.columns = ['nvkt', 'c15_tong_phieu', 'c15_phieu_dat', 'c15_ty_le']
+        df['don_vi'] = None
+    
+    # Thêm cột phiếu không đạt
+    df['c15_phieu_khong_dat'] = df['c15_tong_phieu'] - df['c15_phieu_dat']
+    
+    # Chuẩn hóa tên NVKT
+    df = chuan_hoa_ten(df, 'nvkt')
+    
+    # Chuẩn hóa tỷ lệ về dạng thập phân
+    df = chuan_hoa_ty_le(df, 'c15_ty_le')
+    
+    # Gộp các bản sao (nếu có)
+    if 'don_vi' in df.columns and df['don_vi'].notna().any():
+        df = df.groupby(['don_vi', 'nvkt'], as_index=False).agg({
+            'c15_tong_phieu': 'sum',
+            'c15_phieu_dat': 'sum',
+            'c15_phieu_khong_dat': 'sum',
+            'c15_ty_le': 'first'
+        })
+        # Tính lại tỷ lệ
+        mask = df['c15_tong_phieu'] > 0
+        df.loc[mask, 'c15_ty_le'] = df.loc[mask, 'c15_phieu_dat'] / df.loc[mask, 'c15_tong_phieu']
+        df.loc[~mask, 'c15_ty_le'] = 1.0
+    
+    return df
+
+
 # ============================================================================
 # HÀM TÍNH ĐIỂM KPI TỔNG HỢP
 # ============================================================================
@@ -708,7 +759,7 @@ def tinh_diem_kpi_nvkt_sau_giam_tru(exclusion_folder, original_data_folder, outp
     
     Args:
         exclusion_folder: Thư mục chứa các file kết quả sau giảm trừ
-        original_data_folder: Thư mục chứa file dữ liệu gốc (cho C1.4 không có giảm trừ)
+        original_data_folder: Thư mục chứa file dữ liệu gốc (cho C1.4, C1.5 không có giảm trừ)
         output_folder: Thư mục xuất kết quả
     
     Returns:
@@ -737,6 +788,14 @@ def tinh_diem_kpi_nvkt_sau_giam_tru(exclusion_folder, original_data_folder, outp
         df_c14 = doc_C14(original_data_folder)
         print(f"  - C1.4 (gốc): {len(df_c14)} NVKT")
     
+    # C1.5 - Thử đọc dữ liệu sau giảm trừ, nếu không có thì dùng dữ liệu gốc
+    df_c15 = doc_C15_sau_giam_tru(exclusion_folder)
+    if df_c15 is not None and len(df_c15) > 0:
+        print(f"  - C1.5 (sau GT): {len(df_c15)} NVKT")
+    else:
+        df_c15 = doc_C15(original_data_folder)
+        print(f"  - C1.5 (gốc): {len(df_c15)} NVKT")
+    
     # 2. Merge tất cả dữ liệu theo nvkt VÀ don_vi
     merge_keys = ['don_vi', 'nvkt']
     
@@ -746,6 +805,7 @@ def tinh_diem_kpi_nvkt_sau_giam_tru(exclusion_folder, original_data_folder, outp
     df_all = df_all.merge(df_c12_tp1, on=merge_keys, how='outer')
     df_all = df_all.merge(df_c12_tp2, on=merge_keys, how='outer')
     df_all = df_all.merge(df_c14, on=merge_keys, how='outer')
+    df_all = df_all.merge(df_c15, on=merge_keys, how='outer')
     
     print(f"\nTổng số NVKT sau merge: {len(df_all)}")
     
@@ -757,20 +817,23 @@ def tinh_diem_kpi_nvkt_sau_giam_tru(exclusion_folder, original_data_folder, outp
     df_all['diem_c12_tp1'] = df_all['c12_tp1_ty_le'].apply(tinh_diem_C12_TP1)
     df_all['diem_c12_tp2'] = df_all['c12_tp2_ty_le'].apply(tinh_diem_C12_TP2)
     df_all['diem_c14'] = df_all['c14_ty_le'].apply(tinh_diem_C14)
+    df_all['diem_c15'] = df_all['c15_ty_le'].apply(tinh_diem_C15)
     
     # 4. Tính điểm tổng hợp
     df_all['Diem_C1.1'] = df_all['diem_c11_tp1'] * 0.30 + df_all['diem_c11_tp2'] * 0.70
     df_all['Diem_C1.2'] = df_all['diem_c12_tp1'] * 0.50 + df_all['diem_c12_tp2'] * 0.50
     df_all['Diem_C1.4'] = df_all['diem_c14']
+    df_all['Diem_C1.5'] = df_all['diem_c15']
     
     # 5. Làm tròn điểm
-    diem_cols = ['diem_c11_tp1', 'diem_c11_tp2', 'diem_c12_tp1', 'diem_c12_tp2', 'diem_c14',
-                 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4']
+    diem_cols = ['diem_c11_tp1', 'diem_c11_tp2', 'diem_c12_tp1', 'diem_c12_tp2', 'diem_c14', 'diem_c15',
+                 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4', 'Diem_C1.5']
     for col in diem_cols:
-        df_all[col] = df_all[col].round(2)
+        if col in df_all.columns:
+            df_all[col] = df_all[col].round(2)
     
     # Làm tròn tỷ lệ về %
-    ty_le_cols = ['c11_tp1_ty_le', 'c11_tp2_ty_le', 'c12_tp1_ty_le', 'c12_tp2_ty_le', 'c14_ty_le']
+    ty_le_cols = ['c11_tp1_ty_le', 'c11_tp2_ty_le', 'c12_tp1_ty_le', 'c12_tp2_ty_le', 'c14_ty_le', 'c15_ty_le']
     for col in ty_le_cols:
         if col in df_all.columns:
             df_all[col] = (df_all[col] * 100).round(2)
@@ -784,7 +847,8 @@ def tinh_diem_kpi_nvkt_sau_giam_tru(exclusion_folder, original_data_folder, outp
         'c12_tp1_phieu_hll', 'c12_tp1_phieu_bh', 'c12_tp1_ty_le', 'diem_c12_tp1',
         'c12_tp2_phieu_bh', 'c12_tp2_tong_tb', 'c12_tp2_ty_le', 'diem_c12_tp2',
         'Diem_C1.2',
-        'c14_phieu_ks', 'c14_phieu_khl', 'c14_ty_le', 'diem_c14', 'Diem_C1.4'
+        'c14_phieu_ks', 'c14_phieu_khl', 'c14_ty_le', 'diem_c14', 'Diem_C1.4',
+        'c15_tong_phieu', 'c15_phieu_dat', 'c15_phieu_khong_dat', 'c15_ty_le', 'diem_c15', 'Diem_C1.5'
     ]
     
     existing_cols = [col for col in col_order if col in df_all.columns]
@@ -800,8 +864,8 @@ def tinh_diem_kpi_nvkt_sau_giam_tru(exclusion_folder, original_data_folder, outp
         df_all.to_excel(full_file, index=False)
         print(f"\nĐã xuất file chi tiết: {full_file}")
         
-        summary_cols = ['don_vi', 'nvkt', 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4']
-        df_summary = df_all[summary_cols].copy()
+        summary_cols = ['don_vi', 'nvkt', 'Diem_C1.1', 'Diem_C1.2', 'Diem_C1.4', 'Diem_C1.5']
+        df_summary = df_all[[col for col in summary_cols if col in df_all.columns]].copy()
         summary_file = output_folder / f"KPI_NVKT_SauGiamTru_TomTat.xlsx"
         df_summary.to_excel(summary_file, index=False)
         print(f"Đã xuất file tóm tắt: {summary_file}")

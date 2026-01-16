@@ -45,7 +45,7 @@ report_month = "Tháng 01/2026"  # Tháng báo cáo (None = tháng hiện tại)
 # File danh sách loại trừ: du_lieu_tham_chieu/ds_phieu_loai_tru.xlsx (cột BAOHONG_ID)
 # Kết quả xuất ra: downloads/kq_sau_giam_tru/
 # =============================================================================
-ENABLE_EXCLUSION = False  # Bật/tắt tính năng giảm trừ
+ENABLE_EXCLUSION = True # Bật/tắt tính năng giảm trừ
 
 
 def main():
