@@ -914,8 +914,38 @@ def generate_trend_report(start_date, end_date, output_file=None):
         n_dates = len(date_cols)
         width = 0.8 / n_dates
         
-        # Màu sắc
-        colors = plt.cm.tab10(np.linspace(0, 1, n_dates))
+        # Màu sắc - tạo danh sách màu đảm bảo 2 bar cạnh nhau không trùng màu
+        # Sử dụng 2 bảng màu xen kẽ để tạo sự khác biệt rõ ràng
+        base_colors = [
+            '#1f77b4',  # blue
+            '#ff7f0e',  # orange
+            '#2ca02c',  # green
+            '#d62728',  # red
+            '#9467bd',  # purple
+            '#8c564b',  # brown
+            '#e377c2',  # pink
+            '#7f7f7f',  # gray
+            '#bcbd22',  # olive
+            '#17becf',  # cyan
+            '#393b79',  # dark blue
+            '#637939',  # dark green
+            '#8c6d31',  # dark orange
+            '#843c39',  # dark red
+            '#7b4173',  # dark purple
+            '#5254a3',  # indigo
+            '#6b6ecf',  # light purple
+            '#9c9ede',  # lavender
+            '#bd9e39',  # gold
+            '#ad494a',  # salmon
+            '#8ca252',  # light green
+            '#ce6dbd',  # magenta
+            '#de9ed6',  # light pink
+            '#3182bd',  # steel blue
+            '#e6550d',  # dark orange
+            '#31a354',  # emerald
+        ]
+        # Lặp lại nếu cần nhiều hơn số màu có sẵn
+        colors = [base_colors[i % len(base_colors)] for i in range(n_dates)]
         
         # Vẽ từng ngày
         for i, date_col in enumerate(date_cols):

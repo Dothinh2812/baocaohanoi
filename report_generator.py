@@ -180,6 +180,7 @@ def load_exclusion_comparison_data(exclusion_folder="downloads/kq_sau_giam_tru")
               - 'c12_sm1': So sánh C1.2 SM1 (Hỏng lặp lại)
               - 'c12_sm4': So sánh C1.2 SM4 (Tỷ lệ báo hỏng BRCĐ)
               - 'c14': So sánh C1.4 (Độ hài lòng)
+              - 'c15': So sánh C1.5 (Thiết lập dịch vụ BRCĐ)
               - 'tong_hop': Tổng hợp tất cả chỉ tiêu
     """
     data_path = Path(exclusion_folder)
@@ -249,6 +250,19 @@ def load_exclusion_comparison_data(exclusion_folder="downloads/kq_sau_giam_tru")
     except Exception as e:
         print(f"   ⚠️ Không thể đọc So_sanh_C14.xlsx: {e}")
     
+    
+    # C1.5 - Tỷ lệ thiết lập dịch vụ BRCĐ đạt thời gian quy định
+    try:
+        c15_file = data_path / "So_sanh_C15.xlsx"
+        if c15_file.exists():
+            comparison_data['c15'] = {
+                'chi_tiet': pd.read_excel(c15_file, sheet_name='So_sanh_chi_tiet'),
+                'tong_hop': pd.read_excel(c15_file, sheet_name='Thong_ke_tong_hop')
+            }
+            print("   ✅ Đọc So_sanh_C15.xlsx thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc So_sanh_C15.xlsx: {e}")
+    
     # Tổng hợp giảm trừ
     try:
         tong_hop_file = data_path / "Tong_hop_giam_tru.xlsx"
@@ -302,6 +316,16 @@ def load_unit_level_exclusion_data(exclusion_folder="downloads/kq_sau_giam_tru")
     except Exception as e:
         print(f"   ⚠️ Không thể đọc unit stats C1.2 SM1: {e}")
     
+    
+    # C1.2 SM4 - Tỷ lệ sự cố BRCĐ
+    try:
+        c12_sm4_file = data_path / "SM4-C12-ti-le-su-co-dv-brcd.xlsx"
+        if c12_sm4_file.exists():
+            unit_data['c12_sm4'] = pd.read_excel(c12_sm4_file, sheet_name='Thong_ke_theo_don_vi')
+            print("   ✅ Đọc unit stats C1.2 SM4 thành công")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc unit stats C1.2 SM4: {e}")
+    
     # C1.4
     try:
         c14_file = data_path / "So_sanh_C14.xlsx"
@@ -323,22 +347,48 @@ def load_unit_level_exclusion_data(exclusion_folder="downloads/kq_sau_giam_tru")
     return unit_data
 
 
-def load_nvkt_exclusion_summary(exclusion_folder="downloads/kq_sau_giam_tru"):
+def load_bsc_unit_scores_from_comparison(exclusion_folder="downloads/kq_sau_giam_tru"):
     """
-    Đọc dữ liệu KPI sau giảm trừ theo NVKT từ file tổng hợp
+    Đọc điểm BSC đã tính sẵn từ file Tong_hop_Diem_BSC_Don_Vi.xlsx
+    File này chứa cả điểm Trước và Sau giảm trừ cho từng đơn vị và TTVT Sơn Tây
     
     Returns:
-        DataFrame chứa điểm KPI sau giảm trừ theo NVKT
+        dict: Dictionary với cấu trúc:
+            {
+                'units': DataFrame chứa điểm các đơn vị (sheet Tong_hop_Don_vi),
+                'individuals': DataFrame chứa điểm cá nhân (sheet Chi_tiet_Ca_nhan)
+            }
     """
-    file_path = Path(exclusion_folder) / "KPI_sau_GT" / "KPI_NVKT_SauGiamTru_TomTat.xlsx"
-    if file_path.exists():
-        try:
-            df = pd.read_excel(file_path)
-            print("   ✅ Đọc dữ liệu KPI sau giảm trừ theo NVKT thành công")
-            return df
-        except Exception as e:
-            print(f"   ⚠️ Không thể đọc KPI sau giảm trừ theo NVKT: {e}")
-    return None
+    file_path = Path(exclusion_folder) / "Tong_hop_Diem_BSC_Don_Vi.xlsx"
+    result = {'units': None, 'individuals': None}
+    
+    if not file_path.exists():
+        print(f"   ⚠️ Không tìm thấy file: {file_path}")
+        return result
+    
+    try:
+        result['units'] = pd.read_excel(file_path, sheet_name='Tong_hop_Don_vi')
+        print(f"   ✅ Đọc điểm BSC đơn vị từ Tong_hop_Diem_BSC_Don_Vi.xlsx: {len(result['units'])} dòng")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc sheet Tong_hop_Don_vi: {e}")
+    
+    try:
+        result['individuals'] = pd.read_excel(file_path, sheet_name='Chi_tiet_Ca_nhan')
+        print(f"   ✅ Đọc điểm BSC cá nhân từ Tong_hop_Diem_BSC_Don_Vi.xlsx: {len(result['individuals'])} dòng")
+    except Exception as e:
+        print(f"   ⚠️ Không thể đọc sheet Chi_tiet_Ca_nhan: {e}")
+    
+    return result
+
+
+def load_nvkt_exclusion_summary(exclusion_folder="downloads/kq_sau_giam_tru"):
+    """
+    Đọc dữ liệu KPI sau giảm trừ theo NVKT từ các file so sánh thành phần
+    (Sử dụng lại logic của load_nvkt_exclusion_detail để đảm bảo nhất quán)
+    """
+    # Vì load_nvkt_exclusion_detail đã tổng hợp từ các file gốc và tính điểm lại,
+    # nên ta có thể dùng lại kết quả của nó.
+    return load_nvkt_exclusion_detail(exclusion_folder)
 
 
 def add_kpi_summary_table_after_exclusion(doc, df_exclusion, team_name):
@@ -418,22 +468,331 @@ def add_kpi_summary_table_after_exclusion(doc, df_exclusion, team_name):
                     pass
 
 
+def chuan_hoa_ten_nvkt(name):
+    """
+    Chuẩn hóa tên NVKT về dạng Title Case để tránh trùng lặp do viết hoa/thường khác nhau
+    Ví dụ: "Bùi văn Cường" -> "Bùi Văn Cường"
+    """
+    if pd.isna(name) or name is None or str(name).strip() == '' or str(name) == 'nan':
+        return None
+    return str(name).strip().title()
+
+
+def load_nvkt_raw_detail(exclusion_folder="downloads/kq_sau_giam_tru"):
+    """
+    Đọc dữ liệu KPI chi tiết TRƯỚC giảm trừ (Thô) theo NVKT từ các file so sánh
+    Sử dụng các cột có hậu tố (Thô) thay vì (Sau GT)
+    """
+    data_path = Path(exclusion_folder)
+    if not data_path.exists():
+        return None
+
+    print("   🔄 Đang tổng hợp dữ liệu chi tiết NVKT (Thô) từ các file so sánh...")
+    
+    files = {
+        'c11_sm2': ('So_sanh_C11_SM2.xlsx', 'So_sanh_chi_tiet'),
+        'c11_sm4': ('So_sanh_C11_SM4.xlsx', 'So_sanh_chi_tiet'),
+        'c12_sm1': ('So_sanh_C12_SM1.xlsx', 'So_sanh_chi_tiet'),
+        'c12_sm4': ('SM4-C12-ti-le-su-co-dv-brcd.xlsx', 'So_sanh_chi_tiet'),
+        'c14': ('So_sanh_C14.xlsx', 'So_sanh_chi_tiet'),
+        'c15': ('So_sanh_C15.xlsx', 'So_sanh_chi_tiet')
+    }
+    
+    dfs = {}
+    for key, (filename, sheet) in files.items():
+        try:
+            f_path = data_path / filename
+            if f_path.exists():
+                df = pd.read_excel(f_path, sheet_name=sheet)
+                if 'NVKT' in df.columns:
+                    # Chuẩn hóa tên NVKT về Title Case để tránh trùng lặp
+                    df['NVKT'] = df['NVKT'].apply(chuan_hoa_ten_nvkt)
+                    df = df[df['NVKT'].notna()]  # Loại bỏ các dòng có NVKT null
+                    dfs[key] = df
+        except Exception as e:
+            print(f"   ⚠️ Lỗi đọc file {filename}: {e}")
+
+    if not dfs:
+        return None
+
+    # Collect all NVKTs (đã được chuẩn hóa)
+    all_nvkt = set()
+    nvkt_info = {}
+    for df in dfs.values():
+        if 'NVKT' in df.columns:
+            for _, row in df.iterrows():
+                nvkt = row['NVKT']
+                if nvkt:
+                    all_nvkt.add(nvkt)
+                    if nvkt not in nvkt_info:
+                        don_vi = row.get('TEN_DOI', '') or row.get('Đơn vị', '')
+                        nvkt_info[nvkt] = {'don_vi': don_vi}
+
+    if not all_nvkt:
+        return None
+
+    summary_data = []
+    for nvkt in all_nvkt:
+        info = nvkt_info.get(nvkt, {})
+        row_data = {
+            'nvkt': nvkt,
+            'don_vi': info.get('don_vi', ''),
+            'c11_tp1_tong_phieu': 0, 'c11_tp1_phieu_dat': 0, 'c11_tp1_ty_le': 0, 'diem_c11_tp1': 5,
+            'c11_tp2_tong_phieu': 0, 'c11_tp2_phieu_dat': 0, 'c11_tp2_ty_le': 0, 'diem_c11_tp2': 5,
+            'Diem_C1.1': 0,
+            'c12_tp1_phieu_hll': 0, 'c12_tp1_phieu_bh': 0, 'c12_tp1_ty_le': 0, 'diem_c12_tp1': 5,
+            'c12_tp2_tong_tb': 0, 'c12_tp2_phieu_bh': 0, 'c12_tp2_ty_le': 0, 'diem_c12_tp2': 5,
+            'Diem_C1.2': 0,
+            # C1.4 - Mặc định np.nan nếu không có dữ liệu (hiển thị N/A)
+            'c14_phieu_ks': np.nan, 'c14_phieu_khl': np.nan, 'c14_ty_le': np.nan, 'diem_c14': np.nan, 'Diem_C1.4': np.nan,
+            # C1.5 - Mặc định np.nan nếu không có dữ liệu (hiển thị N/A)
+            'c15_tong_phieu': np.nan, 'c15_phieu_dat': np.nan, 'c15_phieu_khong_dat': np.nan, 'c15_ty_le': np.nan, 'diem_c15': np.nan, 'Diem_C1.5': np.nan
+        }
+
+        # C1.1 SM2 (TP1) - Thô
+        if 'c11_sm2' in dfs:
+            r = dfs['c11_sm2'][dfs['c11_sm2']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c11_tp1_tong_phieu'] = r.get('Tổng phiếu (Thô)', 0)
+                row_data['c11_tp1_phieu_dat'] = r.get('Số phiếu đạt (Thô)', 0)
+                row_data['c11_tp1_ty_le'] = r.get('Tỷ lệ % (Thô)', 0)
+                row_data['diem_c11_tp1'] = r.get('Điểm BSC (Thô)', 5)
+        
+        # C1.1 SM4 (TP2) - Thô
+        if 'c11_sm4' in dfs:
+            r = dfs['c11_sm4'][dfs['c11_sm4']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c11_tp2_tong_phieu'] = r.get('Tổng phiếu (Thô)', 0)
+                row_data['c11_tp2_phieu_dat'] = r.get('Số phiếu đạt (Thô)', 0)
+                row_data['c11_tp2_ty_le'] = r.get('Tỷ lệ % (Thô)', 0)
+                row_data['diem_c11_tp2'] = r.get('Điểm BSC (Thô)', 5)
+        
+        row_data['Diem_C1.1'] = 0.3 * row_data['diem_c11_tp1'] + 0.7 * row_data['diem_c11_tp2']
+
+        # C1.2 SM1 (TP1) - Thô
+        if 'c12_sm1' in dfs:
+            r = dfs['c12_sm1'][dfs['c12_sm1']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c12_tp1_phieu_hll'] = r.get('Số phiếu HLL (Thô)', 0)
+                row_data['c12_tp1_phieu_bh'] = r.get('Số phiếu báo hỏng (Thô)', 0)
+                row_data['c12_tp1_ty_le'] = r.get('Tỷ lệ HLL % (Thô)', 0)
+                row_data['diem_c12_tp1'] = r.get('Điểm BSC (Thô)', 5)
+        
+        # C1.2 SM4 (TP2) - Thô
+        if 'c12_sm4' in dfs:
+            r = dfs['c12_sm4'][dfs['c12_sm4']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c12_tp2_tong_tb'] = r.get('Tổng TB (Thô)', 0)
+                row_data['c12_tp2_phieu_bh'] = r.get('Số phiếu báo hỏng (Thô)', 0)
+                row_data['c12_tp2_ty_le'] = r.get('Tỷ lệ báo hỏng (%) (Thô)', 0)
+                row_data['diem_c12_tp2'] = r.get('Điểm BSC (Thô)', 5)
+
+        row_data['Diem_C1.2'] = 0.5 * row_data['diem_c12_tp1'] + 0.5 * row_data['diem_c12_tp2']
+
+        # C1.4 - Thô
+        if 'c14' in dfs:
+            r = dfs['c14'][dfs['c14']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c14_phieu_ks'] = r.get('Tổng phiếu KS (Thô)', 0)
+                row_data['c14_phieu_khl'] = r.get('Số phiếu KHL (Thô)', 0)
+                row_data['c14_ty_le'] = r.get('Tỷ lệ HL (%) (Thô)', 0)
+                row_data['diem_c14'] = r.get('Điểm BSC (Thô)', 5)
+                row_data['Diem_C1.4'] = row_data['diem_c14']
+
+        # C1.5 - Thô
+        if 'c15' in dfs:
+            r = dfs['c15'][dfs['c15']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c15_tong_phieu'] = r.get('Tổng Hoàn công (Thô)', 0)
+                row_data['c15_phieu_dat'] = r.get('Phiếu đạt (Thô)', 0)
+                row_data['c15_phieu_khong_dat'] = r.get('Phiếu không đạt (Thô)', 0)
+                row_data['c15_ty_le'] = r.get('Tỷ lệ đạt (%) (Thô)', 0)
+                row_data['diem_c15'] = r.get('Điểm BSC (Thô)', 5)
+                row_data['Diem_C1.5'] = row_data['diem_c15']
+
+        summary_data.append(row_data)
+
+    df_result = pd.DataFrame(summary_data)
+    print(f"   ✅ Tổng hợp xong dữ liệu chi tiết NVKT Thô ({len(df_result)} nhân viên)")
+    return df_result
+
+
+
 def load_nvkt_exclusion_detail(exclusion_folder="downloads/kq_sau_giam_tru"):
     """
-    Đọc dữ liệu KPI chi tiết sau giảm trừ theo NVKT
-    
-    Returns:
-        DataFrame chứa điểm KPI chi tiết sau giảm trừ theo NVKT
+    Đọc dữ liệu KPI chi tiết sau giảm trừ theo NVKT từ các file so sánh thành phần
     """
-    file_path = Path(exclusion_folder) / "KPI_sau_GT" / "KPI_NVKT_SauGiamTru_ChiTiet.xlsx"
-    if file_path.exists():
+    data_path = Path(exclusion_folder)
+    if not data_path.exists():
+        return None
+
+    print("   🔄 Đang tổng hợp dữ liệu chi tiết NVKT từ các file so sánh...")
+    
+    # Danh sách các file cần đọc
+    files = {
+        'c11_sm2': ('So_sanh_C11_SM2.xlsx', 'So_sanh_chi_tiet'),
+        'c11_sm4': ('So_sanh_C11_SM4.xlsx', 'So_sanh_chi_tiet'),
+        'c12_sm1': ('So_sanh_C12_SM1.xlsx', 'So_sanh_chi_tiet'),
+        'c12_sm4': ('SM4-C12-ti-le-su-co-dv-brcd.xlsx', 'So_sanh_chi_tiet'),
+        'c14': ('So_sanh_C14.xlsx', 'So_sanh_chi_tiet'),
+        'c15': ('So_sanh_C15.xlsx', 'So_sanh_chi_tiet')
+    }
+    
+    dfs = {}
+    
+    for key, (filename, sheet) in files.items():
         try:
-            df = pd.read_excel(file_path)
-            print("   ✅ Đọc dữ liệu KPI chi tiết sau giảm trừ thành công")
-            return df
+            # Đọc file, bỏ qua dòng tiêu đề phụ nếu có (thường header=0 là đủ nếu cột nằm ở dòng 1)
+            f_path = data_path / filename
+            if f_path.exists():
+                df = pd.read_excel(f_path, sheet_name=sheet)
+                # Chuẩn hóa tên cột NVKT và TEN_DOI
+                if 'Mã nhân viên' in df.columns:
+                    df.rename(columns={'Mã nhân viên': 'NVKT'}, inplace=True)
+                if 'Tên nhân viên' in df.columns:
+                    df.rename(columns={'Tên nhân viên': 'TEN_NV'}, inplace=True)
+                
+                # Đảm bảo có cột NVKT để merge
+                if 'NVKT' in df.columns:
+                    # Chuẩn hóa tên NVKT về Title Case để tránh trùng lặp
+                    df['NVKT'] = df['NVKT'].apply(chuan_hoa_ten_nvkt)
+                    df = df[df['NVKT'].notna()]  # Loại bỏ các dòng có NVKT null
+                    dfs[key] = df
+                else:
+                    print(f"   ⚠️ File {filename}: Không tìm thấy cột NVKT")
+            else:
+                print(f"   ⚠️ Không tìm thấy file {filename}")
         except Exception as e:
-            print(f"   ⚠️ Không thể đọc KPI chi tiết sau giảm trừ: {e}")
-    return None
+             print(f"   ⚠️ Lỗi đọc file {filename}: {e}")
+
+    if not dfs:
+        return None
+
+    # Lấy danh sách tất cả NVKT từ các file (đã được chuẩn hóa Title Case)
+    all_nvkt = set()
+    nvkt_info = {} # Lưu thông tin NVKT (Tên, Tổ)
+
+    for df in dfs.values():
+        if 'NVKT' in df.columns:
+            for _, row in df.iterrows():
+                nvkt = row['NVKT']
+                if nvkt:
+                    all_nvkt.add(nvkt)
+                    # Lưu thông tin bổ sung nếu chưa có
+                    if nvkt not in nvkt_info:
+                        don_vi = row.get('TEN_DOI', '') or row.get('Đơn vị', '')
+                        # Logic: Giữ nguyên tên đơn vị từ file, sau này lọc theo tên đó
+                        nvkt_info[nvkt] = {
+                            'don_vi': don_vi,
+                            'ten_nv': row.get('TEN_NV', '') or row.get('Tên nhân viên', '')
+                        }
+
+    if not all_nvkt:
+        return None
+
+    # Tạo DataFrame tổng hợp
+    summary_data = []
+
+    for nvkt in all_nvkt:
+        info = nvkt_info.get(nvkt, {})
+        row_data = {
+            'nvkt': nvkt,
+            'don_vi': info.get('don_vi', ''),
+            'ten_nv': info.get('ten_nv', ''),
+            # C1.1
+            'c11_tp1_tong_phieu': 0, 'c11_tp1_phieu_dat': 0, 'c11_tp1_ty_le': 0, 'diem_c11_tp1': 5,
+            'c11_tp2_tong_phieu': 0, 'c11_tp2_phieu_dat': 0, 'c11_tp2_ty_le': 0, 'diem_c11_tp2': 5,
+            'Diem_C1.1': 0,
+            # C1.2 - column names fixed to match table renderer
+            'c12_tp1_phieu_hll': 0, 'c12_tp1_phieu_bh': 0, 'c12_tp1_ty_le': 0, 'diem_c12_tp1': 5,
+            'c12_tp2_tong_tb': 0, 'c12_tp2_phieu_bh': 0, 'c12_tp2_ty_le': 0, 'diem_c12_tp2': 5,
+            'Diem_C1.2': 0,
+            # C1.4 - Mặc định np.nan nếu không có dữ liệu (hiển thị N/A)
+            'c14_phieu_ks': np.nan, 'c14_phieu_khl': np.nan, 'c14_ty_le': np.nan, 'diem_c14': np.nan, 'Diem_C1.4': np.nan,
+            # C1.5 - Mặc định np.nan nếu không có dữ liệu (hiển thị N/A)
+            'c15_tong_phieu': np.nan, 'c15_phieu_dat': np.nan, 'c15_phieu_khong_dat': np.nan, 'c15_ty_le': np.nan, 'diem_c15': np.nan, 'Diem_C1.5': np.nan
+        }
+        
+        # Fill C1.1 SM2 (TP1)
+        if 'c11_sm2' in dfs:
+            r = dfs['c11_sm2'][dfs['c11_sm2']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c11_tp1_tong_phieu'] = r.get('Tổng phiếu (Sau GT)', 0)
+                row_data['c11_tp1_phieu_dat'] = r.get('Số phiếu đạt (Sau GT)', 0)
+                row_data['c11_tp1_ty_le'] = r.get('Tỷ lệ % (Sau GT)', 0)
+                row_data['diem_c11_tp1'] = r.get('Điểm BSC (Sau GT)', 5)
+        
+        # Fill C1.1 SM4 (TP2)
+        if 'c11_sm4' in dfs:
+            r = dfs['c11_sm4'][dfs['c11_sm4']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c11_tp2_tong_phieu'] = r.get('Tổng phiếu (Sau GT)', 0)
+                row_data['c11_tp2_phieu_dat'] = r.get('Số phiếu đạt (Sau GT)', 0)
+                row_data['c11_tp2_ty_le'] = r.get('Tỷ lệ % (Sau GT)', 0)
+                row_data['diem_c11_tp2'] = r.get('Điểm BSC (Sau GT)', 5)
+        
+        # Calculate C1.1 Score
+        row_data['Diem_C1.1'] = 0.3 * row_data['diem_c11_tp1'] + 0.7 * row_data['diem_c11_tp2']
+
+        # Fill C1.2 SM1 (TP1) - Hỏng lặp lại
+        if 'c12_sm1' in dfs:
+            r = dfs['c12_sm1'][dfs['c12_sm1']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c12_tp1_phieu_hll'] = r.get('Số phiếu HLL (Sau GT)', 0)
+                row_data['c12_tp1_phieu_bh'] = r.get('Số phiếu báo hỏng (Sau GT)', 0)
+                row_data['c12_tp1_ty_le'] = r.get('Tỷ lệ HLL % (Sau GT)', 0)
+                row_data['diem_c12_tp1'] = r.get('Điểm BSC (Sau GT)', 5)
+        
+        # Fill C1.2 SM4 (TP2) - Tỷ lệ sự cố
+        if 'c12_sm4' in dfs:
+            r = dfs['c12_sm4'][dfs['c12_sm4']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c12_tp2_tong_tb'] = r.get('Tổng TB (Thô)', 0)
+                row_data['c12_tp2_phieu_bh'] = r.get('Số phiếu báo hỏng (Sau GT)', 0)
+                row_data['c12_tp2_ty_le'] = r.get('Tỷ lệ báo hỏng (%) (Sau GT)', 0)
+                row_data['diem_c12_tp2'] = r.get('Điểm BSC (Sau GT)', 5)
+
+        # Calculate C1.2 Score
+        row_data['Diem_C1.2'] = 0.5 * row_data['diem_c12_tp1'] + 0.5 * row_data['diem_c12_tp2']
+
+        # Fill C1.4 - Độ hài lòng khách hàng
+        if 'c14' in dfs:
+            r = dfs['c14'][dfs['c14']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c14_phieu_ks'] = r.get('Tổng phiếu KS (Sau GT)', 0)
+                row_data['c14_phieu_khl'] = r.get('Số phiếu KHL (Sau GT)', 0)
+                row_data['c14_ty_le'] = r.get('Tỷ lệ HL (%) (Sau GT)', 0)
+                row_data['diem_c14'] = r.get('Điểm BSC (Sau GT)', 5)
+                row_data['Diem_C1.4'] = row_data['diem_c14']
+
+        # Fill C1.5 - Thiết lập dịch vụ BRCĐ
+        if 'c15' in dfs:
+            r = dfs['c15'][dfs['c15']['NVKT'] == nvkt]
+            if not r.empty:
+                r = r.iloc[0]
+                row_data['c15_tong_phieu'] = r.get('Tổng Hoàn công (Sau GT)', 0)
+                row_data['c15_phieu_dat'] = r.get('Phiếu đạt (Sau GT)', 0)
+                row_data['c15_phieu_khong_dat'] = r.get('Phiếu không đạt (Sau GT)', 0)
+                row_data['c15_ty_le'] = r.get('Tỷ lệ đạt (%) (Sau GT)', 0)
+                row_data['diem_c15'] = r.get('Điểm BSC (Sau GT)', 5)
+                row_data['Diem_C1.5'] = row_data['diem_c15']
+
+        summary_data.append(row_data)
+
+    df_result = pd.DataFrame(summary_data)
+    print(f"   ✅ Tổng hợp xong dữ liệu chi tiết NVKT ({len(df_result)} nhân viên)")
+    return df_result
 
 
 def add_c11_detail_table_after_exclusion(doc, df_exclusion_detail, team_name):
@@ -1408,7 +1767,7 @@ def add_c11_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
             tyle_sm2 = 0
         else:
             sm2_row = sm2_row.iloc[0]
-            sm1 = sm2_row.get('Tổng phiếu (Thô)', 0)
+            sm1 = sm2_row.get('Tổng phiếu (Sau GT)', 0)  # SAU GIẢM TRỪ
             sm2 = sm2_row.get('Phiếu đạt (Sau GT)', 0)
             tyle_sm2 = sm2_row.get('Tỷ lệ % (Sau GT)', 0)
             if pd.notna(tyle_sm2) and tyle_sm2 > 1:
@@ -1422,7 +1781,7 @@ def add_c11_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
             tyle_sm4 = 0
         else:
             sm4_row = sm4_row.iloc[0]
-            sm3 = sm4_row.get('Tổng phiếu (Thô)', 0)
+            sm3 = sm4_row.get('Tổng phiếu (Sau GT)', 0)  # SAU GIẢM TRỪ
             sm4 = sm4_row.get('Phiếu đạt (Sau GT)', 0)
             tyle_sm4 = sm4_row.get('Tỷ lệ % (Sau GT)', 0)
             if pd.notna(tyle_sm4) and tyle_sm4 > 1:
@@ -1463,7 +1822,7 @@ def add_c11_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
         tyle_sm2_tong = 0
     else:
         sm2_tong = sm2_tong.iloc[0]
-        sm1_tong = sm2_tong.get('Tổng phiếu (Thô)', 0)
+        sm1_tong = sm2_tong.get('Tổng phiếu (Sau GT)', 0)  # SAU GIẢM TRỪ
         sm2_tong_dat = sm2_tong.get('Phiếu đạt (Sau GT)', 0)
         tyle_sm2_tong = sm2_tong.get('Tỷ lệ % (Sau GT)', 0)
         if pd.notna(tyle_sm2_tong) and tyle_sm2_tong > 1:
@@ -1477,7 +1836,7 @@ def add_c11_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
         tyle_sm4_tong = 0
     else:
         sm4_tong = sm4_tong.iloc[0]
-        sm3_tong = sm4_tong.get('Tổng phiếu (Thô)', 0)
+        sm3_tong = sm4_tong.get('Tổng phiếu (Sau GT)', 0)  # SAU GIẢM TRỪ
         sm4_tong_dat = sm4_tong.get('Phiếu đạt (Sau GT)', 0)
         tyle_sm4_tong = sm4_tong.get('Tỷ lệ % (Sau GT)', 0)
         if pd.notna(tyle_sm4_tong) and tyle_sm4_tong > 1:
@@ -1513,16 +1872,9 @@ def add_c11_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
 def add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
     """
     Thêm bảng C1.2 tổng hợp theo đơn vị (cấp tổ) sau giảm trừ
-
-    Args:
-        doc: Document Word
-        unit_data: Dictionary từ load_unit_level_exclusion_data()
-        c1x_reports: Dictionary chứa báo cáo C1.x gốc (để lấy số liệu SM3, SM4 cho TP2)
+    Dữ liệu từ: So_sanh_C12_SM1.xlsx (TP1) và SM4-C12-ti-le-su-co-dv-brcd.xlsx (TP2)
     """
-    if not unit_data or 'c12_sm1' not in unit_data:
-        return
-
-    if not c1x_reports or 'c12' not in c1x_reports:
+    if not unit_data or 'c12_sm1' not in unit_data or 'c12_sm4' not in unit_data:
         return
 
     doc.add_heading('C1.2 - Tỷ lệ báo hỏng lặp lại & Tỷ lệ sự cố dịch vụ (sau giảm trừ)', level=3)
@@ -1530,18 +1882,18 @@ def add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
     # Chú thích
     p = doc.add_paragraph()
     p.add_run('📋 GHI CHÚ: ').bold = True
-    p.add_run('HLL (SM1) là số liệu sau giảm trừ. SM2, SM3, SM4 và Tỷ lệ sự cố là số liệu thô (không áp dụng giảm trừ).')
+    p.add_run('Tất cả số liệu đã được giảm trừ, lấy từ các file so sánh.')
     doc.add_paragraph()
 
-    df_sm1 = unit_data['c12_sm1']
-    df_c12_orig = c1x_reports['c12']
+    df_sm1 = unit_data['c12_sm1']  # So_sanh_C12_SM1.xlsx
+    df_sm4 = unit_data['c12_sm4']  # SM4-C12-ti-le-su-co-dv-brcd.xlsx
 
     team_order = ['Tổ Kỹ thuật Địa bàn Phúc Thọ', 'Tổ Kỹ thuật Địa bàn Quảng Oai',
-                  'Tổ Kỹ thuật Địa bàn Suối hai', 'Tổ Kỹ thuật Địa bàn Sơn Tây']
+                  'Tổ Kỹ thuật Địa bàn Suối hai', 'Tổ Kỹ thuật Địa bàn Sơn Tây', 'TTVT Sơn Tây']
 
     # Tạo bảng
     headers = ['Đơn vị', 'HLL (SM1)', 'BH (SM2)', 'TL HLL (%)',
-               'BH SC (SM3)', 'TB (SM4)', 'TL SC (‰)', 'Điểm BSC']
+               'BH SC (SM3)', 'TB (SM4)', 'TL SC (%)', 'Điểm BSC']
     table = doc.add_table(rows=1, cols=len(headers))
     table.style = 'Table Grid'
     set_table_border(table)
@@ -1564,11 +1916,11 @@ def add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
         elif tyle < 0.04: return 5 - 4 * (tyle - 0.025) / 0.015
         else: return 1
 
-    def tinh_diem_C12_TP2(tyle_permil):
-        """Tính điểm TP2 (50%) - Tỷ lệ sự cố (‰)"""
-        if pd.isna(tyle_permil): return 5
-        if tyle_permil <= 1.5: return 5
-        elif tyle_permil < 2.5: return 5 - 4 * (tyle_permil - 1.5) / 1.0
+    def tinh_diem_C12_TP2(kq):
+        """Tính điểm TP2 (50%) - Tỷ lệ sự cố (%) - kq là thập phân"""
+        if pd.isna(kq): return 5
+        if kq <= 0.02: return 5
+        elif kq < 0.03: return 5 - 4 * (kq - 0.02) / 0.01
         else: return 1
 
     # Xử lý từng đơn vị
@@ -1576,31 +1928,34 @@ def add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
         cells = table.add_row().cells
         short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
 
-        # Lấy dữ liệu SM1 (hỏng lặp lại sau giảm trừ)
+        # Lấy dữ liệu SM1, SM2 (hỏng lặp lại sau giảm trừ) từ So_sanh_C12_SM1.xlsx
         sm1_row = df_sm1[df_sm1['Đơn vị'] == don_vi]
         if sm1_row.empty:
             sm1 = 0
+            sm2 = 0  # BH (SM2) = Phiếu báo hỏng (Sau GT)
             tyle_hll = 0
         else:
             sm1_row = sm1_row.iloc[0]
             sm1 = sm1_row.get('Phiếu HLL (Sau GT)', 0)
+            sm2 = sm1_row.get('Phiếu báo hỏng (Sau GT)', 0)  # SAU GIẢM TRỪ
             tyle_hll = sm1_row.get('Tỷ lệ HLL % (Sau GT)', 0)
             if pd.notna(tyle_hll) and tyle_hll > 1:
                 tyle_hll = tyle_hll / 100
 
-        # Lấy dữ liệu gốc (SM2, SM3, SM4) từ c1x_reports
-        orig_row = df_c12_orig[df_c12_orig['Đơn vị'] == don_vi]
-        if orig_row.empty:
-            sm2 = 0
+        # Lấy dữ liệu TP2 (SM3, SM4) từ SM4-C12-ti-le-su-co-dv-brcd.xlsx (cột Sau GT)
+        sm4_row = df_sm4[df_sm4['Đơn vị'] == don_vi]
+        if sm4_row.empty:
             sm3 = 0
             sm4 = 0
             tyle_sc = 0
         else:
-            orig_row = orig_row.iloc[0]
-            sm2 = orig_row.get('SM2', 0)
-            sm3 = orig_row.get('SM3', 0)
-            sm4 = orig_row.get('SM4', 0)
-            tyle_sc = orig_row.get('Tỷ lệ sự cố dịch vụ BRCĐ', 0)
+            sm4_row = sm4_row.iloc[0]
+            sm3 = sm4_row.get('Phiếu báo hỏng (Sau GT)', 0)       # BH SC
+            sm4 = sm4_row.get('Tổng TB (Sau GT)', 0)              # TB
+            tyle_sc = sm4_row.get('Tỷ lệ báo hỏng % (Sau GT)', 0) # TL SC (%)
+            # Chuyển đổi sang thập phân nếu cần
+            if pd.notna(tyle_sc) and tyle_sc > 1:
+                tyle_sc = tyle_sc / 100
 
         # Tính điểm BSC
         diem_tp1 = tinh_diem_C12_TP1(tyle_hll)
@@ -1614,7 +1969,7 @@ def add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
             format_number(tyle_hll * 100 if pd.notna(tyle_hll) else 0),
             str(int(sm3)) if pd.notna(sm3) else '0',
             str(int(sm4)) if pd.notna(sm4) else '0',
-            format_number(tyle_sc),
+            format_number(tyle_sc * 100 if pd.notna(tyle_sc) else 0),
             format_number(diem_bsc)
         ]
 
@@ -1623,59 +1978,12 @@ def add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports=None):
             cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             run = cells[i].paragraphs[0].runs[0]
             run.font.size = Pt(9)
-            if idx % 2 == 0:
+            # Tô đậm và nền xanh cho dòng TTVT
+            if don_vi == 'TTVT Sơn Tây':
+                run.font.bold = True
+                set_cell_shading(cells[i], 'BBDEFB')
+            elif idx % 2 == 0:
                 set_cell_shading(cells[i], 'E3F2FD')
-
-    # Thêm dòng tổng (TTVT Sơn Tây)
-    cells = table.add_row().cells
-
-    sm1_tong_row = df_sm1[df_sm1['Đơn vị'] == 'TTVT Sơn Tây']
-    if sm1_tong_row.empty:
-        sm1_tong = 0
-        tyle_hll_tong = 0
-    else:
-        sm1_tong_row = sm1_tong_row.iloc[0]
-        sm1_tong = sm1_tong_row.get('Phiếu HLL (Sau GT)', 0)
-        tyle_hll_tong = sm1_tong_row.get('Tỷ lệ HLL % (Sau GT)', 0)
-        if pd.notna(tyle_hll_tong) and tyle_hll_tong > 1:
-            tyle_hll_tong = tyle_hll_tong / 100
-
-    # Lấy dữ liệu tổng từ c1x_reports
-    tong_row = df_c12_orig[df_c12_orig['Đơn vị'] == 'Tổng']
-    if tong_row.empty:
-        sm2_tong = 0
-        sm3_tong = 0
-        sm4_tong = 0
-        tyle_sc_tong = 0
-    else:
-        tong_row = tong_row.iloc[0]
-        sm2_tong = tong_row.get('SM2', 0)
-        sm3_tong = tong_row.get('SM3', 0)
-        sm4_tong = tong_row.get('SM4', 0)
-        tyle_sc_tong = tong_row.get('Tỷ lệ sự cố dịch vụ BRCĐ', 0)
-
-    diem_tp1_tong = tinh_diem_C12_TP1(tyle_hll_tong)
-    diem_tp2_tong = tinh_diem_C12_TP2(tyle_sc_tong)
-    diem_bsc_tong = 0.50 * diem_tp1_tong + 0.50 * diem_tp2_tong
-
-    data_tong = [
-        'TTVT Sơn Tây',
-        str(int(sm1_tong)) if pd.notna(sm1_tong) else '0',
-        str(int(sm2_tong)) if pd.notna(sm2_tong) else '0',
-        format_number(tyle_hll_tong * 100 if pd.notna(tyle_hll_tong) else 0),
-        str(int(sm3_tong)) if pd.notna(sm3_tong) else '0',
-        str(int(sm4_tong)) if pd.notna(sm4_tong) else '0',
-        format_number(tyle_sc_tong),
-        format_number(diem_bsc_tong)
-    ]
-
-    for i, value in enumerate(data_tong):
-        cells[i].text = value
-        cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = cells[i].paragraphs[0].runs[0]
-        run.font.size = Pt(9)
-        run.font.bold = True
-        set_cell_shading(cells[i], 'BBDEFB')
 
     doc.add_paragraph()
 
@@ -2229,7 +2537,7 @@ def create_exclusion_bar_chart(comparison_data, output_path=None):
         return buf
 
 
-def add_c1x_overview_table(doc, c1x_reports, comparison_data=None, unit_data=None):
+def add_c1x_overview_table(doc, c1x_reports, comparison_data=None, unit_data=None, exclusion_folder="downloads/kq_sau_giam_tru"):
     """
     Thêm bảng tổng quan chi tiết từ các báo cáo C1.x vào document
     Nếu có comparison_data, sẽ thêm bảng số liệu sau giảm trừ ngay sau bảng thô
@@ -2239,127 +2547,239 @@ def add_c1x_overview_table(doc, c1x_reports, comparison_data=None, unit_data=Non
         c1x_reports: Dictionary chứa các DataFrame từ load_c1x_reports()
         comparison_data: Dictionary chứa dữ liệu so sánh từ load_exclusion_comparison_data()
         unit_data: Dictionary chứa dữ liệu thống kê theo đơn vị từ load_unit_level_exclusion_data()
+        exclusion_folder: Thư mục chứa dữ liệu giảm trừ
     """
     doc.add_heading('1.3. Số liệu chi tiết các chỉ tiêu BSC theo Đội/TTVT', level=2)
 
     # =========================================================================
     # Bảng C1.1 - Tỷ lệ sửa chữa
     # =========================================================================
-    if 'c11' in c1x_reports:
-        doc.add_heading('C1.1 - Tỷ lệ sửa chữa phiếu chất lượng & báo hỏng', level=3)
-        df = c1x_reports['c11']
+    # DÙNG DỮ LIỆU TỪ So_sanh_C11_SM2.xlsx (TP1) và So_sanh_C11_SM4.xlsx (TP2)
+    doc.add_heading('C1.1 - Tỷ lệ sửa chữa phiếu chất lượng & báo hỏng', level=3)
+    
+    headers = ['Đơn vị', 'SC Chủ động (SM1)', 'Đạt (SM2)', 'TL SC CĐ (%)', 
+               'Báo hỏng (SM3)', 'Đạt ĐH (SM4)', 'TL SCBH (%)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    # Header
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '2E7D32')
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+    
+    # Đọc dữ liệu từ file so sánh
+    teams_order = ['Phúc Thọ', 'Quảng Oai', 'Suối Hai', 'Sơn Tây', 'TTVT Sơn Tây']
+    team_name_map = {
+        'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
+        'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
+        'TTVT Sơn Tây': 'TTVT Sơn Tây',
+    }
+    
+    def get_short_name_c11(don_vi):
+        if not don_vi: return None
+        for orig, short in team_name_map.items():
+            if orig in str(don_vi) or short == don_vi:
+                return short
+        return None
+    
+    # Lấy dữ liệu TP1 (SC Chủ động) từ So_sanh_C11_SM2.xlsx
+    tp1_data = {}  # short_name -> {sm1, sm2, tyle, diem}
+    if unit_data and 'c11_sm2' in unit_data:
+        for _, row in unit_data['c11_sm2'].iterrows():
+            short_name = get_short_name_c11(row.get('Đơn vị', ''))
+            if short_name:
+                tp1_data[short_name] = {
+                    'sm1': row.get('Tổng phiếu (Thô)', 0),
+                    'sm2': row.get('Phiếu đạt (Thô)', 0),
+                    'tyle': row.get('Tỷ lệ % (Thô)', 0),
+                }
+    
+    # Lấy dữ liệu TP2 (Báo hỏng) từ So_sanh_C11_SM4.xlsx
+    tp2_data = {}  # short_name -> {sm3, sm4, tyle, diem}
+    if unit_data and 'c11_sm4' in unit_data:
+        for _, row in unit_data['c11_sm4'].iterrows():
+            short_name = get_short_name_c11(row.get('Đơn vị', ''))
+            if short_name:
+                tp2_data[short_name] = {
+                    'sm3': row.get('Tổng phiếu (Thô)', 0),   # Báo hỏng = Tổng phiếu
+                    'sm4': row.get('Phiếu đạt (Thô)', 0),     # Đạt ĐH = Phiếu đạt
+                    'tyle': row.get('Tỷ lệ % (Thô)', 0),
+                    'diem': row.get('Điểm BSC (Thô)', 0),
+                }
+    
+    # Lấy điểm BSC tổng hợp từ Tong_hop_Diem_BSC_Don_Vi.xlsx
+    bsc_scores_c11 = {}
+    bsc_data_c11 = load_bsc_unit_scores_from_comparison(exclusion_folder)
+    if bsc_data_c11 and bsc_data_c11.get('units') is not None:
+        for _, row in bsc_data_c11['units'].iterrows():
+            short_name = get_short_name_c11(row.get('don_vi', ''))
+            if short_name:
+                bsc_scores_c11[short_name] = row.get('Diem_C1.1 (Trước)', 0)
+    
+    # Tạo dữ liệu bảng
+    for idx, team in enumerate(teams_order, 1):
+        cells = table.add_row().cells
+        tp1 = tp1_data.get(team, {})
+        tp2 = tp2_data.get(team, {})
+        bsc_score = bsc_scores_c11.get(team, 0)
         
-        headers = ['Đơn vị', 'SC Chủ động (SM1)', 'Đạt (SM2)', 'TL SC CĐ (%)', 
-                   'Báo hỏng (SM3)', 'Đạt ĐH (SM4)', 'TL SCBH (%)', 'Điểm BSC']
-        table = doc.add_table(rows=1, cols=len(headers))
-        table.style = 'Table Grid'
-        set_table_border(table)
-        
-        # Header
-        for i, cell in enumerate(table.rows[0].cells):
-            cell.text = headers[i]
-            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            set_cell_shading(cell, '2E7D32')
-            run = cell.paragraphs[0].runs[0]
-            run.font.bold = True
-            run.font.color.rgb = RGBColor(255, 255, 255)
+        data = [
+            team,
+            str(int(tp1.get('sm1', 0))),
+            str(int(tp1.get('sm2', 0))),
+            format_number(tp1.get('tyle', 0)),
+            str(int(tp2.get('sm3', 0))),
+            str(int(tp2.get('sm4', 0))),
+            format_number(tp2.get('tyle', 0)),
+            format_number(bsc_score)
+        ]
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
             run.font.size = Pt(9)
-        
-        # Dữ liệu
-        for idx, (_, row) in enumerate(df.iterrows(), 1):
-            cells = table.add_row().cells
-            short_name = TEAM_SHORT_NAMES.get(row['Đơn vị'], row['Đơn vị'])
-            if short_name == 'Tổng':
-                short_name = 'TTVT Sơn Tây'
-            data = [
-                short_name,
-                str(int(row.get('SM1', 0))),
-                str(int(row.get('SM2', 0))),
-                format_number(row.get('Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu', 0)),
-                str(int(row.get('SM3', 0))),
-                str(int(row.get('SM4', 0))),
-                format_number(row.get('Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn', 0)),
-                format_number(row.get('Chỉ tiêu BSC', 0))
-            ]
-            for i, value in enumerate(data):
-                cells[i].text = value
-                cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = cells[i].paragraphs[0].runs[0]
-                run.font.size = Pt(9)
-                if idx % 2 == 0:
-                    set_cell_shading(cells[i], 'E8F5E9')
-                # Tô đậm dòng tổng
-                if short_name == 'TTVT Sơn Tây':
-                    run.font.bold = True
-                    set_cell_shading(cells[i], 'C8E6C9')
-        
-        doc.add_paragraph()
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'E8F5E9')
+            # Tô đậm dòng tổng
+            if team == 'TTVT Sơn Tây':
+                run.font.bold = True
+                set_cell_shading(cells[i], 'C8E6C9')
+    
+    doc.add_paragraph()
 
     # Thêm bảng C1.1 tổng hợp theo đơn vị (tổ) sau giảm trừ nếu có
     if unit_data:
         add_c11_unit_level_exclusion_table(doc, unit_data, c1x_reports)
 
     # Thêm bảng C1.1 chi tiết theo NVKT sau giảm trừ nếu có
-    if comparison_data:
-        add_c11_exclusion_table(doc, comparison_data)
-    
+    # COMMENT: Bỏ bảng chi tiết từng NVKT này vì đã có trong PHẦN 2
+    # if comparison_data:
+    #     add_c11_exclusion_table(doc, comparison_data)
     # =========================================================================
     # Bảng C1.2 - Tỷ lệ báo hỏng lặp lại & sự cố
     # =========================================================================
-    if 'c12' in c1x_reports:
-        doc.add_heading('C1.2 - Tỷ lệ báo hỏng lặp lại & Tỷ lệ sự cố dịch vụ', level=3)
-        df = c1x_reports['c12']
+    # DÙNG DỮ LIỆU TỪ So_sanh_C12_SM1.xlsx (TP1) và SM4-C12-ti-le-su-co-dv-brcd.xlsx (TP2)
+    doc.add_heading('C1.2 - Tỷ lệ báo hỏng lặp lại & Tỷ lệ sự cố dịch vụ', level=3)
+    
+    headers = ['Đơn vị', 'HLL (SM1)', 'BH (SM2)', 'TL HLL (%)', 
+               'BH SC (SM3)', 'TB (SM4)', 'TL SC (%)', 'Điểm BSC']
+    table = doc.add_table(rows=1, cols=len(headers))
+    table.style = 'Table Grid'
+    set_table_border(table)
+    
+    for i, cell in enumerate(table.rows[0].cells):
+        cell.text = headers[i]
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '1565C0')
+        run = cell.paragraphs[0].runs[0]
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(255, 255, 255)
+        run.font.size = Pt(9)
+    
+    # Đọc dữ liệu từ file so sánh
+    teams_order_c12 = ['Phúc Thọ', 'Quảng Oai', 'Suối Hai', 'Sơn Tây', 'TTVT Sơn Tây']
+    team_name_map_c12 = {
+        'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
+        'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
+        'TTVT Sơn Tây': 'TTVT Sơn Tây',
+    }
+    
+    def get_short_name_c12(don_vi):
+        if not don_vi: return None
+        for orig, short in team_name_map_c12.items():
+            if orig in str(don_vi) or short == don_vi:
+                return short
+        return None
+    
+    # Lấy dữ liệu TP1 (HLL) từ So_sanh_C12_SM1.xlsx
+    tp1_c12_data = {}  # short_name -> {sm1, sm2, tyle}
+    if unit_data and 'c12_sm1' in unit_data:
+        for _, row in unit_data['c12_sm1'].iterrows():
+            short_name = get_short_name_c12(row.get('Đơn vị', ''))
+            if short_name:
+                tp1_c12_data[short_name] = {
+                    'sm1': row.get('Phiếu HLL (Thô)', 0),           # HLL (SM1)
+                    'sm2': row.get('Phiếu báo hỏng (Thô)', 0),      # BH (SM2)
+                    'tyle': row.get('Tỷ lệ HLL % (Thô)', 0),        # TL HLL (%)
+                }
+    
+    # Lấy dữ liệu TP2 (Sự cố) từ SM4-C12-ti-le-su-co-dv-brcd.xlsx
+    tp2_c12_data = {}  # short_name -> {sm3, sm4, tyle}
+    if unit_data and 'c12_sm4' in unit_data:
+        for _, row in unit_data['c12_sm4'].iterrows():
+            short_name = get_short_name_c12(row.get('Đơn vị', ''))
+            if short_name:
+                tp2_c12_data[short_name] = {
+                    'sm3': row.get('Phiếu báo hỏng (Thô)', 0),        # BH SC (SM3)
+                    'sm4': row.get('Tổng TB (Thô)', 0),               # TB (SM4)
+                    'tyle': row.get('Tỷ lệ báo hỏng % (Thô)', 0),     # TL SC (%)
+                }
+    
+    # Lấy điểm BSC tổng hợp từ Tong_hop_Diem_BSC_Don_Vi.xlsx
+    bsc_scores_c12 = {}
+    bsc_data_c12 = load_bsc_unit_scores_from_comparison(exclusion_folder)
+    if bsc_data_c12 and bsc_data_c12.get('units') is not None:
+        for _, row in bsc_data_c12['units'].iterrows():
+            short_name = get_short_name_c12(row.get('don_vi', ''))
+            if short_name:
+                bsc_scores_c12[short_name] = row.get('Diem_C1.2 (Trước)', 0)
+    
+    # Tạo dữ liệu bảng
+    for idx, team in enumerate(teams_order_c12, 1):
+        cells = table.add_row().cells
+        tp1 = tp1_c12_data.get(team, {})
+        tp2 = tp2_c12_data.get(team, {})
+        bsc_score = bsc_scores_c12.get(team, 0)
         
-        headers = ['Đơn vị', 'HLL (SM1)', 'BH (SM2)', 'TL HLL (%)', 
-                   'BH SC (SM3)', 'TB (SM4)', 'TL SC (%)', 'Điểm BSC']
-        table = doc.add_table(rows=1, cols=len(headers))
-        table.style = 'Table Grid'
-        set_table_border(table)
-        
-        for i, cell in enumerate(table.rows[0].cells):
-            cell.text = headers[i]
-            cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            set_cell_shading(cell, '1565C0')
-            run = cell.paragraphs[0].runs[0]
-            run.font.bold = True
-            run.font.color.rgb = RGBColor(255, 255, 255)
+        data = [
+            team,
+            str(int(tp1.get('sm1', 0) or 0)),
+            str(int(tp1.get('sm2', 0) or 0)),
+            format_number(tp1.get('tyle', 0) or 0),
+            str(int(tp2.get('sm3', 0) or 0)),
+            str(int(tp2.get('sm4', 0) or 0)),
+            format_number(tp2.get('tyle', 0) or 0),
+            format_number(bsc_score or 0)
+        ]
+        for i, value in enumerate(data):
+            cells[i].text = value
+            cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = cells[i].paragraphs[0].runs[0]
             run.font.size = Pt(9)
-        
-        for idx, (_, row) in enumerate(df.iterrows(), 1):
-            cells = table.add_row().cells
-            short_name = TEAM_SHORT_NAMES.get(row['Đơn vị'], row['Đơn vị'])
-            if short_name == 'Tổng':
-                short_name = 'TTVT Sơn Tây'
-            data = [
-                short_name,
-                str(int(row.get('SM1', 0))),
-                str(int(row.get('SM2', 0))),
-                format_number(row.get('Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại', 0)),
-                str(int(row.get('SM3', 0))),
-                str(int(row.get('SM4', 0))),
-                format_number(row.get('Tỷ lệ sự cố dịch vụ BRCĐ', 0)),
-                format_number(row.get('Chỉ tiêu BSC', 0))
-            ]
-            for i, value in enumerate(data):
-                cells[i].text = value
-                cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = cells[i].paragraphs[0].runs[0]
-                run.font.size = Pt(9)
-                if idx % 2 == 0:
-                    set_cell_shading(cells[i], 'E3F2FD')
-                if short_name == 'TTVT Sơn Tây':
-                    run.font.bold = True
-                    set_cell_shading(cells[i], 'BBDEFB')
-        
-        doc.add_paragraph()
+            if idx % 2 == 0:
+                set_cell_shading(cells[i], 'E3F2FD')
+            if team == 'TTVT Sơn Tây':
+                run.font.bold = True
+                set_cell_shading(cells[i], 'BBDEFB')
+    
+    doc.add_paragraph()
 
     # Thêm bảng C1.2 tổng hợp theo đơn vị (tổ) sau giảm trừ nếu có
     if unit_data:
         add_c12_unit_level_exclusion_table(doc, unit_data, c1x_reports)
 
     # Thêm bảng C1.2 chi tiết theo NVKT sau giảm trừ nếu có
-    if comparison_data:
-        add_c12_exclusion_table(doc, comparison_data)
+    # COMMENT: Bỏ bảng chi tiết từng NVKT này vì đã có trong PHẦN 2
+    # if comparison_data:
+    #     add_c12_exclusion_table(doc, comparison_data)
     
     # =========================================================================
     # Bảng C1.3 - Kênh TSL
@@ -2469,8 +2889,9 @@ def add_c1x_overview_table(doc, c1x_reports, comparison_data=None, unit_data=Non
         add_c14_unit_level_exclusion_table(doc, unit_data)
 
     # Thêm bảng C1.4 chi tiết theo NVKT sau giảm trừ nếu có
-    if comparison_data:
-        add_c14_exclusion_table(doc, comparison_data)
+    # COMMENT: Bỏ bảng chi tiết từng NVKT này vì đã có trong PHẦN 2
+    # if comparison_data:
+    #     add_c14_exclusion_table(doc, comparison_data)
     
     # =========================================================================
     # Bảng C1.5 - Tỷ lệ thiết lập dịch vụ đạt
@@ -2526,14 +2947,14 @@ def add_c1x_overview_table(doc, c1x_reports, comparison_data=None, unit_data=Non
 # =============================================================================
 # HÀM TẠO BIỂU ĐỒ
 # =============================================================================
-def create_team_comparison_chart(c1x_reports, output_path=None):
+def create_team_comparison_chart(c1x_reports, output_path=None, bsc_data=None):
     """
     Tạo biểu đồ so sánh điểm BSC thực tế giữa 4 tổ
-    Lấy điểm BSC từ các báo cáo C1.x (không tính dòng Tổng)
     
     Args:
         c1x_reports: Dictionary chứa các DataFrame từ load_c1x_reports()
         output_path: Đường dẫn lưu file ảnh (None = trả về bytes)
+        bsc_data: Dictionary từ load_bsc_unit_scores_from_comparison() (ưu tiên sử dụng)
     
     Returns:
         bytes hoặc str: Dữ liệu ảnh hoặc đường dẫn file
@@ -2544,57 +2965,91 @@ def create_team_comparison_chart(c1x_reports, output_path=None):
     # Khởi tạo dict chứa điểm BSC (bao gồm C1.5)
     bsc_scores = {team: {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0} for team in teams_order}
     
-    # Lấy điểm BSC từ C1.1
-    if 'c11' in c1x_reports:
-        df = c1x_reports['c11']
-        for _, row in df.iterrows():
-            don_vi = row.get('Đơn vị', '')
-            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
-            if short_name in teams_order:
-                bsc_scores[short_name]['C1.1'] = row.get('Chỉ tiêu BSC', 0)
+    # Map tên đơn vị
+    team_name_map = {
+        'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
+        'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
+    }
     
-    # Lấy điểm BSC từ C1.2
-    if 'c12' in c1x_reports:
-        df = c1x_reports['c12']
-        for _, row in df.iterrows():
-            don_vi = row.get('Đơn vị', '')
-            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
-            if short_name in teams_order:
-                bsc_scores[short_name]['C1.2'] = row.get('Chỉ tiêu BSC', 0)
+    def get_short_name(don_vi):
+        if not don_vi: return None
+        for orig, short in team_name_map.items():
+            if orig in str(don_vi) or short == don_vi:
+                return short
+        return TEAM_SHORT_NAMES.get(don_vi, don_vi)
     
-    # Lấy điểm BSC từ C1.3
-    if 'c13' in c1x_reports:
-        df = c1x_reports['c13']
-        for _, row in df.iterrows():
-            don_vi = row.get('Đơn vị', '')
-            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+    # ƯU TIÊN: Lấy điểm từ bsc_data (Tong_hop_Diem_BSC_Don_Vi.xlsx) - cột (Trước)
+    if bsc_data and bsc_data.get('units') is not None and not bsc_data['units'].empty:
+        print("  📊 Biểu đồ: Sử dụng điểm từ Tong_hop_Diem_BSC_Don_Vi.xlsx (cột Trước)")
+        for _, row in bsc_data['units'].iterrows():
+            don_vi = row.get('don_vi', '')
+            short_name = get_short_name(don_vi)
             if short_name in teams_order:
-                bsc_scores[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0)
-    
-    # Lấy điểm BSC từ C1.4
-    if 'c14' in c1x_reports:
-        df = c1x_reports['c14']
-        for _, row in df.iterrows():
-            don_vi = row.get('Đơn vị', '')
-            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
-            if short_name in teams_order:
-                bsc_scores[short_name]['C1.4'] = row.get('Điểm BSC', 0)
-    
-    # Lấy điểm BSC từ C1.5 (tính từ tỷ lệ đạt)
-    if 'c15_ttvtst' in c1x_reports:
-        df = c1x_reports['c15_ttvtst']
-        for _, row in df.iterrows():
-            don_vi = row.get('DOIVT', '')
-            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
-            if short_name in teams_order:
-                ty_le = row.get('Tỉ lệ đạt (%)', 0)
-                if ty_le >= 99.5:
-                    diem_bsc = 5.0
-                elif ty_le <= 89.5:
-                    diem_bsc = 1.0
-                else:
-                    diem_bsc = 1 + 4 * (ty_le - 89.5) / 10
-                bsc_scores[short_name]['C1.5'] = round(diem_bsc, 2)
+                bsc_scores[short_name]['C1.1'] = row.get('Diem_C1.1 (Trước)', 0) or 0
+                bsc_scores[short_name]['C1.2'] = row.get('Diem_C1.2 (Trước)', 0) or 0
+                bsc_scores[short_name]['C1.4'] = row.get('Diem_C1.4 (Trước)', 0) or 0
+                bsc_scores[short_name]['C1.5'] = row.get('Diem_C1.5 (Trước)', 0) or 0
+        # C1.3 vẫn lấy từ c1x_reports (không có trong comparison)
+        if c1x_reports and 'c13' in c1x_reports:
+            for _, row in c1x_reports['c13'].iterrows():
+                don_vi = row.get('Đơn vị', '')
+                short_name = get_short_name(don_vi)
+                if short_name in teams_order:
+                    bsc_scores[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0)
+    else:
+        # FALLBACK: Lấy điểm BSC từ c1x_reports (số liệu gốc)
+        if 'c11' in c1x_reports:
+            df = c1x_reports['c11']
+            for _, row in df.iterrows():
+                don_vi = row.get('Đơn vị', '')
+                short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+                if short_name in teams_order:
+                    bsc_scores[short_name]['C1.1'] = row.get('Chỉ tiêu BSC', 0)
+        
+        if 'c12' in c1x_reports:
+            df = c1x_reports['c12']
+            for _, row in df.iterrows():
+                don_vi = row.get('Đơn vị', '')
+                short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+                if short_name in teams_order:
+                    bsc_scores[short_name]['C1.2'] = row.get('Chỉ tiêu BSC', 0)
+        
+        if 'c13' in c1x_reports:
+            df = c1x_reports['c13']
+            for _, row in df.iterrows():
+                don_vi = row.get('Đơn vị', '')
+                short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+                if short_name in teams_order:
+                    bsc_scores[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0)
+        
+        if 'c14' in c1x_reports:
+            df = c1x_reports['c14']
+            for _, row in df.iterrows():
+                don_vi = row.get('Đơn vị', '')
+                short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+                if short_name in teams_order:
+                    bsc_scores[short_name]['C1.4'] = row.get('Điểm BSC', 0)
+        
+        if 'c15_ttvtst' in c1x_reports:
+            df = c1x_reports['c15_ttvtst']
+            for _, row in df.iterrows():
+                don_vi = row.get('DOIVT', '')
+                short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+                if short_name in teams_order:
+                    ty_le = row.get('Tỉ lệ đạt (%)', 0)
+                    if ty_le >= 99.5:
+                        diem_bsc = 5.0
+                    elif ty_le <= 89.5:
+                        diem_bsc = 1.0
+                    else:
+                        diem_bsc = 1 + 4 * (ty_le - 89.5) / 10
+                    bsc_scores[short_name]['C1.5'] = round(diem_bsc, 2)
     
     # Tạo DataFrame từ dữ liệu
     chart_data = pd.DataFrame(bsc_scores).T
@@ -2641,19 +3096,100 @@ def create_team_comparison_chart(c1x_reports, output_path=None):
         return buf
 
 
-def create_team_bsc_after_exclusion_chart(unit_data, c1x_reports=None, output_path=None):
+def create_team_bsc_after_exclusion_chart(unit_data, c1x_reports=None, output_path=None, bsc_data=None):
     """
     Tạo biểu đồ so sánh điểm BSC SAU GIẢM TRỪ giữa 4 tổ
-    Tính điểm BSC từ tỷ lệ sau giảm trừ trong unit_data
-    Sử dụng đúng công thức từ kpi_calculator.py:
-    - C1.1 = 0.30 * tinh_diem_C11_TP1 + 0.70 * tinh_diem_C11_TP2
-    - C1.2 = 0.50 * tinh_diem_C12_TP1 + 0.50 * tinh_diem_C12_TP2
+    
+    Args:
+        unit_data: Dữ liệu unit_level từ load_unit_level_exclusion_data()
+        c1x_reports: Dữ liệu c1x_reports (fallback)
+        output_path: Đường dẫn lưu file
+        bsc_data: Dictionary từ load_bsc_unit_scores_from_comparison() (ưu tiên sử dụng)
     """
     teams_order = ['Phúc Thọ', 'Quảng Oai', 'Suối Hai', 'Sơn Tây']
     
     # Khởi tạo dict chứa điểm BSC
     bsc_scores = {team: {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0} for team in teams_order}
     
+    # Mapping tên đội trong Excel -> tên ngắn
+    team_name_map = {
+        'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
+        'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
+    }
+    
+    def get_short_name(don_vi):
+        if not don_vi: return None
+        for orig, short in team_name_map.items():
+            if orig in str(don_vi) or short == don_vi:
+                return short
+        return None
+    
+    # ================================================================
+    # ƯU TIÊN: Lấy điểm từ bsc_data (Tong_hop_Diem_BSC_Don_Vi.xlsx) - cột (Sau)
+    # ================================================================
+    if bsc_data and bsc_data.get('units') is not None and not bsc_data['units'].empty:
+        print("  📊 Biểu đồ sau GT: Sử dụng điểm từ Tong_hop_Diem_BSC_Don_Vi.xlsx (cột Sau)")
+        for _, row in bsc_data['units'].iterrows():
+            don_vi = row.get('don_vi', '')
+            short_name = get_short_name(don_vi)
+            if short_name in teams_order:
+                bsc_scores[short_name]['C1.1'] = row.get('Diem_C1.1 (Sau)', 0) or 0
+                bsc_scores[short_name]['C1.2'] = row.get('Diem_C1.2 (Sau)', 0) or 0
+                bsc_scores[short_name]['C1.4'] = row.get('Diem_C1.4 (Sau)', 0) or 0
+                bsc_scores[short_name]['C1.5'] = row.get('Diem_C1.5 (Sau)', 0) or 0
+        # C1.3 vẫn lấy từ c1x_reports (không có giảm trừ)
+        if c1x_reports and 'c13' in c1x_reports:
+            for _, row in c1x_reports['c13'].iterrows():
+                don_vi = row.get('Đơn vị', '')
+                short_name = get_short_name(don_vi)
+                if short_name in teams_order:
+                    bsc_scores[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0)
+        
+        # Tạo DataFrame và biểu đồ rồi return (không chạy tiếp phần tính từ unit_data)
+        chart_data = pd.DataFrame(bsc_scores).T
+        chart_data = chart_data.reindex(teams_order)
+        
+        fig, ax = plt.subplots(figsize=(14, 6))
+        x = np.arange(len(teams_order))
+        width = 0.15
+        metrics = ['C1.1', 'C1.2', 'C1.3', 'C1.4', 'C1.5']
+        
+        for i, metric in enumerate(metrics):
+            values = chart_data[metric].fillna(0).values
+            bars = ax.bar(x + i*width, values, width, label=metric, color=BAR_COLORS[i])
+            for bar, val in zip(bars, values):
+                if val > 0:
+                    ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.05,
+                           f'{val:.2f}', ha='center', va='bottom', fontsize=8)
+        
+        ax.set_xlabel('Tổ Kỹ thuật', fontsize=12)
+        ax.set_ylabel('Điểm BSC', fontsize=12)
+        ax.set_title('ĐIỂM BSC SAU GIẢM TRỪ GIỮA CÁC TỔ', fontsize=14, fontweight='bold')
+        ax.set_xticks(x + width * 2)
+        ax.set_xticklabels(teams_order, fontsize=11)
+        ax.set_ylim(0, 6)
+        ax.legend(loc='upper right')
+        ax.grid(axis='y', linestyle='--', alpha=0.7)
+        plt.tight_layout()
+        
+        if output_path:
+            plt.savefig(output_path, dpi=150, bbox_inches='tight')
+            plt.close()
+            return output_path
+        else:
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', dpi=150, bbox_inches='tight')
+            plt.close()
+            buf.seek(0)
+            return buf
+    
+    # FALLBACK: Tính từ unit_data (cách cũ) - chỉ chạy nếu không có bsc_data
     # ================================================================
     # Các hàm tính điểm BSC (theo đúng kpi_calculator.py)
     # ================================================================
@@ -2701,25 +3237,6 @@ def create_team_bsc_after_exclusion_chart(unit_data, c1x_reports=None, output_pa
         elif kq > 0.895: return 1 + 4 * (kq - 0.895) / 0.10
         else: return 1
     
-    # Mapping tên đội trong Excel -> tên ngắn
-    team_name_map = {
-        'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
-        'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
-        'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
-        'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
-        'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
-        'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
-        'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
-        'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
-    }
-    
-    def get_short_name(don_vi):
-        if not don_vi: return None
-        for orig, short in team_name_map.items():
-            if orig in str(don_vi) or short == don_vi:
-                return short
-        return None
-    
     # ================================================================
     # Tính C1.1 = 0.30*TP1 + 0.70*TP2
     # ================================================================
@@ -2766,16 +3283,42 @@ def create_team_bsc_after_exclusion_chart(unit_data, c1x_reports=None, output_pa
                     tyle = row.get(tyle_col[0], 0) or 0
                     c12_tp1[short] = tyle / 100 if tyle > 1 else tyle
     
-    # C1.2 TP2 - lấy từ c1x_reports nếu có, không thì giả định 5 điểm
+    
+    # C1.2 TP2 - Tỷ lệ sự cố BRCĐ từ unit_data['c12_sm4'] (SAU GIẢM TRỪ)
     c12_tp2 = {}
-    if c1x_reports and 'c12' in c1x_reports:
+    
+    # Hàm tính điểm TP2 từ tỷ lệ sự cố (‰)
+    def tinh_diem_tp2_from_percentage(tyle_percent):
+        """Tính điểm TP2 từ tỷ lệ % - chuyển sang ‰ trước"""
+        if pd.isna(tyle_percent) or tyle_percent is None:
+            return 5
+        # Chuyển % sang ‰: 1.76% = 17.6‰
+        tyle_permil = tyle_percent * 10
+        if tyle_permil <= 15:  # ≤1.5%
+            return 5
+        elif tyle_permil < 25:  # <2.5%
+            return 5 - 4 * (tyle_permil - 15) / 10
+        else:
+            return 1
+    
+    if unit_data and 'c12_sm4' in unit_data:
+        # Đọc từ file SM4-C12-ti-le-su-co-dv-brcd.xlsx
+        df = unit_data['c12_sm4']
+        for _, row in df.iterrows():
+            short = get_short_name(row.get('TEN_DOI', ''))
+            if short and short in teams_order:
+                tyle = row.get('Tỷ lệ báo hỏng (%) (Sau GT)', 0) or 0
+                # Tính điểm từ tỷ lệ
+                diem_tp2 = tinh_diem_tp2_from_percentage(tyle)
+                c12_tp2[short] = diem_tp2
+    elif c1x_reports and 'c12' in c1x_reports:
+        # Fallback: dùng dữ liệu gốc nếu không có dữ liệu sau giảm trừ
         df = c1x_reports['c12']
         for _, row in df.iterrows():
             don_vi = row.get('Đơn vị', '')
             short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
             if short_name in teams_order:
-                # Lấy điểm TP2 trực tiếp từ báo cáo gốc
-                diem_tp2 = row.get('Điểm C1.2 TP2', 5)  # Default 5 nếu không có
+                diem_tp2 = row.get('Điểm C1.2 TP2', 5)
                 c12_tp2[short_name] = diem_tp2
     
     for team in teams_order:
@@ -2810,9 +3353,20 @@ def create_team_bsc_after_exclusion_chart(unit_data, c1x_reports=None, output_pa
                     bsc_scores[short]['C1.4'] = round(tinh_diem_C14(tyle_dec), 2)
     
     # ================================================================
-    # C1.5 - giữ nguyên từ c1x_reports (không có giảm trừ)
+    # C1.5 - SỬ DỤNG DỮ LIỆU SAU GIẢM TRỪ từ unit_data
     # ================================================================
-    if c1x_reports and 'c15_ttvtst' in c1x_reports:
+    if unit_data and 'c15' in unit_data:
+        # Sử dụng dữ liệu SAU GIẢM TRỪ từ file So_sanh_C15.xlsx
+        df = unit_data['c15']
+        for _, row in df.iterrows():
+            don_vi = row.get('Đơn vị', '')
+            short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
+            if short_name in teams_order:
+                ty_le = row.get('Tỷ lệ đạt % (Sau GT)', 0) or 0
+                ty_le_dec = ty_le / 100 if ty_le > 1 else ty_le
+                bsc_scores[short_name]['C1.5'] = round(tinh_diem_C15(ty_le_dec), 2)
+    elif c1x_reports and 'c15_ttvtst' in c1x_reports:
+        # Fallback: nếu không có dữ liệu sau giảm trừ, dùng dữ liệu gốc
         df = c1x_reports['c15_ttvtst']
         for _, row in df.iterrows():
             don_vi = row.get('DOIVT', '')
@@ -3688,7 +4242,9 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     # 1.1 Biểu đồ so sánh điểm BSC thực tế 4 tổ
     doc.add_heading('1.1. So sánh điểm BSC thực tế giữa các tổ', level=2)
     if c1x_reports:
-        team_chart = create_team_comparison_chart(c1x_reports)
+        # Load điểm BSC từ Tong_hop_Diem_BSC_Don_Vi.xlsx nếu có
+        bsc_scores_for_chart = load_bsc_unit_scores_from_comparison(exclusion_folder) if include_exclusion else None
+        team_chart = create_team_comparison_chart(c1x_reports, bsc_data=bsc_scores_for_chart)
         doc.add_picture(team_chart, width=Inches(6.5))
         last_paragraph = doc.paragraphs[-1]
         last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -3702,7 +4258,8 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
         try:
             unit_data = load_unit_level_exclusion_data(exclusion_folder)
             if unit_data:
-                bsc_after_chart = create_team_bsc_after_exclusion_chart(unit_data, c1x_reports)
+                # Sử dụng bsc_scores_for_chart đã load ở trên
+                bsc_after_chart = create_team_bsc_after_exclusion_chart(unit_data, c1x_reports, bsc_data=bsc_scores_for_chart)
                 if bsc_after_chart:
                     doc.add_picture(bsc_after_chart, width=Inches(6.5))
                     doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -3719,452 +4276,249 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     
     # C1.1
     p11 = doc.add_paragraph()
-    p11.add_run('C1.1 - Chất lượng sửa chữa thuê bao BRCĐ: ').bold = True
-    p11.add_run('Gồm 2 thành phần:\n')
-    p11.add_run('   • TP1 (30%): Sửa chữa chủ động - Tỷ lệ phiếu SCCD hoàn thành ≤72h\n')
-    p11.add_run('   • TP2 (70%): Sửa chữa theo báo hỏng - Tỷ lệ phiếu BH hoàn thành đúng hạn')
+    run_title = p11.add_run('C1.1 - Chất lượng sửa chữa thuê bao BRCĐ: ')
+    run_title.bold = True
+    run_title.italic = True
+    run_title.font.size = Pt(10)
+    
+    run_desc = p11.add_run('Gồm 2 thành phần:\n')
+    run_desc.italic = True
+    run_desc.font.size = Pt(10)
+    
+    run_tp1 = p11.add_run('   • TP1 (30%): Sửa chữa chủ động - Tỷ lệ phiếu SCCD hoàn thành ≤72h\n')
+    run_tp1.italic = True
+    run_tp1.font.size = Pt(10)
+    
+    run_tp2 = p11.add_run('   • TP2 (70%): Sửa chữa theo báo hỏng - Tỷ lệ phiếu BH hoàn thành đúng hạn')
+    run_tp2.italic = True
+    run_tp2.font.size = Pt(10)
     
     # C1.2
     p12 = doc.add_paragraph()
-    p12.add_run('C1.2 - Tỷ lệ thuê bao báo hỏng: ').bold = True
-    p12.add_run('Gồm 2 thành phần:\n')
-    p12.add_run('   • TP1 (50%): Hỏng lặp lại - Tỷ lệ TB báo hỏng ≥2 lần/7 ngày\n')
-    p12.add_run('   • TP2 (50%): Tỷ lệ sự cố - Tỷ lệ phiếu BH / Tổng TB quản lý (‰)')
+    run_title = p12.add_run('C1.2 - Tỷ lệ thuê bao báo hỏng: ')
+    run_title.bold = True
+    run_title.italic = True
+    run_title.font.size = Pt(10)
+    
+    run_desc = p12.add_run('Gồm 2 thành phần:\n')
+    run_desc.italic = True
+    run_desc.font.size = Pt(10)
+    
+    run_tp1 = p12.add_run('   • TP1 (50%): Hỏng lặp lại - Tỷ lệ TB báo hỏng ≥2 lần/7 ngày\n')
+    run_tp1.italic = True
+    run_tp1.font.size = Pt(10)
+    
+    run_tp2 = p12.add_run('   • TP2 (50%): Tỷ lệ sự cố - Tỷ lệ phiếu BH / Tổng TB quản lý (‰)')
+    run_tp2.italic = True
+    run_tp2.font.size = Pt(10)
     
     # C1.3
     p13 = doc.add_paragraph()
-    p13.add_run('C1.3 - Chất lượng sửa chữa kênh TSL (Leased Line): ').bold = True
-    p13.add_run('Áp dụng cho các dịch vụ Internet trực tiếp, kênh thuê riêng, MegaWan, Metronet, Siptrunking')
+    run_title = p13.add_run('C1.3 - Chất lượng sửa chữa kênh TSL (Leased Line): ')
+    run_title.bold = True
+    run_title.italic = True
+    run_title.font.size = Pt(10)
+    
+    run_desc = p13.add_run('Áp dụng cho các dịch vụ Internet trực tiếp, kênh thuê riêng, MegaWan, Metronet, Siptrunking')
+    run_desc.italic = True
+    run_desc.font.size = Pt(10)
     
     # C1.4
     p14 = doc.add_paragraph()
-    p14.add_run('C1.4 - Độ hài lòng khách hàng: ').bold = True
-    p14.add_run('Tỷ lệ khách hàng hài lòng sau khi được sửa chữa (qua khảo sát)')
+    run_title = p14.add_run('C1.4 - Độ hài lòng khách hàng: ')
+    run_title.bold = True
+    run_title.italic = True
+    run_title.font.size = Pt(10)
+    
+    run_desc = p14.add_run('Tỷ lệ khách hàng hài lòng sau khi được sửa chữa (qua khảo sát)')
+    run_desc.italic = True
+    run_desc.font.size = Pt(10)
     
     # C1.5
     p15 = doc.add_paragraph()
-    p15.add_run('C1.5 - Thiết lập dịch vụ BRCĐ đạt thời gian quy định: ').bold = True
-    p15.add_run('Tỷ lệ phiếu lắp đặt hoàn thành đúng hạn\n')
-    p15.add_run('   • Ngoài CCCO: ≤24h | Trong CCCO: Phiếu trước 17h xong trong ngày')
+    run_title = p15.add_run('C1.5 - Thiết lập dịch vụ BRCĐ đạt thời gian quy định: ')
+    run_title.bold = True
+    run_title.italic = True
+    run_title.font.size = Pt(10)
+    
+    run_desc = p15.add_run('Tỷ lệ phiếu lắp đặt hoàn thành đúng hạn\n')
+    run_desc.italic = True
+    run_desc.font.size = Pt(10)
+    
+    run_detail = p15.add_run('   • Ngoài CCCO: ≤24h | Trong CCCO: Phiếu trước 17h xong trong ngày')
+    run_detail.italic = True
+    run_detail.font.size = Pt(10)
     
     doc.add_paragraph()  # Spacing
     
-    # Chuẩn bị dữ liệu BSC từ các báo cáo C1.x
+    # =========================================================================
+    # SỬ DỤNG DỮ LIỆU TỪ Tong_hop_Diem_BSC_Don_Vi.xlsx (có cả Trước và Sau GT)
+    # =========================================================================
     teams_order = ['Phúc Thọ', 'Quảng Oai', 'Suối Hai', 'Sơn Tây']
-    bsc_data = {team: {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0} for team in teams_order}
+    team_name_map = {
+        'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
+        'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
+        'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
+        'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
+        'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
+        'TTVT Sơn Tây': 'TTVT Sơn Tây'
+    }
     
-    # Lấy điểm BSC từ các báo cáo
-    if c1x_reports:
-        if 'c11' in c1x_reports:
-            for _, row in c1x_reports['c11'].iterrows():
-                short_name = TEAM_SHORT_NAMES.get(row.get('Đơn vị', ''), row.get('Đơn vị', ''))
-                if short_name in teams_order:
-                    bsc_data[short_name]['C1.1'] = row.get('Chỉ tiêu BSC', 0)
-        
-        if 'c12' in c1x_reports:
-            for _, row in c1x_reports['c12'].iterrows():
-                short_name = TEAM_SHORT_NAMES.get(row.get('Đơn vị', ''), row.get('Đơn vị', ''))
-                if short_name in teams_order:
-                    bsc_data[short_name]['C1.2'] = row.get('Chỉ tiêu BSC', 0)
-        
-        if 'c13' in c1x_reports:
-            for _, row in c1x_reports['c13'].iterrows():
-                short_name = TEAM_SHORT_NAMES.get(row.get('Đơn vị', ''), row.get('Đơn vị', ''))
-                if short_name in teams_order:
-                    bsc_data[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0)
-        
-        if 'c14' in c1x_reports:
-            for _, row in c1x_reports['c14'].iterrows():
-                short_name = TEAM_SHORT_NAMES.get(row.get('Đơn vị', ''), row.get('Đơn vị', ''))
-                if short_name in teams_order:
-                    bsc_data[short_name]['C1.4'] = row.get('Điểm BSC', 0)
-        
-        # Lấy điểm C1.5 từ TH_TTVTST (tính từ tỷ lệ đạt)
-        if 'c15_ttvtst' in c1x_reports:
-            for _, row in c1x_reports['c15_ttvtst'].iterrows():
-                don_vi = row.get('DOIVT', '')
-                short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
-                if short_name in teams_order:
-                    # Tính điểm BSC từ tỷ lệ đạt: >= 99.5% = 5, <= 89.5% = 1, giữa = nội suy
-                    ty_le = row.get('Tỉ lệ đạt (%)', 0)
-                    if ty_le >= 99.5:
-                        diem_bsc = 5.0
-                    elif ty_le <= 89.5:
-                        diem_bsc = 1.0
-                    else:
-                        diem_bsc = 1 + 4 * (ty_le - 89.5) / 10
-                    bsc_data[short_name]['C1.5'] = round(diem_bsc, 2)
+    def get_short_name(don_vi):
+        if not don_vi: return None
+        for orig, short in team_name_map.items():
+            if orig in str(don_vi) or short == don_vi:
+                return short
+        return don_vi
     
-    # Lấy điểm BSC tổng hợp cho TTVT Sơn Tây (dòng "Tổng" trong các báo cáo)
-    ttvt_scores = {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0}
-    if c1x_reports:
-        if 'c11' in c1x_reports:
-            for _, row in c1x_reports['c11'].iterrows():
-                if row.get('Đơn vị', '') == 'Tổng':
-                    ttvt_scores['C1.1'] = row.get('Chỉ tiêu BSC', 0)
-        if 'c12' in c1x_reports:
-            for _, row in c1x_reports['c12'].iterrows():
-                if row.get('Đơn vị', '') == 'Tổng':
-                    ttvt_scores['C1.2'] = row.get('Chỉ tiêu BSC', 0)
-        if 'c13' in c1x_reports:
-            for _, row in c1x_reports['c13'].iterrows():
-                if row.get('Đơn vị', '') == 'Tổng':
-                    ttvt_scores['C1.3'] = row.get('Chỉ tiêu BSC', 0)
-        if 'c14' in c1x_reports:
-            for _, row in c1x_reports['c14'].iterrows():
-                if row.get('Đơn vị', '') == 'Tổng':
-                    ttvt_scores['C1.4'] = row.get('Điểm BSC', 0)
-        if 'c15_ttvtst' in c1x_reports:
-            for _, row in c1x_reports['c15_ttvtst'].iterrows():
-                if 'TTVT' in row.get('DOIVT', ''):
-                    ty_le = row.get('Tỉ lệ đạt (%)', 0)
-                    if ty_le >= 99.5:
-                        ttvt_scores['C1.5'] = 5.0
-                    elif ty_le <= 89.5:
-                        ttvt_scores['C1.5'] = 1.0
-                    else:
-                        ttvt_scores['C1.5'] = round(1 + 4 * (ty_le - 89.5) / 10, 2)
+    # Đọc dữ liệu từ Tong_hop_Diem_BSC_Don_Vi.xlsx
+    print("📊 Đọc điểm BSC từ Tong_hop_Diem_BSC_Don_Vi.xlsx...")
+    bsc_scores = load_bsc_unit_scores_from_comparison(exclusion_folder)
     
-    headers = ['Đơn vị', 'C1.1', 'C1.2', 'C1.3', 'C1.4', 'C1.5']
-    table = doc.add_table(rows=1, cols=len(headers))
+    # Khởi tạo dữ liệu BSC mặc định
+    bsc_data = {team: {
+        'C1.1_truoc': 0, 'C1.1_sau': 0,
+        'C1.2_truoc': 0, 'C1.2_sau': 0,
+        'C1.3': 0,  # C1.3 giữ nguyên, không có giảm trừ
+        'C1.4_truoc': 0, 'C1.4_sau': 0,
+        'C1.5_truoc': 0, 'C1.5_sau': 0
+    } for team in teams_order + ['TTVT Sơn Tây']}
+    
+    # Đọc điểm từ Tong_hop_Diem_BSC_Don_Vi.xlsx
+    if bsc_scores['units'] is not None and not bsc_scores['units'].empty:
+        for _, row in bsc_scores['units'].iterrows():
+            don_vi = row.get('don_vi', '')
+            short_name = get_short_name(don_vi)
+            if short_name in bsc_data:
+                bsc_data[short_name]['C1.1_truoc'] = row.get('Diem_C1.1 (Trước)', 0) or 0
+                bsc_data[short_name]['C1.1_sau'] = row.get('Diem_C1.1 (Sau)', 0) or 0
+                bsc_data[short_name]['C1.2_truoc'] = row.get('Diem_C1.2 (Trước)', 0) or 0
+                bsc_data[short_name]['C1.2_sau'] = row.get('Diem_C1.2 (Sau)', 0) or 0
+                bsc_data[short_name]['C1.4_truoc'] = row.get('Diem_C1.4 (Trước)', 0) or 0
+                bsc_data[short_name]['C1.4_sau'] = row.get('Diem_C1.4 (Sau)', 0) or 0
+                bsc_data[short_name]['C1.5_truoc'] = row.get('Diem_C1.5 (Trước)', 0) or 0
+                bsc_data[short_name]['C1.5_sau'] = row.get('Diem_C1.5 (Sau)', 0) or 0
+    
+    # Đọc C1.3 từ c1x_reports (giữ nguyên vì không có giảm trừ)
+    if c1x_reports and 'c13' in c1x_reports:
+        for _, row in c1x_reports['c13'].iterrows():
+            don_vi = row.get('Đơn vị', '')
+            short_name = get_short_name(don_vi)
+            if short_name in bsc_data:
+                bsc_data[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0) or 0
+            elif don_vi == 'Tổng':
+                bsc_data['TTVT Sơn Tây']['C1.3'] = row.get('Chỉ tiêu BSC', 0) or 0
+    
+    # Tạo bảng với cấu trúc: Đơn vị | C1.1 (Trước/Sau) | C1.2 (Trước/Sau) | C1.3 | C1.4 (Trước/Sau) | C1.5 (Trước/Sau)
+    headers = ['Đơn vị', 'C1.1', '', 'C1.2', '', 'C1.3', 'C1.4', '', 'C1.5', '']
+    sub_headers = ['', 'Trước', 'Sau', 'Trước', 'Sau', '', 'Trước', 'Sau', 'Trước', 'Sau']
+    
+    table = doc.add_table(rows=2, cols=10)
     table.style = 'Table Grid'
     set_table_border(table)
     
-    for i, header in enumerate(table.rows[0].cells):
-        header.text = headers[i]
-        header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        set_cell_shading(header, '1F4E79')
-        run = header.paragraphs[0].runs[0]
-        run.font.bold = True
-        run.font.color.rgb = RGBColor(255, 255, 255)
-        run.font.size = Pt(10)
+    # Header row 1 - Merge các ô
+    header_cells = table.rows[0].cells
+    header_cells[0].text = 'Đơn vị'
+    header_cells[0].merge(table.rows[1].cells[0])  # Merge với dòng dưới
     
+    # C1.1 header với merge
+    header_cells[1].text = 'C1.1'
+    header_cells[1].merge(header_cells[2])
+    
+    # C1.2 header với merge
+    header_cells[3].text = 'C1.2'
+    header_cells[3].merge(header_cells[4])
+    
+    # C1.3 header (không có trước/sau)
+    header_cells[5].text = 'C1.3'
+    header_cells[5].merge(table.rows[1].cells[5])
+    
+    # C1.4 header với merge
+    header_cells[6].text = 'C1.4'
+    header_cells[6].merge(header_cells[7])
+    
+    # C1.5 header với merge
+    header_cells[8].text = 'C1.5'
+    header_cells[8].merge(header_cells[9])
+    
+    # Format header row 1
+    for cell in header_cells:
+        cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+        set_cell_shading(cell, '1F4E79')
+        if cell.paragraphs[0].runs:
+            run = cell.paragraphs[0].runs[0]
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(255, 255, 255)
+            run.font.size = Pt(10)
+    
+    # Header row 2 (sub headers: Trước/Sau)
+    sub_header_cells = table.rows[1].cells
+    sub_header_values = ['', 'Trước', 'Sau', 'Trước', 'Sau', '', 'Trước', 'Sau', 'Trước', 'Sau']
+    for i, val in enumerate(sub_header_values):
+        if val:
+            sub_header_cells[i].text = val
+            sub_header_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            set_cell_shading(sub_header_cells[i], '2E75B6')
+            if sub_header_cells[i].paragraphs[0].runs:
+                run = sub_header_cells[i].paragraphs[0].runs[0]
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(255, 255, 255)
+                run.font.size = Pt(9)
+    
+    # Data rows
     for idx, team in enumerate(teams_order, 1):
         cells = table.add_row().cells
         scores = bsc_data[team]
-        data = [
+        row_data = [
             team,
-            format_number(scores['C1.1']),
-            format_number(scores['C1.2']),
+            format_number(scores['C1.1_truoc']),
+            format_number(scores['C1.1_sau']),
+            format_number(scores['C1.2_truoc']),
+            format_number(scores['C1.2_sau']),
             format_number(scores['C1.3']),
-            format_number(scores['C1.4']),
-            format_number(scores['C1.5'])
+            format_number(scores['C1.4_truoc']),
+            format_number(scores['C1.4_sau']),
+            format_number(scores['C1.5_truoc']),
+            format_number(scores['C1.5_sau'])
         ]
-        for i, value in enumerate(data):
+        for i, value in enumerate(row_data):
             cells[i].text = value
             cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            run = cells[i].paragraphs[0].runs[0]
-            run.font.size = Pt(10)
+            if cells[i].paragraphs[0].runs:
+                run = cells[i].paragraphs[0].runs[0]
+                run.font.size = Pt(9)
             if idx % 2 == 0:
                 set_cell_shading(cells[i], 'E8F4FD')
     
-    # Thêm dòng TTVT Sơn Tây (tổng hợp)
+    # Dòng TTVT Sơn Tây
     cells = table.add_row().cells
+    ttvt_scores = bsc_data['TTVT Sơn Tây']
     ttvt_data = [
         'TTVT Sơn Tây',
-        format_number(ttvt_scores['C1.1']),
-        format_number(ttvt_scores['C1.2']),
+        format_number(ttvt_scores['C1.1_truoc']),
+        format_number(ttvt_scores['C1.1_sau']),
+        format_number(ttvt_scores['C1.2_truoc']),
+        format_number(ttvt_scores['C1.2_sau']),
         format_number(ttvt_scores['C1.3']),
-        format_number(ttvt_scores['C1.4']),
-        format_number(ttvt_scores['C1.5'])
+        format_number(ttvt_scores['C1.4_truoc']),
+        format_number(ttvt_scores['C1.4_sau']),
+        format_number(ttvt_scores['C1.5_truoc']),
+        format_number(ttvt_scores['C1.5_sau'])
     ]
     for i, value in enumerate(ttvt_data):
         cells[i].text = value
         cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = cells[i].paragraphs[0].runs[0]
-        run.font.size = Pt(10)
-        run.font.bold = True
-        set_cell_shading(cells[i], 'B2DFDB')  # Màu xanh lá nhạt để nổi bật
+        if cells[i].paragraphs[0].runs:
+            run = cells[i].paragraphs[0].runs[0]
+            run.font.size = Pt(9)
+            run.font.bold = True
+        set_cell_shading(cells[i], 'B2DFDB')
     
     doc.add_paragraph()
-    
-    # 1.2.b Thống kê điểm BSC theo đơn vị (sau giảm trừ)
-    if include_exclusion:
-        unit_data = load_unit_level_exclusion_data(exclusion_folder)
-        if unit_data:
-            doc.add_heading('1.2.b. Thống kê điểm BSC theo đơn vị (sau giảm trừ)', level=2)
-            
-            # Chú thích
-            p_note = doc.add_paragraph()
-            p_note.add_run('📋 GHI CHÚ: ').bold = True
-            p_note.add_run('Điểm BSC sau giảm trừ được tính sau khi loại bỏ các phiếu báo hỏng và lắp đặt thuộc diện loại trừ. C1.3 không áp dụng giảm trừ.')
-            doc.add_paragraph()
-            
-            # Các hàm tính điểm BSC
-            def tinh_diem_C11_TP1(kq):
-                if pd.isna(kq) or kq is None: return 5
-                if kq >= 0.99: return 5
-                elif kq > 0.96: return 1 + 4 * (kq - 0.96) / 0.03
-                else: return 1
-            
-            def tinh_diem_C11_TP2(kq):
-                if pd.isna(kq) or kq is None: return 5
-                if kq >= 0.85: return 5
-                elif kq >= 0.82: return 4 + (kq - 0.82) / 0.03
-                elif kq >= 0.79: return 3 + (kq - 0.79) / 0.03
-                elif kq >= 0.76: return 2
-                else: return 1
-            
-            def tinh_diem_C12_TP1(kq):
-                if pd.isna(kq) or kq is None: return 5
-                if kq <= 0.025: return 5
-                elif kq < 0.04: return 5 - 4 * (kq - 0.025) / 0.015
-                else: return 1
-            
-            def tinh_diem_C14(kq):
-                if pd.isna(kq) or kq is None: return 5
-                if kq >= 0.995: return 5
-                elif kq > 0.95: return 1 + 4 * (kq - 0.95) / 0.045
-                else: return 1
-            
-            def tinh_diem_C15(kq):
-                if pd.isna(kq) or kq is None: return 5
-                if kq >= 0.995: return 5
-                elif kq > 0.895: return 1 + 4 * (kq - 0.895) / 0.10
-                else: return 1
-            
-            team_name_map = {
-                'Tổ Kỹ thuật Địa bàn Phúc Thọ': 'Phúc Thọ',
-                'Tổ Kỹ thuật địa bàn Phúc Thọ': 'Phúc Thọ',
-                'Tổ Kỹ thuật Địa bàn Quảng Oai': 'Quảng Oai',
-                'Tổ Kỹ thuật địa bàn Quảng Oai': 'Quảng Oai',
-                'Tổ Kỹ thuật Địa bàn Suối hai': 'Suối Hai',
-                'Tổ Kỹ thuật địa bàn Suối hai': 'Suối Hai',
-                'Tổ Kỹ thuật Địa bàn Sơn Tây': 'Sơn Tây',
-                'Tổ Kỹ thuật địa bàn Sơn Tây': 'Sơn Tây',
-            }
-            
-            def get_short_name(don_vi):
-                if not don_vi: return None
-                for orig, short in team_name_map.items():
-                    if orig in str(don_vi) or short == don_vi:
-                        return short
-                return None
-            
-            # Tính điểm BSC sau giảm trừ cho từng đơn vị
-            bsc_scores_gt = {team: {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0} for team in teams_order}
-            
-            # C1.1 = 0.30*TP1 + 0.70*TP2
-            c11_tp1 = {}
-            c11_tp2 = {}
-            
-            if 'c11_sm2' in unit_data:
-                df = unit_data['c11_sm2']
-                for _, row in df.iterrows():
-                    short = get_short_name(row.get('Đơn vị', ''))
-                    if short and short in teams_order:
-                        tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
-                        c11_tp1[short] = tyle / 100 if tyle > 1 else tyle
-            
-            if 'c11_sm4' in unit_data:
-                df = unit_data['c11_sm4']
-                for _, row in df.iterrows():
-                    short = get_short_name(row.get('Đơn vị', ''))
-                    if short and short in teams_order:
-                        tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
-                        c11_tp2[short] = tyle / 100 if tyle > 1 else tyle
-            
-            for team in teams_order:
-                tp1 = c11_tp1.get(team)
-                tp2 = c11_tp2.get(team)
-                diem_tp1 = tinh_diem_C11_TP1(tp1)
-                diem_tp2 = tinh_diem_C11_TP2(tp2)
-                bsc_scores_gt[team]['C1.1'] = round(0.30 * diem_tp1 + 0.70 * diem_tp2, 2)
-            
-            # C1.2 = 0.50*TP1 + 0.50*TP2
-            c12_tp1 = {}
-            if 'c12_sm1' in unit_data:
-                df = unit_data['c12_sm1']
-                for _, row in df.iterrows():
-                    short = get_short_name(row.get('Đơn vị', ''))
-                    if short and short in teams_order:
-                        tyle_col = [c for c in df.columns if 'Tỷ lệ' in c and 'Sau GT' in c]
-                        if tyle_col:
-                            tyle = row.get(tyle_col[0], 0) or 0
-                            c12_tp1[short] = tyle / 100 if tyle > 1 else tyle
-            
-            c12_tp2 = {}
-            if c1x_reports and 'c12' in c1x_reports:
-                df = c1x_reports['c12']
-                for _, row in df.iterrows():
-                    don_vi = row.get('Đơn vị', '')
-                    short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
-                    if short_name in teams_order:
-                        diem_tp2 = row.get('Điểm C1.2 TP2', 5)
-                        c12_tp2[short_name] = diem_tp2
-            
-            for team in teams_order:
-                tp1 = c12_tp1.get(team)
-                diem_tp1 = tinh_diem_C12_TP1(tp1)
-                diem_tp2 = c12_tp2.get(team, 5)
-                bsc_scores_gt[team]['C1.2'] = round(0.50 * diem_tp1 + 0.50 * diem_tp2, 2)
-            
-            # C1.3 - giữ nguyên từ c1x_reports
-            if c1x_reports and 'c13' in c1x_reports:
-                for _, row in c1x_reports['c13'].iterrows():
-                    don_vi = row.get('Đơn vị', '')
-                    short_name = TEAM_SHORT_NAMES.get(don_vi, don_vi)
-                    if short_name in teams_order:
-                        bsc_scores_gt[short_name]['C1.3'] = row.get('Chỉ tiêu BSC', 0) or 0
-            
-            # C1.4 sau giảm trừ
-            if 'c14' in unit_data:
-                df = unit_data['c14']
-                for _, row in df.iterrows():
-                    short = get_short_name(row.get('Đơn vị', ''))
-                    if short and short in teams_order:
-                        tyle_col = [c for c in df.columns if 'Tỷ lệ HL' in c and 'Sau GT' in c]
-                        if tyle_col:
-                            tyle = row.get(tyle_col[0], 0) or 0
-                            tyle_dec = tyle / 100 if tyle > 1 else tyle
-                            bsc_scores_gt[short]['C1.4'] = round(tinh_diem_C14(tyle_dec), 2)
-            
-            # C1.5 sau giảm trừ
-            if 'c15' in unit_data:
-                df = unit_data['c15']
-                for _, row in df.iterrows():
-                    short = get_short_name(row.get('Đơn vị', ''))
-                    if short and short in teams_order:
-                        tyle_col = [c for c in df.columns if 'Tỷ lệ đạt % (Sau GT)' in c]
-                        if tyle_col:
-                            tyle = row.get(tyle_col[0], 0) or 0
-                            tyle_dec = tyle / 100 if tyle > 1 else tyle
-                            bsc_scores_gt[short]['C1.5'] = round(tinh_diem_C15(tyle_dec), 2)
-            
-            # Tính điểm TTVT Sơn Tây sau giảm trừ (tổng hợp)
-            ttvt_scores_gt = {'C1.1': 0, 'C1.2': 0, 'C1.3': 0, 'C1.4': 0, 'C1.5': 0}
-            
-            # Lấy tỷ lệ tổng hợp từ dòng "Tổng" trong unit_data
-            if 'c11_sm2' in unit_data:
-                for _, row in unit_data['c11_sm2'].iterrows():
-                    if row.get('Đơn vị', '') == 'Tổng':
-                        tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
-                        ttvt_c11_tp1 = tyle / 100 if tyle > 1 else tyle
-                        break
-                else:
-                    ttvt_c11_tp1 = None
-            else:
-                ttvt_c11_tp1 = None
-            
-            if 'c11_sm4' in unit_data:
-                for _, row in unit_data['c11_sm4'].iterrows():
-                    if row.get('Đơn vị', '') == 'Tổng':
-                        tyle = row.get('Tỷ lệ % (Sau GT)', 0) or 0
-                        ttvt_c11_tp2 = tyle / 100 if tyle > 1 else tyle
-                        break
-                else:
-                    ttvt_c11_tp2 = None
-            else:
-                ttvt_c11_tp2 = None
-            
-            ttvt_scores_gt['C1.1'] = round(0.30 * tinh_diem_C11_TP1(ttvt_c11_tp1) + 0.70 * tinh_diem_C11_TP2(ttvt_c11_tp2), 2)
-            
-            # C1.2 TTVT
-            if 'c12_sm1' in unit_data:
-                for _, row in unit_data['c12_sm1'].iterrows():
-                    if row.get('Đơn vị', '') == 'Tổng':
-                        tyle_col = [c for c in unit_data['c12_sm1'].columns if 'Tỷ lệ' in c and 'Sau GT' in c]
-                        if tyle_col:
-                            tyle = row.get(tyle_col[0], 0) or 0
-                            ttvt_c12_tp1 = tyle / 100 if tyle > 1 else tyle
-                        break
-                else:
-                    ttvt_c12_tp1 = None
-            else:
-                ttvt_c12_tp1 = None
-            
-            ttvt_c12_tp2_score = 5
-            if c1x_reports and 'c12' in c1x_reports:
-                for _, row in c1x_reports['c12'].iterrows():
-                    if row.get('Đơn vị', '') == 'Tổng':
-                        ttvt_c12_tp2_score = row.get('Điểm C1.2 TP2', 5)
-                        break
-            
-            ttvt_scores_gt['C1.2'] = round(0.50 * tinh_diem_C12_TP1(ttvt_c12_tp1) + 0.50 * ttvt_c12_tp2_score, 2)
-            
-            # C1.3 TTVT
-            if c1x_reports and 'c13' in c1x_reports:
-                for _, row in c1x_reports['c13'].iterrows():
-                    if row.get('Đơn vị', '') == 'Tổng':
-                        ttvt_scores_gt['C1.3'] = row.get('Chỉ tiêu BSC', 0) or 0
-                        break
-            
-            # C1.4 TTVT sau giảm trừ
-            if 'c14' in unit_data:
-                for _, row in unit_data['c14'].iterrows():
-                    if row.get('Đơn vị', '') == 'Tổng':
-                        tyle_col = [c for c in unit_data['c14'].columns if 'Tỷ lệ HL' in c and 'Sau GT' in c]
-                        if tyle_col:
-                            tyle = row.get(tyle_col[0], 0) or 0
-                            tyle_dec = tyle / 100 if tyle > 1 else tyle
-                            ttvt_scores_gt['C1.4'] = round(tinh_diem_C14(tyle_dec), 2)
-                        break
-            
-            # C1.5 TTVT sau giảm trừ
-            if 'c15' in unit_data:
-                for _, row in unit_data['c15'].iterrows():
-                    # Chỉ lấy tổng của TTVT Sơn Tây (thường là dòng có 'TTVT')
-                    if 'TTVT' in str(row.get('Đơn vị', '')) or row.get('Đơn vị', '') == 'Tổng':
-                         tyle_col = [c for c in unit_data['c15'].columns if 'Tỷ lệ đạt % (Sau GT)' in c]
-                         if tyle_col:
-                            tyle = row.get(tyle_col[0], 0) or 0
-                            tyle_dec = tyle / 100 if tyle > 1 else tyle
-                            ttvt_scores_gt['C1.5'] = round(tinh_diem_C15(tyle_dec), 2)
-                            break
-            
-            # Tạo bảng BSC sau giảm trừ
-            headers_gt = ['Đơn vị', 'C1.1', 'C1.2', 'C1.3', 'C1.4', 'C1.5']
-            table_gt = doc.add_table(rows=1, cols=len(headers_gt))
-            table_gt.style = 'Table Grid'
-            set_table_border(table_gt)
-            
-            for i, header in enumerate(table_gt.rows[0].cells):
-                header.text = headers_gt[i]
-                header.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                set_cell_shading(header, '388E3C')  # Màu xanh lá để phân biệt với bảng trước
-                run = header.paragraphs[0].runs[0]
-                run.font.bold = True
-                run.font.color.rgb = RGBColor(255, 255, 255)
-                run.font.size = Pt(10)
-            
-            for idx, team in enumerate(teams_order, 1):
-                cells = table_gt.add_row().cells
-                scores = bsc_scores_gt[team]
-                data = [
-                    team,
-                    format_number(scores['C1.1']),
-                    format_number(scores['C1.2']),
-                    format_number(scores['C1.3']),
-                    format_number(scores['C1.4']),
-                    format_number(scores['C1.5'])
-                ]
-                for i, value in enumerate(data):
-                    cells[i].text = value
-                    cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    run = cells[i].paragraphs[0].runs[0]
-                    run.font.size = Pt(10)
-                    if idx % 2 == 0:
-                        set_cell_shading(cells[i], 'E8F5E9')  # Màu xanh lá nhạt
-            
-            # Thêm dòng TTVT Sơn Tây
-            cells = table_gt.add_row().cells
-            ttvt_data_gt = [
-                'TTVT Sơn Tây',
-                format_number(ttvt_scores_gt['C1.1']),
-                format_number(ttvt_scores_gt['C1.2']),
-                format_number(ttvt_scores_gt['C1.3']),
-                format_number(ttvt_scores_gt['C1.4']),
-                format_number(ttvt_scores_gt['C1.5'])
-            ]
-            for i, value in enumerate(ttvt_data_gt):
-                cells[i].text = value
-                cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                run = cells[i].paragraphs[0].runs[0]
-                run.font.size = Pt(10)
-                run.font.bold = True
-                set_cell_shading(cells[i], 'A5D6A7')  # Màu xanh lá đậm hơn
-            
-            doc.add_paragraph()
     
     # 1.4 Số liệu chi tiết các chỉ tiêu BSC theo Đội/TTVT (sử dụng c1x_reports đã load)
     # Nếu có comparison_data, sẽ thêm bảng sau giảm trừ ngay sau mỗi bảng thô
@@ -4173,7 +4527,7 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
         unit_data = None
         if include_exclusion:
             unit_data = load_unit_level_exclusion_data(exclusion_folder)
-        add_c1x_overview_table(doc, c1x_reports, comparison_data, unit_data)
+        add_c1x_overview_table(doc, c1x_reports, comparison_data, unit_data, exclusion_folder)
     
     # 1.5 Tổng quan Suy Hao Cao
     print("📊 Thêm phần Suy Hao Cao...")
@@ -4223,9 +4577,11 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
     # Đọc dữ liệu KPI sau giảm trừ theo NVKT
     df_exclusion_nvkt = None
     df_exclusion_detail = None
+    df_raw_detail = None  # Dữ liệu Thô (trước giảm trừ) từ So_sanh_*.xlsx
     if include_exclusion:
         df_exclusion_nvkt = load_nvkt_exclusion_summary(exclusion_folder)
         df_exclusion_detail = load_nvkt_exclusion_detail(exclusion_folder)
+        df_raw_detail = load_nvkt_raw_detail(exclusion_folder)  # Thô từ cùng file
     
     for team_idx, team_name in enumerate(teams, 1):
         short_name = TEAM_SHORT_NAMES.get(team_name, team_name)
@@ -4263,8 +4619,11 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
                 last_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
             doc.add_paragraph()
         
-        # Bảng chi tiết từng chỉ tiêu
-        add_c11_detail_table(doc, df_detail, team_name)
+        # Bảng chi tiết từng chỉ tiêu (Thô - trước giảm trừ)
+        if df_raw_detail is not None:
+            add_c11_detail_table(doc, df_raw_detail, team_name)
+        else:
+            add_c11_detail_table(doc, df_detail, team_name)
         doc.add_paragraph()
         
         # C1.1 chi tiết sau giảm trừ
@@ -4272,7 +4631,10 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
             add_c11_detail_table_after_exclusion(doc, df_exclusion_detail, team_name)
             doc.add_paragraph()
         
-        add_c12_detail_table(doc, df_detail, team_name)
+        if df_raw_detail is not None:
+            add_c12_detail_table(doc, df_raw_detail, team_name)
+        else:
+            add_c12_detail_table(doc, df_detail, team_name)
         doc.add_paragraph()
         
         # C1.2 chi tiết sau giảm trừ
@@ -4280,7 +4642,10 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
             add_c12_detail_table_after_exclusion(doc, df_exclusion_detail, team_name)
             doc.add_paragraph()
         
-        add_c14_detail_table(doc, df_detail, team_name)
+        if df_raw_detail is not None:
+            add_c14_detail_table(doc, df_raw_detail, team_name)
+        else:
+            add_c14_detail_table(doc, df_detail, team_name)
         doc.add_paragraph()
         
         # C1.4 chi tiết sau giảm trừ
@@ -4288,7 +4653,10 @@ def generate_kpi_report(kpi_folder=DEFAULT_KPI_FOLDER, output_folder=DEFAULT_OUT
             add_c14_detail_table_after_exclusion(doc, df_exclusion_detail, team_name)
             doc.add_paragraph()
         
-        add_c15_detail_table(doc, df_detail, team_name)
+        if df_raw_detail is not None:
+            add_c15_detail_table(doc, df_raw_detail, team_name)
+        else:
+            add_c15_detail_table(doc, df_detail, team_name)
         doc.add_paragraph()
 
         # C1.5 chi tiết sau giảm trừ
@@ -5329,7 +5697,8 @@ def generate_all_individual_reports_after_exclusion(kpi_folder, output_root, rep
             
             # Lưu file
             safe_name = sanitize_filename(nvkt_name)
-            filename = f"Bao_cao_KPI_{safe_name}_SauGT_{report_month.replace('/', '_')}.docx"
+            current_date = datetime.now().strftime("%d_%m_%Y")
+            filename = f"{safe_name}_Bao_cao_KPI_{current_date}.docx"
             output_file = team_output_path / filename
             doc.save(output_file)
             

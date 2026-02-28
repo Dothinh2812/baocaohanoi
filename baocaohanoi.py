@@ -1,32 +1,90 @@
 # -*- coding: utf-8 -*-
-from playwright.sync_api import sync_playwright
-import time
 import os
 import re
+import time
 import traceback
 from datetime import datetime
 from urllib.parse import quote
+
 import pandas as pd
+from playwright.sync_api import sync_playwright
+
+from c1_process import (
+    process_c11_chitiet_report,
+    process_c11_chitiet_report_SM2,
+    process_c11_report,
+    process_c12_chitiet_report_SM1SM2,
+    process_c12_report,
+    process_c13_report,
+    process_c14_chitiet_report,
+    process_c14_report,
+    process_c15_chitiet_report,
+    process_c15_report,
+)
+from c1_report_download import (
+    download_report_c11,
+    download_report_c11_chitiet,
+    download_report_c11_chitiet_SM2,
+    download_report_c12,
+    download_report_c12_chitiet_SM1,
+    download_report_c12_chitiet_SM2,
+    download_report_c13,
+    download_report_c14,
+    download_report_c14_chitiet,
+    download_report_c15,
+    download_report_c15_chitiet,
+    download_report_I15,
+    download_report_I15_k2,
+)
 from config import Config
-from make_chart_pttb import make_chart_pttb_thuc_tang_fiber, make_chart_pttb_mytv_thuc_tang, make_chart_pttb_thuc_tang_nvkt, make_chart_mytv_thuc_tang_nvkt
-from login import login_baocao_hanoi
-from KR_process import process_GHTT_report_NVKT
-from KR_download import download_GHTT_report_HNI, download_GHTT_report_Son_Tay, download_GHTT_report_nvktdb
-from thuc_tang_download import download_report_pttb_ngung_psc, download_report_pttb_hoan_cong, download_report_mytv_hoan_cong, download_report_mytv_ngung_psc
-from thuc_tang_process import process_ngung_psc_report, process_hoan_cong_report, create_thuc_tang_report, process_mytv_ngung_psc_report, process_mytv_hoan_cong_report, create_mytv_thuc_tang_report
-from vat_tu_thu_hoi_download import download_report_vattu_thuhoi
-from vat_tu_thu_hoi_process import vat_tu_thu_hoi_process
-from c1_report_download import download_report_c11, download_report_c12,download_report_c12_chitiet_SM2, download_report_c13, download_report_c14,download_report_c14_chitiet, download_report_c15, download_report_I15,download_report_I15_k2, download_report_c11_chitiet, download_report_c11_chitiet_SM2, download_report_c12_chitiet_SM1, download_report_c15_chitiet
-from c1_process import process_c11_report, process_c11_chitiet_report, process_c12_report, process_c13_report, process_c14_report,process_c14_chitiet_report, process_c15_report,process_c15_chitiet_report, process_c11_chitiet_report_SM2, process_c12_chitiet_report_SM1SM2
-from i15_process import process_I15_report_with_tracking, process_I15_k2_report_with_tracking
-from i15_cts_converter import convert_cts_to_i15_report
-from suy_hao_reports import generate_daily_comparison_report, generate_daily_comparison_report_k2
 from exclusion_process import process_exclusion_reports
-from kpi_calculator import tao_bao_cao_kpi
+from i15_cts_converter import convert_cts_to_i15_report
+from i15_process import (
+    process_I15_k2_report_with_tracking,
+    process_I15_report_with_tracking,
+)
 from import_baocao import main as import_baocao_main
-from report_generator import generate_kpi_report
+from kpi_calculator import tao_bao_cao_kpi
 from kq_tiep_thi_download import kq_tiep_thi_download
 from kq_tiep_thi_process import process_kq_tiep_thi_report
+from KR_download import (
+    download_GHTT_report_HNI,
+    download_GHTT_report_nvktdb,
+    download_GHTT_report_Son_Tay,
+)
+from KR_process import process_GHTT_report_NVKT
+from login import login_baocao_hanoi
+from make_chart_pttb import (
+    make_chart_mytv_thuc_tang_nvkt,
+    make_chart_pttb_mytv_thuc_tang,
+    make_chart_pttb_thuc_tang_fiber,
+    make_chart_pttb_thuc_tang_nvkt,
+)
+from report_generator import generate_kpi_report
+from suy_hao_reports import (
+    generate_daily_comparison_report,
+    generate_daily_comparison_report_k2,
+)
+from thuc_tang_download import (
+    download_report_mytv_hoan_cong,
+    download_report_mytv_ngung_psc,
+    download_report_pttb_hoan_cong,
+    download_report_pttb_ngung_psc, 
+    download_report_ngung_psc_fiber_thang_t_1_son_tay, 
+    download_report_ngung_psc_mytv_thang_t_1_son_tay,
+)
+from thuc_tang_process import (
+    create_mytv_thuc_tang_report,
+    create_thuc_tang_report,
+    process_hoan_cong_report,
+    process_mytv_hoan_cong_report,
+    process_mytv_ngung_psc_report,
+    process_ngung_psc_report,
+    process_son_tay_mytv_ngung_psc_report,
+    process_son_tay_ngung_psc_report,
+)
+from vat_tu_thu_hoi_download import download_report_vattu_thuhoi
+from vat_tu_thu_hoi_process import vat_tu_thu_hoi_process
 
 # =============================================================================
 # CẤU HÌNH NGÀY BÁO CÁO CHI TIẾT (SM4-C11, SM2-C11, SM1-C12, SM2-C12)
@@ -259,13 +317,37 @@ def main():
         page_baocao, browser_baocao, playwright_baocao = login_baocao_hanoi()
         logger.add_note("Đăng nhập thành công")
 
-        # # #Tải báo cáo PTTB
-        # download_report_pttb_ngung_psc(page_baocao)
-        # download_report_pttb_hoan_cong(page_baocao)
+        # #Tải báo cáo PTTB
+        print("\n=== Bắt đầu tải báo cáo ngưng, psc Fiber===")
+        download_report_pttb_ngung_psc(page_baocao)
+        download_report_pttb_hoan_cong(page_baocao)
 
-        # #Tải báo cáo MyTV
-        # download_report_mytv_ngung_psc(page_baocao)
-        # download_report_mytv_hoan_cong(page_baocao)
+        #Tải báo cáo MyTV
+        print("\n=== Bắt đầu tải báo cáo ngưng, psc MyTV===")
+        download_report_mytv_ngung_psc(page_baocao)
+        download_report_mytv_hoan_cong(page_baocao)
+
+        # #Tải báo cáo ngưng psc fiber tháng t-1 Sơn Tây
+        print("\n=== Bắt đầu tải báo cáo ngưng psc fiber tháng t-1 Sơn Tây===")
+        download_report_ngung_psc_fiber_thang_t_1_son_tay(page_baocao)
+
+        #Tải báo cáo ngưng psc MyTV tháng t-1 Hanoi
+        print("\n=== Bắt đầu tải báo cáo ngưng psc MyTV tháng t-1 ===")
+        download_report_ngung_psc_mytv_thang_t_1_son_tay(page_baocao)
+
+        # Bắt đầu xử lý các báo cáo ngưng, hoàn công, thực tăng
+        print("\n=== Bắt đầu xử lý các báo cáo ngưng, hoàn công, thực tăng ===")
+        process_ngung_psc_report()
+        process_hoan_cong_report()
+        create_thuc_tang_report()
+        process_mytv_ngung_psc_report()
+        process_mytv_hoan_cong_report()
+        create_mytv_thuc_tang_report()
+        process_son_tay_ngung_psc_report()
+        process_son_tay_mytv_ngung_psc_report()
+
+
+
         # #Tải báo cáo thu hồi vật tư
         # print("\n=== Bắt đầu tải báo cáo vật tư thu hồi===")
         # download_report_vattu_thuhoi(page_baocao)
@@ -413,27 +495,7 @@ def main():
         playwright_baocao.stop()
         logger.add_note("Đã đóng trình duyệt")
 
-        # # Xử lý báo cáo PTTB Ngưng PSC
-        # process_ngung_psc_report()
-        # # Xử lý báo cáo PTTB Hoàn công
-        # process_hoan_cong_report()
-        # # Tạo báo cáo PTTB Thực tăng
-        # create_thuc_tang_report()
 
-
-        # # Xử lý báo cáo MyTV Ngưng PSC
-        # process_mytv_ngung_psc_report()
-        # # Xử lý báo cáo MyTV Hoàn công
-        # process_mytv_hoan_cong_report()
-        # # Tạo báo cáo MyTV Thực tăng
-        # create_mytv_thuc_tang_report()
-
-        # #xử lý các báo cáo KR 
-        # print("\n=== Bắt đầu xử lý các báo cáo KR ===")
-        # process_KR6_report_NVKT()
-        # process_KR6_report_tong_hop()
-        # process_KR7_report_NVKT()
-        # process_KR7_report_tong_hop()
 
         # #xử lý báo cáo thu hồi vật tư
         # print("\n=== Bắt đầu xử lý báo cáo vật tư thu hồi ===")

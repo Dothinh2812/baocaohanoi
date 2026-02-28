@@ -35,6 +35,112 @@ def add_tt_column(df):
     return df_copy
 
 
+def format_excel_detail(file_path, df):
+    """
+    Định dạng file Excel chi tiết NVKT:
+    - Kẻ bảng với borders
+    - Điều chỉnh độ rộng cột tự động
+    - Wrap text
+    - Tô màu cột SA cho các giá trị trùng lặp
+    """
+    from openpyxl import load_workbook
+    from openpyxl.styles import Border, Side, Alignment, PatternFill, Font
+    from openpyxl.utils import get_column_letter
+    
+    try:
+        wb = load_workbook(file_path)
+        ws = wb.active
+        
+        # Định nghĩa border
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Header style
+        header_fill = PatternFill(start_color='4472C4', end_color='4472C4', fill_type='solid')
+        header_font = Font(bold=True, color='FFFFFF')
+        
+        # Các màu để tô SA trùng lặp
+        sa_colors = [
+            'FFFF99',  # Vàng nhạt
+            'FFCCCC',  # Hồng nhạt
+            'CCFFCC',  # Xanh lá nhạt
+            'CCCCFF',  # Tím nhạt
+            'FFCC99',  # Cam nhạt
+            'CCFFFF',  # Cyan nhạt
+            'FF99CC',  # Hồng đậm hơn
+            '99CCFF',  # Xanh dương nhạt
+        ]
+        
+        # Tìm cột SA
+        sa_col_idx = None
+        for idx, cell in enumerate(ws[1], 1):
+            if cell.value == 'SA':
+                sa_col_idx = idx
+                break
+        
+        # Đếm các giá trị SA và tìm các giá trị trùng lặp
+        sa_duplicates = {}
+        if sa_col_idx and len(df) > 0 and 'SA' in df.columns:
+            sa_counts = df['SA'].value_counts()
+            duplicate_sas = sa_counts[sa_counts > 1].index.tolist()
+            for i, sa_val in enumerate(duplicate_sas):
+                sa_duplicates[sa_val] = sa_colors[i % len(sa_colors)]
+        
+        # Áp dụng định dạng cho từng ô
+        for row_idx, row in enumerate(ws.iter_rows(min_row=1, max_row=ws.max_row, 
+                                                     min_col=1, max_col=ws.max_column), 1):
+            for col_idx, cell in enumerate(row, 1):
+                # Border cho tất cả các ô
+                cell.border = thin_border
+                # Alignment wrap text và center vertical
+                cell.alignment = Alignment(wrap_text=True, vertical='center')
+                
+                # Header row
+                if row_idx == 1:
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = Alignment(wrap_text=True, vertical='center', horizontal='center')
+                else:
+                    # Tô màu cột SA nếu là giá trị trùng lặp
+                    if col_idx == sa_col_idx and cell.value in sa_duplicates:
+                        color = sa_duplicates[cell.value]
+                        cell.fill = PatternFill(start_color=color, end_color=color, fill_type='solid')
+        
+        # Điều chỉnh độ rộng cột tự động
+        column_widths = {
+            'TT': 5,
+            'MA_TB': 18,
+            'TEN_TB_ONE': 25,
+            'DIACHI_ONE': 35,
+            'DT_ONE': 12,
+            'NGAY_SUYHAO': 12,
+            'THIETBI': 25,
+            'SA': 28,
+            'KETCUOI': 18,
+        }
+        
+        for col_idx, cell in enumerate(ws[1], 1):
+            col_letter = get_column_letter(col_idx)
+            col_name = cell.value
+            if col_name in column_widths:
+                ws.column_dimensions[col_letter].width = column_widths[col_name]
+            else:
+                ws.column_dimensions[col_letter].width = 15
+        
+        # Đặt chiều cao hàng header
+        ws.row_dimensions[1].height = 25
+        
+        wb.save(file_path)
+        return True
+    except Exception as e:
+        print(f"⚠️ Lỗi format Excel: {e}")
+        return False
+
+
 def process_I15_report_with_tracking(force_update=False):
     """Wrapper for K1 report"""
     input_file = os.path.join("downloads", "baocao_hanoi", "I1.5 report.xlsx")
@@ -298,8 +404,10 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
             print(f"  Ngày {report_date}: {len(df)} thuê bao")
 
             # Phân loại (loại bỏ NaN/None)
-            if 'ACCOUNT_CTS' in df.columns:
-                accounts_today = set([x for x in df['ACCOUNT_CTS'].tolist() if pd.notna(x) and str(x).strip() != ''])
+            # Hỗ trợ cả ACCOUNT_CTS (từ file gốc) và MA_TB (từ i15_cts_converter)
+            account_col = 'ACCOUNT_CTS' if 'ACCOUNT_CTS' in df.columns else 'MA_TB'
+            if account_col in df.columns:
+                accounts_today = set([x for x in df[account_col].tolist() if pd.notna(x) and str(x).strip() != ''])
             else:
                 accounts_today = set()
 
@@ -318,8 +426,8 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
             print(f"  ↔️  VẪN CÒN: {len(van_con_set)} thuê bao")
 
             # Tạo DataFrame cho từng loại
-            df_tang_moi = df[df['ACCOUNT_CTS'].isin(tang_moi_set)].copy() if len(tang_moi_set) > 0 else pd.DataFrame()
-            df_van_con = df[df['ACCOUNT_CTS'].isin(van_con_set)].copy() if len(van_con_set) > 0 else pd.DataFrame()
+            df_tang_moi = df[df[account_col].isin(tang_moi_set)].copy() if len(tang_moi_set) > 0 else pd.DataFrame()
+            df_van_con = df[df[account_col].isin(van_con_set)].copy() if len(van_con_set) > 0 else pd.DataFrame()
 
             # Lấy thông tin GIẢM/HẾT từ database
             if len(giam_het_set) > 0:
@@ -345,7 +453,7 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
 
                 df_van_con = df_van_con.merge(
                     tracking_data,
-                    left_on='ACCOUNT_CTS',
+                    left_on=account_col,
                     right_on='account_cts',
                     how='left'
                 )
@@ -366,7 +474,7 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
             inserted = 0
             skipped = 0
             for idx, row in df.iterrows():
-                account = row.get('ACCOUNT_CTS')
+                account = row.get(account_col)
                 if pd.isna(account) or account is None or str(account).strip() == '':
                     skipped += 1
                     continue
@@ -399,7 +507,7 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
             print(f"\n✓ Đang cập nhật bảng tracking...")
 
             for account in tang_moi_set:
-                df_filtered = df[df['ACCOUNT_CTS'] == account]
+                df_filtered = df[df[account_col] == account]
                 if len(df_filtered) > 0:
                     row_data = df_filtered.iloc[0]
                     cursor.execute("""
@@ -437,6 +545,8 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
             def save_changes(df_changes, loai):
                 for _, row in df_changes.iterrows():
                     so_ngay = row.get('so_ngay_lien_tuc', 1) if loai != 'TANG_MOI' else 1
+                    # Hỗ trợ cả ACCOUNT_CTS và MA_TB
+                    account_val = row.get('ACCOUNT_CTS') or row.get('account_cts') or row.get('MA_TB') or row.get('ma_tb')
                     cursor.execute("""
                         INSERT INTO suy_hao_daily_changes (
                             ngay_bao_cao, account_cts, loai_bien_dong,
@@ -444,13 +554,13 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
                             ten_tb_one, dt_onediachi_one, olt_cts, port_cts, thietbi, ketcuoi
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
-                        report_date, row.get('ACCOUNT_CTS') or row.get('account_cts'), loai,
+                        report_date, account_val, loai,
                         row.get('DOI_ONE') or row.get('doi_one'),
                         row.get('NVKT_DB') or row.get('nvkt_db'),
                         row.get('NVKT_DB_NORMALIZED') or row.get('nvkt_db_normalized'),
                         row.get('SA') or row.get('sa'), so_ngay,
                         row.get('TEN_TB_ONE') or row.get('ten_tb_one'),
-                        row.get('DT_ONEDIACHI_ONE') or row.get('dt_onediachi_one'),
+                        row.get('DT_ONEDIACHI_ONE') or row.get('dt_onediachi_one') or row.get('DT_ONE'),
                         row.get('OLT_CTS') or row.get('olt_cts'),
                         row.get('PORT_CTS') or row.get('port_cts'),
                         row.get('THIETBI') or row.get('thietbi'),
@@ -599,8 +709,8 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
 
         # Danh sách chi tiết cho từng NVKT_DB
         print("\n✓ Đang tạo danh sách chi tiết cho từng NVKT_DB...")
-        columns_to_keep = ['ACCOUNT_CTS', 'TEN_TB_ONE', 'DIACHI_ONE', 'DT_ONEDIACHI_ONE', 'NGAY_SUYHAO',
-                          'OLT_CTS', 'PORT_CTS', 'THIETBI', 'SA', 'KETCUOI', 'NVKT_DB_NORMALIZED']
+        columns_to_keep = ['MA_TB', 'ACCOUNT_CTS', 'TEN_TB_ONE', 'DIACHI_ONE', 'DT_ONE', 'DT_ONEDIACHI_ONE', 'NGAY_SUYHAO',
+                          'THIETBI', 'SA', 'KETCUOI', 'NVKT_DB_NORMALIZED']
         missing_cols = [col for col in columns_to_keep if col not in df.columns]
         if missing_cols:
             print(f"⚠️ Không tìm thấy các cột: {', '.join(missing_cols)}")
@@ -679,8 +789,8 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
             print(f"✓ Đã tạo thư mục: {detail_dir}")
 
         # Lấy danh sách các cột cần thiết cho file chi tiết
-        detail_columns = ['ACCOUNT_CTS', 'TEN_TB_ONE', 'DIACHI_ONE', 'DT_ONEDIACHI_ONE', 'NGAY_SUYHAO',
-                         'OLT_CTS', 'PORT_CTS', 'THIETBI', 'SA', 'KETCUOI']
+        detail_columns = ['MA_TB', 'ACCOUNT_CTS', 'TEN_TB_ONE', 'DIACHI_ONE', 'DT_ONE', 'DT_ONEDIACHI_ONE', 'NGAY_SUYHAO',
+                         'THIETBI', 'SA', 'KETCUOI']
         detail_columns = [c for c in detail_columns if c in df.columns]
 
         # Đếm số file đã tạo
@@ -719,7 +829,10 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
                     file_path = os.path.join(doi_dir, file_name)
 
                     # Ghi file Excel với cột TT
-                    add_tt_column(df_nvkt_detail).to_excel(file_path, index=False, sheet_name='Chi tiết SHC')
+                    df_formatted = add_tt_column(df_nvkt_detail)
+                    df_formatted.to_excel(file_path, index=False, sheet_name='Chi tiết SHC')
+                    # Định dạng file Excel
+                    format_excel_detail(file_path, df_formatted)
                     file_count += 1
 
             print(f"✅ Đã tạo {file_count} file Excel chi tiết trong thư mục {detail_dir}")

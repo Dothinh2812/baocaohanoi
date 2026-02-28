@@ -182,7 +182,8 @@ def doc_C11_TP1(data_folder):
     File: SM2-C11.xlsx, Sheet: TH_SM2
     """
     file_path = Path(data_folder) / "SM2-C11.xlsx"
-    df = pd.read_excel(file_path, sheet_name="TH_SM2")
+    #df = pd.read_excel(file_path, sheet_name="TH_SM2") #theo công thức của bc HN
+    df = pd.read_excel(file_path, sheet_name="CT_C1.1_TP1") #đọc từ dữ liệu thực đã KP
     
     # Lấy các cột cần thiết
     df = df[['TEN_DOI', 'NVKT', 'Tổng phiếu', 'Phiếu đạt', 'Tỉ lệ đạt (%)']].copy()

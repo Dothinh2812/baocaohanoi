@@ -2141,7 +2141,8 @@ def download_report_c15_chitiet(page_baocao):
         print("="*80)
 
         # Bước 1: Truy cập URL
-        url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=1&pdonvi_id=284656&pthoigianid=98944771"
+        #url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=1&pdonvi_id=284656&pthoigianid=98944771"
+        url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=3&pdonvi_id=284656&pthoigianid=98944630"
         print(f"\n✓ Đang truy cập: {url}")
         page_baocao.goto(url, wait_until="networkidle", timeout=500000)
         time.sleep(20)

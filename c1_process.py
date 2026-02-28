@@ -2447,13 +2447,13 @@ def process_c12_chitiet_report_SM1SM2():
     - Tạo sheet 'TH_phieu_hong_lai_7_ngay' với các cột:
       - TEN_DOI: Tên đội
       - NVKT: Tên NVKT (chuẩn hóa từ TEN_KV)
-      - Số phiếu HLL: (đếm số bản ghi từng NVKT) / 2
+      - Số phiếu HLL: Đếm số MA_TB duy nhất từng NVKT
 
     Bước 2: Đọc file SM2-C12.xlsx
     - Tạo sheet 'Tong_phieu_bao_hong_thang' với các cột:
       - TEN_DOI: Tên đội
       - NVKT: Tên NVKT (chuẩn hóa từ TEN_KV)
-      - Số phiếu báo hỏng: Tổng số bản ghi theo NVKT
+      - Số phiếu báo hỏng: Đếm số MA_TB duy nhất theo NVKT
 
     Bước 3: Tổng hợp và tạo sheet TH_SM1C12_HLL_Thang trong SM1-C12.xlsx
     - Merge dữ liệu từ cả 2 file SM1 và SM2
@@ -2483,6 +2483,12 @@ def process_c12_chitiet_report_SM1SM2():
         # Kiểm tra cột TEN_KV
         if 'TEN_KV' not in df.columns:
             print(f"❌ Không tìm thấy cột 'TEN_KV' trong file")
+            print(f"Các cột hiện có: {', '.join(df.columns)}")
+            return False
+
+        # Kiểm tra cột MA_TB
+        if 'MA_TB' not in df.columns:
+            print(f"❌ Không tìm thấy cột 'MA_TB' trong file")
             print(f"Các cột hiện có: {', '.join(df.columns)}")
             return False
 
@@ -2545,11 +2551,8 @@ def process_c12_chitiet_report_SM1SM2():
                 # Lọc dữ liệu theo TEN_DOI và NVKT
                 df_group = df[(df['TEN_DOI'] == ten_doi) & (df['NVKT'] == nvkt)]
 
-                # Số bản ghi
-                so_ban_ghi = len(df_group)
-
-                # Số phiếu HLL = (số bản ghi) / 2, làm tròn lên
-                so_phieu_hll = math.ceil(so_ban_ghi / 2)
+                # Số phiếu HLL = Đếm số MA_TB duy nhất
+                so_phieu_hll = df_group['MA_TB'].nunique()
 
                 report_data.append({
                     'TEN_DOI': ten_doi,
@@ -2565,11 +2568,8 @@ def process_c12_chitiet_report_SM1SM2():
                 # Lọc dữ liệu theo NVKT
                 df_nvkt = df[df['NVKT'] == nvkt]
 
-                # Số bản ghi
-                so_ban_ghi = len(df_nvkt)
-
-                # Số phiếu HLL = (số bản ghi) / 2, làm tròn lên
-                so_phieu_hll = math.ceil(so_ban_ghi / 2)
+                # Số phiếu HLL = Đếm số MA_TB duy nhất
+                so_phieu_hll = df_nvkt['MA_TB'].nunique()
 
                 report_data.append({
                     'NVKT': nvkt,
@@ -2637,6 +2637,11 @@ def process_c12_chitiet_report_SM1SM2():
             print(f"❌ Không tìm thấy cột 'TEN_KV' trong file SM2-C12")
             return False
 
+        # Kiểm tra cột MA_TB
+        if 'MA_TB' not in df_sm2.columns:
+            print(f"❌ Không tìm thấy cột 'MA_TB' trong file SM2-C12")
+            return False
+
         # Kiểm tra cột TEN_DOI
         if 'TEN_DOI' not in df_sm2.columns:
             print(f"⚠️ Cảnh báo: Không tìm thấy cột 'TEN_DOI' trong file SM2-C12")
@@ -2670,8 +2675,8 @@ def process_c12_chitiet_report_SM1SM2():
                 # Lọc dữ liệu theo TEN_DOI và NVKT
                 df_group = df_sm2[(df_sm2['TEN_DOI'] == ten_doi) & (df_sm2['NVKT'] == nvkt)]
 
-                # Số phiếu báo hỏng = tổng số bản ghi
-                so_phieu_bao_hong = len(df_group)
+                # Số phiếu báo hỏng = Đếm số MA_TB duy nhất
+                so_phieu_bao_hong = df_group['MA_TB'].nunique()
 
                 report_data_sm2.append({
                     'TEN_DOI': ten_doi,
@@ -2687,8 +2692,8 @@ def process_c12_chitiet_report_SM1SM2():
                 # Lọc dữ liệu theo NVKT
                 df_nvkt = df_sm2[df_sm2['NVKT'] == nvkt]
 
-                # Số phiếu báo hỏng = tổng số bản ghi
-                so_phieu_bao_hong = len(df_nvkt)
+                # Số phiếu báo hỏng = Đếm số MA_TB duy nhất
+                so_phieu_bao_hong = df_nvkt['MA_TB'].nunique()
 
                 report_data_sm2.append({
                     'NVKT': nvkt,
@@ -3133,19 +3138,844 @@ def process_I15_k2_report(force_update=False):
     return process_I15_k2_report_with_tracking(force_update=force_update)
 
 
+def process_c11_ct_tp1_72h():
+    """
+    Xử lý báo cáo chi tiết C1.1 TP1 dựa trên cột TG (Thời gian sửa chữa):
+    - Đọc Sheet1 từ file SM2-C11.xlsx
+    - Lọc bỏ các dòng có TG = NULL
+    - Tính phiếu đạt: TG < 72 giờ → đạt, TG >= 72 giờ → không đạt
+    - Tổng hợp theo TEN_DOI và NVKT
+    - Tạo sheet mới CT_C1.1_TP1 với cấu trúc giống TH_SM2
+    
+    Returns:
+        True nếu thành công, False nếu có lỗi
+    """
+    try:
+        print("\n" + "="*80)
+        print("BẮT ĐẦU XỬ LÝ BÁO CÁO CHI TIẾT C1.1 TP1 (72H) - THEO CỘT TG")
+        print("="*80)
+        
+        # Đường dẫn file
+        input_file = os.path.join("downloads", "baocao_hanoi", "SM2-C11.xlsx")
+        
+        if not os.path.exists(input_file):
+            print(f"❌ Không tìm thấy file: {input_file}")
+            return False
+        
+        print(f"\n✓ Đang đọc Sheet1 từ file: {input_file}")
+        
+        # Đọc Sheet1 (dữ liệu chi tiết)
+        df = pd.read_excel(input_file, sheet_name='Sheet1')
+        print(f"✅ Đã đọc Sheet1, tổng số dòng: {len(df)}")
+        
+        # Kiểm tra cột TG
+        if 'TG' not in df.columns:
+            print(f"❌ Không tìm thấy cột 'TG' trong Sheet1")
+            print(f"Các cột hiện có: {', '.join(df.columns)}")
+            return False
+        
+        # Kiểm tra các cột cần thiết
+        if 'TEN_DOI' not in df.columns:
+            print(f"⚠️ Cảnh báo: Không tìm thấy cột 'TEN_DOI'")
+            has_ten_doi = False
+        else:
+            has_ten_doi = True
+        
+        # Kiểm tra cột TEN_KV để trích xuất NVKT
+        if 'TEN_KV' not in df.columns:
+            print(f"❌ Không tìm thấy cột 'TEN_KV' để trích xuất NVKT")
+            return False
+        
+        print(f"\n✓ Số dòng ban đầu: {len(df)}")
+        
+        # Lọc bỏ các dòng có TG = NULL
+        df_filtered = df[df['TG'].notna()].copy()
+        print(f"✓ Số dòng sau khi loại bỏ TG = NULL: {len(df_filtered)}")
+        print(f"  - Đã loại bỏ {len(df) - len(df_filtered)} dòng có TG = NULL")
+        
+        # Hàm trích xuất NVKT từ TEN_KV
+        def extract_nvkt_name(ten_kv):
+            """
+            Trích xuất tên NVKT từ cột TEN_KV
+            Ví dụ:
+            - Sơn Lộc 1 - Nguyễn Thành Sơn -> Nguyễn Thành Sơn
+            - Tây Đằng 03 - Bùi văn Cường -> Bùi văn Cường
+            """
+            if pd.isna(ten_kv):
+                return None
+            
+            ten_kv = str(ten_kv).strip()
+            
+            # Trường hợp có dấu "-"
+            if '-' in ten_kv:
+                # Lấy phần sau dấu "-" cuối cùng
+                parts = ten_kv.split('-')
+                nvkt_name = parts[-1].strip()
+            else:
+                nvkt_name = ten_kv
+            
+            # Loại bỏ phần trong ngoặc đơn
+            if '(' in nvkt_name:
+                nvkt_name = nvkt_name.split('(')[0].strip()
+            
+            return nvkt_name
+        
+        # Chuẩn hóa tên NVKT
+        print("\n✓ Đang trích xuất và chuẩn hóa tên NVKT từ TEN_KV...")
+        df_filtered['NVKT'] = df_filtered['TEN_KV'].apply(extract_nvkt_name)
+        df_filtered['NVKT'] = df_filtered['NVKT'].str.strip().str.title()
+        
+        # Tính phiếu đạt/không đạt dựa trên TG < 72
+        print("✓ Đang tính phiếu đạt/không đạt dựa trên ngưỡng TG < 72 giờ...")
+        df_filtered['Phieu_dat'] = (df_filtered['TG'] < 72).astype(int)
+        df_filtered['Phieu_khong_dat'] = (df_filtered['TG'] >= 72).astype(int)
+        
+        # Tổng hợp theo TEN_DOI và NVKT
+        print("\n✓ Đang tổng hợp theo TEN_DOI và NVKT...")
+        
+        report_data = []
+        
+        if has_ten_doi:
+            # Nhóm theo cả TEN_DOI và NVKT
+            for (ten_doi, nvkt) in df_filtered.groupby(['TEN_DOI', 'NVKT']).groups.keys():
+                if pd.isna(nvkt):
+                    continue
+                
+                # Lọc dữ liệu theo TEN_DOI và NVKT
+                df_group = df_filtered[(df_filtered['TEN_DOI'] == ten_doi) & (df_filtered['NVKT'] == nvkt)]
+                
+                # Tổng số phiếu
+                tong_phieu = len(df_group)
+                
+                # Số phiếu đạt (TG < 72)
+                phieu_dat = df_group['Phieu_dat'].sum()
+                
+                # Số phiếu không đạt (TG >= 72)
+                phieu_khong_dat = df_group['Phieu_khong_dat'].sum()
+                
+                # Tỉ lệ đạt
+                ty_le_dat = round((phieu_dat / tong_phieu * 100), 2) if tong_phieu > 0 else 0
+                
+                report_data.append({
+                    'TEN_DOI': ten_doi,
+                    'NVKT': nvkt,
+                    'Tổng phiếu': tong_phieu,
+                    'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
+                    'Tỉ lệ đạt (%)': ty_le_dat
+                })
+        else:
+            # Chỉ nhóm theo NVKT
+            for nvkt in df_filtered['NVKT'].unique():
+                if pd.isna(nvkt):
+                    continue
+                
+                # Lọc dữ liệu theo NVKT
+                df_nvkt = df_filtered[df_filtered['NVKT'] == nvkt]
+                
+                # Tổng số phiếu
+                tong_phieu = len(df_nvkt)
+                
+                # Số phiếu đạt (TG < 72)
+                phieu_dat = df_nvkt['Phieu_dat'].sum()
+                
+                # Số phiếu không đạt (TG >= 72)
+                phieu_khong_dat = df_nvkt['Phieu_khong_dat'].sum()
+                
+                # Tỉ lệ đạt
+                ty_le_dat = round((phieu_dat / tong_phieu * 100), 2) if tong_phieu > 0 else 0
+                
+                report_data.append({
+                    'NVKT': nvkt,
+                    'Tổng phiếu': tong_phieu,
+                    'Phiếu đạt': phieu_dat,
+                    'Phiếu không đạt': phieu_khong_dat,
+                    'Tỉ lệ đạt (%)': ty_le_dat
+                })
+        
+        # Tạo DataFrame từ dữ liệu tổng hợp
+        df_report = pd.DataFrame(report_data)
+        
+        # Sắp xếp theo TEN_DOI và NVKT (hoặc chỉ NVKT)
+        if has_ten_doi:
+            df_report = df_report.sort_values(['TEN_DOI', 'NVKT']).reset_index(drop=True)
+            print(f"✅ Đã tạo báo cáo cho {len(df_report)} nhóm TEN_DOI - NVKT")
+        else:
+            df_report = df_report.sort_values('NVKT').reset_index(drop=True)
+            print(f"✅ Đã tạo báo cáo cho {len(df_report)} NVKT")
+        
+        # Ghi vào sheet mới CT_C1.1_TP1
+        print("\n✓ Đang ghi vào sheet mới 'CT_C1.1_TP1'...")
+        
+        with pd.ExcelWriter(input_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df_report.to_excel(writer, sheet_name='CT_C1.1_TP1', index=False)
+        
+        print(f"✅ Đã ghi dữ liệu vào sheet 'CT_C1.1_TP1'")
+        
+        # In thống kê tổng quan
+        print("\n" + "-"*80)
+        print("THỐNG KÊ TỔNG QUAN:")
+        if has_ten_doi:
+            print(f"  - Tổng số TEN_DOI: {df_report['TEN_DOI'].nunique()}")
+            print(f"  - Tổng số nhóm TEN_DOI - NVKT: {len(df_report)}")
+        else:
+            print(f"  - Tổng số NVKT: {len(df_report)}")
+        print(f"  - Tổng số phiếu (có TG): {df_report['Tổng phiếu'].sum()}")
+        print(f"  - Tổng số phiếu đạt (TG < 72h): {df_report['Phiếu đạt'].sum()}")
+        print(f"  - Tổng số phiếu không đạt (TG >= 72h): {df_report['Phiếu không đạt'].sum()}")
+        ty_le_dat_tb = round((df_report['Phiếu đạt'].sum() / df_report['Tổng phiếu'].sum() * 100), 2) if df_report['Tổng phiếu'].sum() > 0 else 0
+        print(f"  - Tỷ lệ đạt trung bình: {ty_le_dat_tb}%")
+        print("-"*80)
+        
+        print("\n" + "="*80)
+        print("✅ HOÀN THÀNH XỬ LÝ BÁO CÁO CHI TIẾT C1.1 TP1 (72H)")
+        print("="*80)
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Lỗi khi xử lý báo cáo chi tiết C1.1 TP1 (72h): {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def process_c15_ti_le_khong_dat():
+    """
+    Tính toán các tỉ lệ phiếu không đạt cho C1.5:
+    
+    Đọc sheet 'KQ_C15_chitiet' từ file c1.5_chitiet_report.xlsx và tính:
+    1. Tỉ lệ phiếu không đạt của từng cá nhân/tổng phiếu không đạt của tổ
+    2. Tổng phiếu không đạt của từng tổ/ tổng phiếu không đạt của toàn trung tâm
+    3. Tỉ lệ phiếu không đạt của từng cá nhân/tổng phiếu không đạt của toàn trung tâm
+    4. Tỉ lệ phiếu không đạt/tổng phiếu hoàn công (%)
+    
+    Kết quả được ghi vào sheet mới 'Ti_Le_Khong_Dat' trong cùng file c1.5_chitiet_report.xlsx
+    """
+    try:
+        print("\n" + "="*80)
+        print("BẮT ĐẦU TÍNH TOÁN TỈ LỆ PHIẾU KHÔNG ĐẠT C1.5")
+        print("="*80)
+        
+        # Đường dẫn file
+        input_file = os.path.join("downloads", "baocao_hanoi", "c1.5_chitiet_report.xlsx")
+        
+        if not os.path.exists(input_file):
+            print(f"❌ Không tìm thấy file: {input_file}")
+            return False
+        
+        print(f"\n✓ Đang đọc sheet 'KQ_C15_chitiet' từ file: {input_file}")
+        
+        # Đọc sheet KQ_C15_chitiet
+        try:
+            df = pd.read_excel(input_file, sheet_name='KQ_C15_chitiet')
+            print(f"✅ Đã đọc sheet, tổng số dòng: {len(df)}")
+        except Exception as e:
+            print(f"❌ Không thể đọc sheet 'KQ_C15_chitiet': {e}")
+            print("⚠️ Vui lòng chạy hàm process_c15_chitiet_report() trước")
+            return False
+        
+        # Kiểm tra các cột cần thiết
+        required_columns = ['NVKT', 'Tổng Hoàn công', 'Phiếu đạt', 'Phiếu không đạt']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            print(f"❌ Không tìm thấy các cột: {', '.join(missing_columns)}")
+            print(f"Các cột hiện có: {', '.join(df.columns)}")
+            return False
+        
+        # Kiểm tra xem có cột DOIVT không
+        has_doivt = 'DOIVT' in df.columns
+        
+        if not has_doivt:
+            print("❌ Không tìm thấy cột 'DOIVT' - Không thể tính tỉ lệ theo tổ")
+            return False
+        
+        print("\n✓ Đang tính toán các tỉ lệ phiếu không đạt...")
+        
+        # Tính tổng số phiếu không đạt của toàn trung tâm
+        tong_khong_dat_trung_tam = df['Phiếu không đạt'].sum()
+        print(f"  - Tổng số phiếu không đạt toàn trung tâm: {tong_khong_dat_trung_tam}")
+        
+        # Tính tổng số phiếu không đạt của từng tổ
+        df_to = df.groupby('DOIVT')['Phiếu không đạt'].sum().reset_index()
+        df_to.columns = ['DOIVT', 'Tổng không đạt tổ']
+        
+        print(f"  - Số lượng tổ: {len(df_to)}")
+        
+        # Merge để thêm cột "Tổng không đạt tổ" vào dataframe gốc
+        df_result = pd.merge(df, df_to, on='DOIVT', how='left')
+        
+        # Tính các tỉ lệ
+        # 1. Tỉ lệ cá nhân/tổ (%)
+        df_result['Tỉ lệ cá nhân/tổ (%)'] = df_result.apply(
+            lambda row: round((row['Phiếu không đạt'] / row['Tổng không đạt tổ'] * 100), 2) 
+            if row['Tổng không đạt tổ'] > 0 else 0,
+            axis=1
+        )
+        
+        # 2. Tỉ lệ tổ/trung tâm (%)
+        df_result['Tỉ lệ tổ/trung tâm (%)'] = df_result.apply(
+            lambda row: round((row['Tổng không đạt tổ'] / tong_khong_dat_trung_tam * 100), 2)
+            if tong_khong_dat_trung_tam > 0 else 0,
+            axis=1
+        )
+        
+        # 3. Tỉ lệ cá nhân/trung tâm (%)
+        df_result['Tỉ lệ cá nhân/trung tâm (%)'] = df_result.apply(
+            lambda row: round((row['Phiếu không đạt'] / tong_khong_dat_trung_tam * 100), 2)
+            if tong_khong_dat_trung_tam > 0 else 0,
+            axis=1
+        )
+        
+        # 4. Tỉ lệ không đạt/tổng phiếu hoàn công (%)
+        df_result['Tỉ lệ không đạt/tổng (%)'] = df_result.apply(
+            lambda row: round((row['Phiếu không đạt'] / row['Tổng Hoàn công'] * 100), 2)
+            if row['Tổng Hoàn công'] > 0 else 0,
+            axis=1
+        )
+        
+        print(f"✅ Đã tính toán các tỉ lệ cho {len(df_result)} NVKT")
+        
+        # Chọn các cột cần hiển thị
+        output_columns = [
+            'DOIVT',
+            'NVKT',
+            'Tổng Hoàn công',
+            'Phiếu đạt',
+            'Phiếu không đạt',
+            'Tỉ lệ không đạt/tổng (%)',
+            'Tổng không đạt tổ',
+            'Tỉ lệ cá nhân/tổ (%)',
+            'Tỉ lệ tổ/trung tâm (%)',
+            'Tỉ lệ cá nhân/trung tâm (%)'
+        ]
+        
+        # Thêm cột 'Tỉ lệ đạt (%)' nếu có
+        if 'Tỉ lệ đạt (%)' in df_result.columns:
+            output_columns.insert(5, 'Tỉ lệ đạt (%)')
+        
+        df_output = df_result[output_columns].copy()
+        
+        # Sắp xếp theo DOIVT và NVKT
+        df_output = df_output.sort_values(['DOIVT', 'NVKT']).reset_index(drop=True)
+        
+        # Ghi vào sheet mới 'Ti_Le_Khong_Dat'
+        print("\n✓ Đang ghi vào sheet mới 'Ti_Le_Khong_Dat'...")
+        
+        with pd.ExcelWriter(input_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df_output.to_excel(writer, sheet_name='Ti_Le_Khong_Dat', index=False)
+        
+        print(f"✅ Đã ghi dữ liệu vào sheet 'Ti_Le_Khong_Dat'")
+        
+        # In thống kê tổng quan
+        print("\n" + "-"*80)
+        print("THỐNG KÊ TỔNG QUAN:")
+        print(f"  - Tổng số tổ: {df_output['DOIVT'].nunique()}")
+        print(f"  - Tổng số NVKT: {len(df_output)}")
+        print(f"  - Tổng số phiếu hoàn công toàn trung tâm: {df_output['Tổng Hoàn công'].sum()}")
+        print(f"  - Tổng số phiếu đạt toàn trung tâm: {df_output['Phiếu đạt'].sum()}")
+        print(f"  - Tổng số phiếu không đạt toàn trung tâm: {tong_khong_dat_trung_tam}")
+        print(f"  - Tỉ lệ không đạt/tổng trung bình: {df_output['Tỉ lệ không đạt/tổng (%)'].mean():.2f}%")
+        print(f"  - Tỉ lệ cá nhân/tổ trung bình: {df_output['Tỉ lệ cá nhân/tổ (%)'].mean():.2f}%")
+        print(f"  - Tỉ lệ cá nhân/trung tâm trung bình: {df_output['Tỉ lệ cá nhân/trung tâm (%)'].mean():.2f}%")
+        print("-"*80)
+        
+        # In một vài dòng mẫu
+        print("\n📊 Một số dòng dữ liệu mẫu:")
+        print(df_output.head(10).to_string(index=False))
+        
+        print("\n" + "="*80)
+        print("✅ HOÀN THÀNH TÍNH TOÁN TỈ LỆ PHIẾU KHÔNG ĐẠT C1.5")
+        print("="*80)
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Lỗi khi tính toán tỉ lệ phiếu không đạt C1.5: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def process_c14_ti_le_khl():
+    """
+    Tính toán các tỉ lệ phiếu KHL (Không hài lòng) cho C1.4:
+    
+    Đọc sheet 'TH_HL_NVKT' từ file c1.4_chitiet_report.xlsx và tính:
+    1. Tỉ lệ phiếu KHL của từng cá nhân/tổng phiếu KHL của tổ
+    2. Tổng phiếu KHL của từng tổ/ tổng phiếu KHL của toàn trung tâm
+    3. Tỉ lệ phiếu KHL của từng cá nhân/tổng phiếu KHL của toàn trung tâm
+    4. Tỉ lệ phiếu KHL/tổng phiếu KS thành công (%)
+    
+    Kết quả được ghi vào sheet mới 'Ti_Le_KHL' trong cùng file c1.4_chitiet_report.xlsx
+    """
+    try:
+        print("\n" + "="*80)
+        print("BẮT ĐẦU TÍNH TOÁN TỈ LỆ PHIẾU KHL (KHÔNG HÀI LÒNG) C1.4")
+        print("="*80)
+        
+        # Đường dẫn file
+        input_file = os.path.join("downloads", "baocao_hanoi", "c1.4_chitiet_report.xlsx")
+        
+        if not os.path.exists(input_file):
+            print(f"❌ Không tìm thấy file: {input_file}")
+            return False
+        
+        print(f"\n✓ Đang đọc sheet 'TH_HL_NVKT' từ file: {input_file}")
+        
+        # Đọc sheet TH_HL_NVKT
+        try:
+            df = pd.read_excel(input_file, sheet_name='TH_HL_NVKT')
+            print(f"✅ Đã đọc sheet, tổng số dòng: {len(df)}")
+        except Exception as e:
+            print(f"❌ Không thể đọc sheet 'TH_HL_NVKT': {e}")
+            print("⚠️ Vui lòng chạy hàm process_c14_chitiet_report() trước")
+            return False
+        
+        # Kiểm tra các cột cần thiết
+        required_columns = ['NVKT', 'Tổng phiếu KS thành công', 'Tổng phiếu KHL']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            print(f"❌ Không tìm thấy các cột: {', '.join(missing_columns)}")
+            print(f"Các cột hiện có: {', '.join(df.columns)}")
+            return False
+        
+        # Kiểm tra xem có cột DOIVT không
+        has_doivt = 'DOIVT' in df.columns
+        
+        if not has_doivt:
+            print("❌ Không tìm thấy cột 'DOIVT' - Không thể tính tỉ lệ theo tổ")
+            return False
+        
+        print("\n✓ Đang tính toán các tỉ lệ KHL...")
+        
+        # Tính tổng số phiếu KHL của toàn trung tâm
+        tong_khl_trung_tam = df['Tổng phiếu KHL'].sum()
+        print(f"  - Tổng số phiếu KHL toàn trung tâm: {tong_khl_trung_tam}")
+        
+        # Tính tổng số phiếu KHL của từng tổ
+        df_to = df.groupby('DOIVT')['Tổng phiếu KHL'].sum().reset_index()
+        df_to.columns = ['DOIVT', 'Tổng KHL tổ']
+        
+        print(f"  - Số lượng tổ: {len(df_to)}")
+        
+        # Merge để thêm cột "Tổng KHL tổ" vào dataframe gốc
+        df_result = pd.merge(df, df_to, on='DOIVT', how='left')
+        
+        # Tính các tỉ lệ
+        # 1. Tỉ lệ cá nhân/tổ (%)
+        df_result['Tỉ lệ cá nhân/tổ (%)'] = df_result.apply(
+            lambda row: round((row['Tổng phiếu KHL'] / row['Tổng KHL tổ'] * 100), 2) 
+            if row['Tổng KHL tổ'] > 0 else 0,
+            axis=1
+        )
+        
+        # 2. Tỉ lệ tổ/trung tâm (%)
+        df_result['Tỉ lệ tổ/trung tâm (%)'] = df_result.apply(
+            lambda row: round((row['Tổng KHL tổ'] / tong_khl_trung_tam * 100), 2)
+            if tong_khl_trung_tam > 0 else 0,
+            axis=1
+        )
+        
+        # 3. Tỉ lệ cá nhân/trung tâm (%)
+        df_result['Tỉ lệ cá nhân/trung tâm (%)'] = df_result.apply(
+            lambda row: round((row['Tổng phiếu KHL'] / tong_khl_trung_tam * 100), 2)
+            if tong_khl_trung_tam > 0 else 0,
+            axis=1
+        )
+        
+        # 4. Tỉ lệ KHL/tổng phiếu KS thành công (%)
+        df_result['Tỉ lệ KHL/tổng KS (%)'] = df_result.apply(
+            lambda row: round((row['Tổng phiếu KHL'] / row['Tổng phiếu KS thành công'] * 100), 2)
+            if row['Tổng phiếu KS thành công'] > 0 else 0,
+            axis=1
+        )
+        
+        print(f"✅ Đã tính toán các tỉ lệ cho {len(df_result)} NVKT")
+        
+        # Chọn các cột cần hiển thị
+        output_columns = [
+            'DOIVT',
+            'NVKT',
+            'Tổng phiếu KS thành công',
+            'Tổng phiếu KHL',
+            'Tỉ lệ KHL/tổng KS (%)',
+            'Tổng KHL tổ',
+            'Tỉ lệ cá nhân/tổ (%)',
+            'Tỉ lệ tổ/trung tâm (%)',
+            'Tỉ lệ cá nhân/trung tâm (%)'
+        ]
+        
+        # Thêm cột 'Tỉ lệ HL NVKT (%)' nếu có
+        if 'Tỉ lệ HL NVKT (%)' in df_result.columns:
+            output_columns.insert(4, 'Tỉ lệ HL NVKT (%)')
+        
+        df_output = df_result[output_columns].copy()
+        
+        # Sắp xếp theo DOIVT và NVKT
+        df_output = df_output.sort_values(['DOIVT', 'NVKT']).reset_index(drop=True)
+        
+        # Ghi vào sheet mới 'Ti_Le_KHL'
+        print("\n✓ Đang ghi vào sheet mới 'Ti_Le_KHL'...")
+        
+        with pd.ExcelWriter(input_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df_output.to_excel(writer, sheet_name='Ti_Le_KHL', index=False)
+        
+        print(f"✅ Đã ghi dữ liệu vào sheet 'Ti_Le_KHL'")
+        
+        # In thống kê tổng quan
+        print("\n" + "-"*80)
+        print("THỐNG KÊ TỔNG QUAN:")
+        print(f"  - Tổng số tổ: {df_output['DOIVT'].nunique()}")
+        print(f"  - Tổng số NVKT: {len(df_output)}")
+        print(f"  - Tổng số phiếu KS thành công toàn trung tâm: {df_output['Tổng phiếu KS thành công'].sum()}")
+        print(f"  - Tổng số phiếu KHL toàn trung tâm: {tong_khl_trung_tam}")
+        print(f"  - Tỉ lệ KHL/tổng KS trung bình: {df_output['Tỉ lệ KHL/tổng KS (%)'].mean():.2f}%")
+        print(f"  - Tỉ lệ cá nhân/tổ trung bình: {df_output['Tỉ lệ cá nhân/tổ (%)'].mean():.2f}%")
+        print(f"  - Tỉ lệ cá nhân/trung tâm trung bình: {df_output['Tỉ lệ cá nhân/trung tâm (%)'].mean():.2f}%")
+        print("-"*80)
+        
+        # In một vài dòng mẫu
+        print("\n📊 Một số dòng dữ liệu mẫu:")
+        print(df_output.head(10).to_string(index=False))
+        
+        print("\n" + "="*80)
+        print("✅ HOÀN THÀNH TÍNH TOÁN TỈ LỆ PHIẾU KHL C1.4")
+        print("="*80)
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Lỗi khi tính toán tỉ lệ phiếu KHL: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def process_c11_ti_le_khong_dat():
+    """
+    Tính toán các tỉ lệ phiếu không đạt cho C1.1:
+    
+    Đọc sheet 'chi_tiet' từ file SM4-C11.xlsx và tính:
+    1. Số phiếu không đạt = Tổng phiếu - Số phiếu đạt
+    2. Tỉ lệ phiếu không đạt của từng cá nhân/tổng phiếu không đạt của tổ
+    3. Tổng phiếu không đạt của từng tổ/ tổng phiếu không đạt của toàn trung tâm
+    4. Tỉ lệ phiếu không đạt của từng cá nhân/tổng phiếu không đạt của toàn trung tâm
+    
+    Kết quả được ghi vào sheet mới 'Ti_Le_Khong_Dat' trong cùng file SM4-C11.xlsx
+    """
+    try:
+        print("\n" + "="*80)
+        print("BẮT ĐẦU TÍNH TOÁN TỈ LỆ PHIẾU KHÔNG ĐẠT C1.1")
+        print("="*80)
+        
+        # Đường dẫn file
+        input_file = os.path.join("downloads", "baocao_hanoi", "SM4-C11.xlsx")
+        
+        if not os.path.exists(input_file):
+            print(f"❌ Không tìm thấy file: {input_file}")
+            return False
+        
+        print(f"\n✓ Đang đọc sheet 'chi_tiet' từ file: {input_file}")
+        
+        # Đọc sheet chi_tiet
+        try:
+            df = pd.read_excel(input_file, sheet_name='chi_tiet')
+            print(f"✅ Đã đọc sheet, tổng số dòng: {len(df)}")
+        except Exception as e:
+            print(f"❌ Không thể đọc sheet 'chi_tiet': {e}")
+            print("⚠️ Vui lòng chạy hàm process_c11_chitiet_report() trước")
+            return False
+        
+        # Kiểm tra các cột cần thiết
+        required_columns = ['NVKT', 'Tổng phiếu', 'Số phiếu đạt']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            print(f"❌ Không tìm thấy các cột: {', '.join(missing_columns)}")
+            print(f"Các cột hiện có: {', '.join(df.columns)}")
+            return False
+        
+        # Kiểm tra xem có cột TEN_DOI không
+        has_ten_doi = 'TEN_DOI' in df.columns
+        
+        if not has_ten_doi:
+            print("❌ Không tìm thấy cột 'TEN_DOI' - Không thể tính tỉ lệ theo tổ")
+            return False
+        
+        print("\n✓ Đang tính toán phiếu không đạt và các tỉ lệ...")
+        
+        # Tính số phiếu không đạt
+        df['Số phiếu không đạt'] = df['Tổng phiếu'] - df['Số phiếu đạt']
+        
+        # Tính tổng số phiếu không đạt của toàn trung tâm
+        tong_khong_dat_trung_tam = df['Số phiếu không đạt'].sum()
+        print(f"  - Tổng số phiếu không đạt toàn trung tâm: {tong_khong_dat_trung_tam}")
+        
+        # Tính tổng số phiếu không đạt của từng tổ
+        df_to = df.groupby('TEN_DOI')['Số phiếu không đạt'].sum().reset_index()
+        df_to.columns = ['TEN_DOI', 'Tổng không đạt tổ']
+        
+        print(f"  - Số lượng tổ: {len(df_to)}")
+        
+        # Merge để thêm cột "Tổng không đạt tổ" vào dataframe gốc
+        df_result = pd.merge(df, df_to, on='TEN_DOI', how='left')
+        
+        # Tính các tỉ lệ
+        # 1. Tỉ lệ cá nhân/tổ (%)
+        df_result['Tỉ lệ cá nhân/tổ (%)'] = df_result.apply(
+            lambda row: round((row['Số phiếu không đạt'] / row['Tổng không đạt tổ'] * 100), 2) 
+            if row['Tổng không đạt tổ'] > 0 else 0,
+            axis=1
+        )
+        
+        # 2. Tỉ lệ tổ/trung tâm (%)
+        df_result['Tỉ lệ tổ/trung tâm (%)'] = df_result.apply(
+            lambda row: round((row['Tổng không đạt tổ'] / tong_khong_dat_trung_tam * 100), 2)
+            if tong_khong_dat_trung_tam > 0 else 0,
+            axis=1
+        )
+        
+        # 3. Tỉ lệ cá nhân/trung tâm (%)
+        df_result['Tỉ lệ cá nhân/trung tâm (%)'] = df_result.apply(
+            lambda row: round((row['Số phiếu không đạt'] / tong_khong_dat_trung_tam * 100), 2)
+            if tong_khong_dat_trung_tam > 0 else 0,
+            axis=1
+        )
+        
+        # 4. Tỉ lệ phiếu không đạt/tổng phiếu (%)
+        df_result['Tỉ lệ không đạt/tổng (%)'] = df_result.apply(
+            lambda row: round((row['Số phiếu không đạt'] / row['Tổng phiếu'] * 100), 2)
+            if row['Tổng phiếu'] > 0 else 0,
+            axis=1
+        )
+        
+        print(f"✅ Đã tính toán các tỉ lệ cho {len(df_result)} NVKT")
+        
+        # Chọn các cột cần hiển thị
+        output_columns = [
+            'TEN_DOI',
+            'NVKT',
+            'Tổng phiếu',
+            'Số phiếu đạt',
+            'Số phiếu không đạt',
+            'Tỉ lệ không đạt/tổng (%)',
+            'Tổng không đạt tổ',
+            'Tỉ lệ cá nhân/tổ (%)',
+            'Tỉ lệ tổ/trung tâm (%)',
+            'Tỉ lệ cá nhân/trung tâm (%)'
+        ]
+        
+        # Thêm cột 'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn' nếu có
+        if 'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn' in df_result.columns:
+            output_columns.insert(5, 'Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn')
+        
+        df_output = df_result[output_columns].copy()
+        
+        # Sắp xếp theo TEN_DOI và NVKT
+        df_output = df_output.sort_values(['TEN_DOI', 'NVKT']).reset_index(drop=True)
+        
+        # Ghi vào sheet mới 'Ti_Le_Khong_Dat'
+        print("\n✓ Đang ghi vào sheet mới 'Ti_Le_Khong_Dat'...")
+        
+        with pd.ExcelWriter(input_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df_output.to_excel(writer, sheet_name='Ti_Le_Khong_Dat', index=False)
+        
+        print(f"✅ Đã ghi dữ liệu vào sheet 'Ti_Le_Khong_Dat'")
+        
+        # In thống kê tổng quan
+        print("\n" + "-"*80)
+        print("THỐNG KÊ TỔNG QUAN:")
+        print(f"  - Tổng số tổ: {df_output['TEN_DOI'].nunique()}")
+        print(f"  - Tổng số NVKT: {len(df_output)}")
+        print(f"  - Tổng số phiếu toàn trung tâm: {df_output['Tổng phiếu'].sum()}")
+        print(f"  - Tổng số phiếu đạt toàn trung tâm: {df_output['Số phiếu đạt'].sum()}")
+        print(f"  - Tổng số phiếu không đạt toàn trung tâm: {tong_khong_dat_trung_tam}")
+        print(f"  - Tỉ lệ không đạt/tổng trung bình: {df_output['Tỉ lệ không đạt/tổng (%)'].mean():.2f}%")
+        print(f"  - Tỉ lệ cá nhân/tổ trung bình: {df_output['Tỉ lệ cá nhân/tổ (%)'].mean():.2f}%")
+        print(f"  - Tỉ lệ cá nhân/trung tâm trung bình: {df_output['Tỉ lệ cá nhân/trung tâm (%)'].mean():.2f}%")
+        print("-"*80)
+        
+        # In một vài dòng mẫu
+        print("\n📊 Một số dòng dữ liệu mẫu:")
+        print(df_output.head(10).to_string(index=False))
+        
+        print("\n" + "="*80)
+        print("✅ HOÀN THÀNH TÍNH TOÁN TỈ LỆ PHIẾU KHÔNG ĐẠT C1.1")
+        print("="*80)
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Lỗi khi tính toán tỉ lệ phiếu không đạt: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def process_c12_ti_le_hll():
+    """
+    Tính toán các tỉ lệ HLL (Hỏng lặp lại) cho C1.2:
+    
+    Đọc sheet 'TH_SM1C12_HLL_Thang' từ file SM1-C12.xlsx và tính:
+    1. Tỉ lệ Số phiếu HLL của từng cá nhân/tổng số phiếu HLL của tổ
+    2. Tổng số phiếu HLL của từng tổ/ tổng số phiếu HLL của toàn trung tâm
+    3. Tỉ lệ Số phiếu HLL của từng cá nhân/tổng số phiếu HLL của toàn trung tâm
+    
+    Kết quả được ghi vào sheet mới 'Ti_Le_HLL' trong cùng file SM1-C12.xlsx
+    """
+    try:
+        print("\n" + "="*80)
+        print("BẮT ĐẦU TÍNH TOÁN TỈ LỆ HLL C1.2")
+        print("="*80)
+        
+        # Đường dẫn file
+        input_file = os.path.join("downloads", "baocao_hanoi", "SM1-C12.xlsx")
+        
+        if not os.path.exists(input_file):
+            print(f"❌ Không tìm thấy file: {input_file}")
+            return False
+        
+        print(f"\n✓ Đang đọc sheet 'TH_SM1C12_HLL_Thang' từ file: {input_file}")
+        
+        # Đọc sheet TH_SM1C12_HLL_Thang
+        try:
+            df = pd.read_excel(input_file, sheet_name='TH_SM1C12_HLL_Thang')
+            print(f"✅ Đã đọc sheet, tổng số dòng: {len(df)}")
+        except Exception as e:
+            print(f"❌ Không thể đọc sheet 'TH_SM1C12_HLL_Thang': {e}")
+            print("⚠️ Vui lòng chạy hàm process_c12_chitiet_report_SM1SM2() trước")
+            return False
+        
+        # Kiểm tra các cột cần thiết
+        required_columns = ['NVKT', 'Số phiếu HLL']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            print(f"❌ Không tìm thấy các cột: {', '.join(missing_columns)}")
+            print(f"Các cột hiện có: {', '.join(df.columns)}")
+            return False
+        
+        # Kiểm tra xem có cột TEN_DOI không
+        has_ten_doi = 'TEN_DOI' in df.columns
+        
+        if not has_ten_doi:
+            print("❌ Không tìm thấy cột 'TEN_DOI' - Không thể tính tỉ lệ theo tổ")
+            return False
+        
+        print("\n✓ Đang tính toán các tỉ lệ HLL...")
+        
+        # Tính tổng số phiếu HLL của toàn trung tâm
+        tong_hll_trung_tam = df['Số phiếu HLL'].sum()
+        print(f"  - Tổng số phiếu HLL toàn trung tâm: {tong_hll_trung_tam}")
+        
+        # Tính tổng số phiếu HLL của từng tổ
+        df_to = df.groupby('TEN_DOI')['Số phiếu HLL'].sum().reset_index()
+        df_to.columns = ['TEN_DOI', 'Tổng HLL tổ']
+        
+        print(f"  - Số lượng tổ: {len(df_to)}")
+        
+        # Merge để thêm cột "Tổng HLL tổ" vào dataframe gốc
+        df_result = pd.merge(df, df_to, on='TEN_DOI', how='left')
+        
+        # Tính các tỉ lệ
+        # 1. Tỉ lệ cá nhân/tổ (%)
+        df_result['Tỉ lệ cá nhân/tổ (%)'] = df_result.apply(
+            lambda row: round((row['Số phiếu HLL'] / row['Tổng HLL tổ'] * 100), 2) 
+            if row['Tổng HLL tổ'] > 0 else 0,
+            axis=1
+        )
+        
+        # 2. Tỉ lệ tổ/trung tâm (%)
+        df_result['Tỉ lệ tổ/trung tâm (%)'] = df_result.apply(
+            lambda row: round((row['Tổng HLL tổ'] / tong_hll_trung_tam * 100), 2)
+            if tong_hll_trung_tam > 0 else 0,
+            axis=1
+        )
+        
+        # 3. Tỉ lệ cá nhân/trung tâm (%)
+        df_result['Tỉ lệ cá nhân/trung tâm (%)'] = df_result.apply(
+            lambda row: round((row['Số phiếu HLL'] / tong_hll_trung_tam * 100), 2)
+            if tong_hll_trung_tam > 0 else 0,
+            axis=1
+        )
+        
+        print(f"✅ Đã tính toán các tỉ lệ cho {len(df_result)} NVKT")
+        
+        # Chọn các cột cần hiển thị
+        output_columns = [
+            'TEN_DOI',
+            'NVKT',
+            'Số phiếu HLL',
+            'Tổng HLL tổ',
+            'Tỉ lệ cá nhân/tổ (%)',
+            'Tỉ lệ tổ/trung tâm (%)',
+            'Tỉ lệ cá nhân/trung tâm (%)'
+        ]
+        
+        # Thêm cột 'Số phiếu báo hỏng' nếu có
+        if 'Số phiếu báo hỏng' in df_result.columns:
+            output_columns.insert(3, 'Số phiếu báo hỏng')
+        
+        # Thêm cột 'Tỉ lệ HLL tháng (2.5%)' nếu có
+        if 'Tỉ lệ HLL tháng (2.5%)' in df_result.columns:
+            output_columns.append('Tỉ lệ HLL tháng (2.5%)')
+        
+        df_output = df_result[output_columns].copy()
+        
+        # Sắp xếp theo TEN_DOI và NVKT
+        df_output = df_output.sort_values(['TEN_DOI', 'NVKT']).reset_index(drop=True)
+        
+        # Ghi vào sheet mới 'Ti_Le_HLL'
+        print("\n✓ Đang ghi vào sheet mới 'Ti_Le_HLL'...")
+        
+        with pd.ExcelWriter(input_file, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df_output.to_excel(writer, sheet_name='Ti_Le_HLL', index=False)
+        
+        print(f"✅ Đã ghi dữ liệu vào sheet 'Ti_Le_HLL'")
+        
+        # In thống kê tổng quan
+        print("\n" + "-"*80)
+        print("THỐNG KÊ TỔNG QUAN:")
+        print(f"  - Tổng số tổ: {df_output['TEN_DOI'].nunique()}")
+        print(f"  - Tổng số NVKT: {len(df_output)}")
+        print(f"  - Tổng số phiếu HLL toàn trung tâm: {tong_hll_trung_tam}")
+        print(f"  - Tỉ lệ cá nhân/tổ trung bình: {df_output['Tỉ lệ cá nhân/tổ (%)'].mean():.2f}%")
+        print(f"  - Tỉ lệ cá nhân/trung tâm trung bình: {df_output['Tỉ lệ cá nhân/trung tâm (%)'].mean():.2f}%")
+        print("-"*80)
+        
+        # In một vài dòng mẫu
+        print("\n📊 Một số dòng dữ liệu mẫu:")
+        print(df_output.head(10).to_string(index=False))
+        
+        print("\n" + "="*80)
+        print("✅ HOÀN THÀNH TÍNH TOÁN TỈ LỆ HLL C1.2")
+        print("="*80)
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Lỗi khi tính toán tỉ lệ HLL: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 if __name__ == "__main__":
     #Test các hàm xử lý
-    # process_c11_report()
-    # process_c12_report()
-    # process_c13_report()
-    # process_c14_report()
-    # process_c14_chitiet_report()
-    # process_c15_chitiet_report()
-    # process_c15_report()
-    # process_I15_report()
-    # process_c11_chitiet_report_SM2()
-    # process_c12_chitiet_report_SM1SM2()
-    # process_c11_chitiet_report()
-    # process_c12_ti_le_bao_hong()
+    process_c11_report()
+    process_c12_report()
+    process_c13_report()
+    process_c14_report()
+    process_c14_chitiet_report()
+    process_c15_chitiet_report()
+    process_c15_report()
+    process_I15_report()
+    process_c11_chitiet_report_SM2()
+    process_c12_chitiet_report_SM1SM2()
+    process_c11_chitiet_report()
+    process_c12_ti_le_bao_hong()
     process_I15_report()
     process_I15_k2_report()

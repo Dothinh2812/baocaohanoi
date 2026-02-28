@@ -4,7 +4,7 @@ Module chứa các hàm download báo cáo thực tăng PTTB và MyTV
 """
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import quote
 from config import Config
 
@@ -18,8 +18,9 @@ def download_report_pttb_ngung_psc(page_baocao):
     """
     print("\n=== Bắt đầu tải báo cáo PTTB Ngưng PSC ===")
 
-    # Lấy ngày hiện tại và format theo định dạng dd/mm/yyyy
-    current_date = datetime.now().strftime("%d/%m/%Y")
+    # Lấy ngày T-1 (hôm qua) vì số liệu chỉ có đến ngày T-1
+    yesterday = datetime.now() - timedelta(days=1)
+    current_date = yesterday.strftime("%d/%m/%Y")
     # Encode ngày cho URL (/ -> %2F)
     encoded_date = quote(current_date, safe='')
 
@@ -51,14 +52,14 @@ def download_report_pttb_ngung_psc(page_baocao):
         print("Đang thử tìm bằng selector khác...")
         # Có thể thêm selector khác nếu cần
 
-    # Tìm và click button "2.Tất cả dữ liệu"
-    print("Đang tìm và click '2.Tất cả dữ liệu'...")
+    # Tìm và click button "3.Database"
+    print("Đang tìm và click '3.Database'...")
     try:
-        all_data_button = page_baocao.get_by_text("2.Tất cả dữ liệu", exact=False)
+        all_data_button = page_baocao.get_by_text("3.Database", exact=False)
         all_data_button.wait_for(state="visible", timeout=15000)
 
         # Đảm bảo thư mục downloads tồn tại
-        download_dir = os.path.join("downloads", "baocao_hanoi")
+        download_dir = "PTTB-PSC"
         os.makedirs(download_dir, exist_ok=True)
 
         # Tạo tên file theo format: ngung_psc_DDMMYYYY.xlsx
@@ -87,8 +88,9 @@ def download_report_pttb_hoan_cong(page_baocao):
     """
     print("\n=== Bắt đầu tải báo cáo PTTB Hoàn công ===")
 
-    # Lấy ngày hiện tại và format theo định dạng dd/mm/yyyy
-    current_date = datetime.now().strftime("%d/%m/%Y")
+    # Lấy ngày T-1 (hôm qua) vì số liệu chỉ có đến ngày T-1
+    yesterday = datetime.now() - timedelta(days=1)
+    current_date = yesterday.strftime("%d/%m/%Y")
     # Encode ngày cho URL (/ -> %2F)
     encoded_date = quote(current_date, safe='')
 
@@ -120,14 +122,14 @@ def download_report_pttb_hoan_cong(page_baocao):
         print("Đang thử tìm bằng selector khác...")
         # Có thể thêm selector khác nếu cần
 
-    # Tìm và click button "2.Tất cả dữ liệu"
-    print("Đang tìm và click '2.Tất cả dữ liệu'...")
+    # Tìm và click button "3.Database"
+    print("Đang tìm và click '3.Database'...")
     try:
-        all_data_button = page_baocao.get_by_text("2.Tất cả dữ liệu", exact=False)
+        all_data_button = page_baocao.get_by_text("3.Database", exact=False)
         all_data_button.wait_for(state="visible", timeout=15000)
 
         # Đảm bảo thư mục downloads tồn tại
-        download_dir = os.path.join("downloads", "baocao_hanoi")
+        download_dir = "PTTB-PSC"
         os.makedirs(download_dir, exist_ok=True)
 
         # Tạo tên file theo format: hoan_cong_DDMMYYYY.xlsx
@@ -156,8 +158,9 @@ def download_report_mytv_hoan_cong(page_baocao):
     """
     print("\n=== Bắt đầu tải báo cáo MyTV Hoàn công ===")
 
-    # Lấy ngày hiện tại và format theo định dạng dd/mm/yyyy
-    current_date = datetime.now().strftime("%d/%m/%Y")
+    # Lấy ngày T-1 (hôm qua) vì số liệu chỉ có đến ngày T-1
+    yesterday = datetime.now() - timedelta(days=1)
+    current_date = yesterday.strftime("%d/%m/%Y")
     # Encode ngày cho URL (/ -> %2F)
     encoded_date = quote(current_date, safe='')
 
@@ -190,14 +193,14 @@ def download_report_mytv_hoan_cong(page_baocao):
         print("Đang thử tìm bằng selector khác...")
         # Có thể thêm selector khác nếu cần
 
-    # Tìm và click button "2.Tất cả dữ liệu"
-    print("Đang tìm và click '2.Tất cả dữ liệu'...")
+    # Tìm và click button "3.Database"
+    print("Đang tìm và click '3.Database'...")
     try:
-        all_data_button = page_baocao.get_by_text("2.Tất cả dữ liệu", exact=False)
+        all_data_button = page_baocao.get_by_text("3.Database", exact=False)
         all_data_button.wait_for(state="visible", timeout=15000)
 
         # Đảm bảo thư mục downloads tồn tại
-        download_dir = os.path.join("downloads", "baocao_hanoi")
+        download_dir = "PTTB-PSC"
         os.makedirs(download_dir, exist_ok=True)
 
         # Tạo tên file theo format: mytv_hoan_cong_DDMMYYYY.xlsx
@@ -226,8 +229,9 @@ def download_report_mytv_ngung_psc(page_baocao):
     """
     print("\n=== Bắt đầu tải báo cáo MyTV Ngưng PSC ===")
 
-    # Lấy ngày hiện tại và format theo định dạng dd/mm/yyyy
-    current_date = datetime.now().strftime("%d/%m/%Y")
+    # Lấy ngày T-1 (hôm qua) vì số liệu chỉ có đến ngày T-1
+    yesterday = datetime.now() - timedelta(days=1)
+    current_date = yesterday.strftime("%d/%m/%Y")
     # Encode ngày cho URL (/ -> %2F)
     encoded_date = quote(current_date, safe='')
 
@@ -260,14 +264,14 @@ def download_report_mytv_ngung_psc(page_baocao):
         print("Đang thử tìm bằng selector khác...")
         # Có thể thêm selector khác nếu cần
 
-    # Tìm và click button "2.Tất cả dữ liệu"
-    print("Đang tìm và click '2.Tất cả dữ liệu'...")
+    # Tìm và click button "3.Database"
+    print("Đang tìm và click '3.Database'...")
     try:
-        all_data_button = page_baocao.get_by_text("2.Tất cả dữ liệu", exact=False)
+        all_data_button = page_baocao.get_by_text("3.Database", exact=False)
         all_data_button.wait_for(state="visible", timeout=15000)
 
         # Đảm bảo thư mục downloads tồn tại
-        download_dir = os.path.join("downloads", "baocao_hanoi")
+        download_dir = "PTTB-PSC"
         os.makedirs(download_dir, exist_ok=True)
 
         # Tạo tên file theo format: mytv_ngung_psc_DDMMYYYY.xlsx
@@ -285,3 +289,199 @@ def download_report_mytv_ngung_psc(page_baocao):
 
     except Exception as e:
         print(f"❌ Lỗi khi tải file: {e}")
+
+
+def download_report_ngung_psc_fiber_thang_t_1_son_tay(page_baocao):
+    """
+    Tải báo cáo Sơn Tây từ trang đã chỉ định
+
+    Args:
+        page_baocao: Đối tượng page đã đăng nhập
+    """
+    print("\n=== Bắt đầu tải báo cáo Sơn Tây ===")
+    url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187"
+    print(f"Đang truy cập: {url}")
+    page_baocao.goto(url, timeout=Config.NETWORK_IDLE_TIMEOUT)
+
+    # Đợi trang load
+    page_baocao.wait_for_load_state("networkidle", timeout=Config.NETWORK_IDLE_TIMEOUT)
+    time.sleep(5)
+
+    try:
+        # Tìm và click dropdown treeview
+        print("Đang mở dropdown...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[3]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/button").click()
+        time.sleep(2)
+
+        # Type "ttvt sơn tây" vào input
+        print("Đang nhập 'ttvt sơn tây'...")
+        input_selector = "xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[3]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/div/div/ngx-treeview/div[1]/div[1]/div/input"
+        page_baocao.locator(input_selector).fill("ttvt sơn tây")
+        time.sleep(2)
+
+        # Chọn "ttvt sơn tây"
+        print("Đang chọn 'ttvt sơn tây'...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[3]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/div/div/ngx-treeview/div[2]/div/ngx-treeview-item/div/div[2]/ngx-treeview-item/div/div/span").click()
+        time.sleep(2)
+
+        # Click "Xem báo cáo"
+        print("Đang click 'Xem báo cáo'...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[2]/button").click()
+        time.sleep(5)
+
+        # Click dropdown để xuất file
+        print("Đang click dropdown xuất file...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[2]/div/button").click()
+        time.sleep(2)
+
+        # Đảm bảo thư mục downloads tồn tại
+        download_dir = "PTTB-PSC"
+        os.makedirs(download_dir, exist_ok=True)
+
+        # Tải file
+        print("Đang tải file...")
+        date_str = datetime.now().strftime("%d%m%Y")
+        save_path = os.path.join(download_dir, f"ngung_psc_fiber_thang_t-1_sontay_{date_str}.xlsx")
+
+        with page_baocao.expect_download(timeout=300000) as download_info:
+            page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[2]/div/div/i[2]").click()
+
+        download = download_info.value
+        download.save_as(save_path)
+        print(f"✅ Đã tải file về: {save_path}")
+
+    except Exception as e:
+        print(f"❌ Lỗi khi tải báo cáo Sơn Tây: {e}")
+
+
+def download_report_ngung_psc_mytv_thang_t_1_son_tay(page_baocao):
+    """
+    Tải báo cáo MyTV Sơn Tây (Ngưng PSC Tháng T-1) từ trang đã chỉ định
+
+    Args:
+        page_baocao: Đối tượng page đã đăng nhập
+    """
+    print("\n=== Bắt đầu tải báo cáo MyTV Sơn Tây ===")
+    url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187"
+    print(f"Đang truy cập: {url}")
+    page_baocao.goto(url, timeout=Config.NETWORK_IDLE_TIMEOUT)
+
+    # Đợi trang load
+    page_baocao.wait_for_load_state("networkidle", timeout=Config.NETWORK_IDLE_TIMEOUT)
+    time.sleep(5)
+
+    try:
+        # Tìm và click dropdown treeview (đơn vị)
+        print("Đang mở dropdown đơn vị...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[3]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/button").click()
+        time.sleep(2)
+
+        # Type "ttvt sơn tây" vào input
+        print("Đang nhập 'ttvt sơn tây'...")
+        input_selector = "xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[3]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/div/div/ngx-treeview/div[1]/div[1]/div/input"
+        page_baocao.locator(input_selector).fill("ttvt sơn tây")
+        time.sleep(2)
+
+        # Chọn "ttvt sơn tây"
+        print("Đang chọn 'ttvt sơn tây'...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[3]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/div/div/ngx-treeview/div[2]/div/ngx-treeview-item/div/div[2]/ngx-treeview-item/div/div/span").click()
+        time.sleep(2)
+
+        # Chọn loại dịch vụ MyTV
+        print("Đang mở dropdown loại dịch vụ...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[1]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/button").click()
+        time.sleep(2)
+
+        print("Đang chọn MyTV...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[1]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/div/div/ngx-treeview/div[2]/div/ngx-treeview-item[2]/div/div[1]/span").click()
+        time.sleep(2)
+
+        # Click "Xem báo cáo"
+        print("Đang click 'Xem báo cáo'...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[2]/button").click()
+        time.sleep(5)
+
+        # Click dropdown để xuất file
+        print("Đang click dropdown xuất file...")
+        page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[2]/div/button").click()
+        time.sleep(2)
+
+        # Đảm bảo thư mục downloads tồn tại
+        download_dir = "PTTB-PSC"
+        os.makedirs(download_dir, exist_ok=True)
+
+        # Tải file
+        print("Đang tải file...")
+        date_str = datetime.now().strftime("%d%m%Y")
+        save_path = os.path.join(download_dir, f"ngung_psc_mytv_thang_t-1_sontay_{date_str}.xlsx")
+
+        with page_baocao.expect_download(timeout=300000) as download_info:
+            page_baocao.locator("xpath=/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[2]/div/div/i[2]").click()
+
+        download = download_info.value
+        download.save_as(save_path)
+        print(f"✅ Đã tải file về: {save_path}")
+
+    except Exception as e:
+        print(f"❌ Lỗi khi tải báo cáo MyTV Sơn Tây: {e}")
+
+
+def main():
+    """
+    Hàm main để chạy standalone - tải tất cả báo cáo thực tăng
+    """
+    try:
+        # Import login function
+        from login import login_baocao_hanoi
+
+        print("=== Bắt đầu tải báo cáo Thực tăng ===")
+
+        # Đăng nhập
+        print("\n1. Đăng nhập vào hệ thống...")
+        page_baocao, browser_baocao, playwright_baocao = login_baocao_hanoi()
+        print("✅ Đăng nhập thành công!")
+
+        # Tải các báo cáo
+        print("\n2. Tải báo cáo PTTB Ngưng PSC...")
+        download_report_pttb_ngung_psc(page_baocao)
+
+        print("\n3. Tải báo cáo PTTB Hoàn công...")
+        download_report_pttb_hoan_cong(page_baocao)
+
+        print("\n4. Tải báo cáo MyTV Hoàn công...")
+        download_report_mytv_hoan_cong(page_baocao)
+
+        print("\n5. Tải báo cáo MyTV Ngưng PSC...")
+        download_report_mytv_ngung_psc(page_baocao)
+
+        print("\n6. Tải báo cáo Fiber Sơn Tây...")
+        download_report_ngung_psc_fiber_thang_t_1_son_tay(page_baocao)
+
+        print("\n7. Tải báo cáo MyTV Sơn Tây...")
+        download_report_ngung_psc_mytv_thang_t_1_son_tay(page_baocao)
+
+        print("\n✅ Hoàn thành tải tất cả báo cáo Thực tăng!")
+        print("Các file đã được lưu vào thư mục: PTTB-PSC/")
+
+        # Đóng browser
+        print("\nĐang đóng trình duyệt...")
+        browser_baocao.close()
+        playwright_baocao.stop()
+        print("✅ Đã đóng trình duyệt!")
+
+    except Exception as e:
+        print(f"\n❌ Có lỗi xảy ra: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
+    finally:
+        # Đảm bảo đóng browser
+        try:
+            browser_baocao.close()
+            playwright_baocao.stop()
+        except:
+            pass
+
+
+if __name__ == "__main__":
+    main()
