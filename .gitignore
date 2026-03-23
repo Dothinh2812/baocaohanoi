@@ -1,5 +1,10 @@
 # Environment variables (QUAN TRỌNG - KHÔNG commit file .env!)
 .env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
 # Python
 __pycache__/
@@ -38,7 +43,29 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
+log_message/
 
 # Backup files
 *.bak
 *_backup*
+
+# Secrets / credentials
+*key*.pem
+*key*.json
+*key*.txt
+*secret*
+*.p12
+
+# Generated reports and local data
+GHTT/
+KPI-DOWNLOAD/
+KQ-TIEP-THI/
+PTTB-PSC/
+XAC MINH TAM DUNG/
+KPI_TongHop_NVKT.xlsx
+dsnv.xlsx
+gsshc/*.xlsx
+gsshc/openai-vison-key.txt
+gsshc/vision-key.json
+gsshc/ggsheet-key.json

@@ -1,0 +1,39 @@
+# Google Cloud Vision API
+google-cloud-vision
+
+# Google Cloud Storage
+google-cloud-storage
+
+# FastAPI và server
+fastapi
+uvicorn[standard]
+pydantic
+
+# OpenAI API
+openai
+
+# Google Sheets API
+gspread
+oauth2client
+
+# Telegram Bot
+python-telegram-bot
+
+# Data processing
+pandas
+openpyxl
+
+# HTTP requests
+requests
+
+# Date and time handling
+datetime
+
+# JSON handling (built-in, no need to install)
+# json
+
+# Math operations (built-in, no need to install)
+# math
+
+# OS operations (built-in, no need to install)
+# os

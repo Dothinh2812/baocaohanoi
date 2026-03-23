@@ -14,8 +14,8 @@ class Config:
     """Configuration class to access environment variables"""
 
     # Login credentials
-    BAOCAO_USERNAME = os.getenv('BAOCAO_USERNAME', 'thinhdx.hni')
-    BAOCAO_PASSWORD = os.getenv('BAOCAO_PASSWORD', 'A#f4v5hp')
+    BAOCAO_USERNAME = os.getenv('BAOCAO_USERNAME', '')
+    BAOCAO_PASSWORD = os.getenv('BAOCAO_PASSWORD', '')
     BAOCAO_BASE_URL = os.getenv('BAOCAO_BASE_URL', 'https://baocao.hanoi.vnpt.vn')
 
     # Backward compatibility

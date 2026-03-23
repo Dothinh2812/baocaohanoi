@@ -1,0 +1,31 @@
+🚨 CRITICAL FIX - MUST RESTART APP 🚨
+
+PROBLEM: After GCS upload, Vision API was NOT called
+CAUSE: Wrong webhook URL in telegram_bot.py
+
+FIX APPLIED:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+File: telegram_bot.py (line 19)
+
+BEFORE (WRONG):
+  MAIN_WEBHOOK_URL = "https://your-webhook.example.com/webhook/dhsc-text"
+  ❌ Calls external N8N (doesn't do Vision/OpenAI processing)
+
+AFTER (CORRECT):
+  MAIN_WEBHOOK_URL = "http://localhost:8007/webhook"
+  ✅ Calls local endpoint (triggers Vision API → OpenAI)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TO APPLY FIX:
+  1. pkill -f "python3.*gsmnv"
+  2. cd /home/vtst/s2
+  3. ./run.sh
+
+THEN TEST:
+  Send image to Telegram → Wait 3-5 sec → Check response
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Status: ✅ Code fixed, ⚠️ MUST RESTART to apply

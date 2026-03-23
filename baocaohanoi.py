@@ -85,20 +85,31 @@ from thuc_tang_process import (
 )
 from vat_tu_thu_hoi_download import download_report_vattu_thuhoi
 from vat_tu_thu_hoi_process import vat_tu_thu_hoi_process
+from kpi_download_from_baocaohanoi import (
+     c11_download_report_nvkt,
+     c12_download_report_nvkt,
+     c13_download_report_nvkt
+)
+from kpi_process_from_download_baocaohanoi import (
+     c11_process_report_nvkt,
+     c12_process_report_nvkt,
+)
+from kpi_tonghop_nvkt import main as tao_bao_cao_tonghop_kpi_nvkt
 
+from xac_minh_tam_dung_download import xac_minh_tam_dung_download, xac_minh_tam_dung_process, send_warning_tam_dung_xac_minh
 # =============================================================================
 # CẤU HÌNH NGÀY BÁO CÁO CHI TIẾT (SM4-C11, SM2-C11, SM1-C12, SM2-C12)
 # Định dạng: "dd/mm/yyyy" hoặc None (mặc định: ngày đầu/cuối tháng hiện tại)
 # =============================================================================
-start_date = "26/01/2026"  # Từ ngày (None = ngày đầu tháng hiện tại)
-end_date = "25/02/2026"     # Đến ngày (None = ngày cuối tháng hiện tại)
+start_date = "26/02/2026"  # Từ ngày (None = ngày đầu tháng hiện tại)
+end_date = "25/03/2026"     # Đến ngày (None = ngày cuối tháng hiện tại)
 
 # =============================================================================
 # CẤU HÌNH THÁNG BÁO CÁO (C1.1, C1.2, C1.3, C1.4, C1.5, C1.4 chi tiết, C1.5 chi tiết)
 # Định dạng: "Tháng MM/YYYY" hoặc None (mặc định: tháng hiện tại)
 # Ví dụ: "Tháng 12/2025", "Tháng 01/2026"
 # =============================================================================
-report_month = "Tháng 02/2026"  # Tháng báo cáo (None = tháng hiện tại)
+report_month = "Tháng 03/2026"  # Tháng báo cáo (None = tháng hiện tại)
 
 # =============================================================================
 # CẤU HÌNH GIẢM TRỪ PHIẾU BÁO HỎNG
@@ -317,6 +328,18 @@ def main():
         page_baocao, browser_baocao, playwright_baocao = login_baocao_hanoi()
         logger.add_note("Đăng nhập thành công")
 
+        #tải các báo cáo KPI NVKT chi tiết từ baocaohanoi để làm dữ liệu đầu vào cho báo cáo tổng hợp KPI NVKT
+        c11_download_report_nvkt(page_baocao, report_month)
+        c12_download_report_nvkt(page_baocao, report_month)
+        c13_download_report_nvkt(page_baocao, report_month)
+        #Bắt đầu xử lý các báo cáo KPI C11 và c12
+        c11_process_report_nvkt()
+        c12_process_report_nvkt()
+        logger.add_note(
+            "Đã hoàn tất nhóm dữ liệu đầu vào KPI NVKT từ baocaohanoi (C11/C12/C13); "
+            "báo cáo tổng hợp sẽ được tạo sau khi các nguồn còn lại hoàn tất"
+        )
+
         # #Tải báo cáo PTTB
         print("\n=== Bắt đầu tải báo cáo ngưng, psc Fiber===")
         download_report_pttb_ngung_psc(page_baocao)
@@ -346,6 +369,16 @@ def main():
         process_son_tay_ngung_psc_report()
         process_son_tay_mytv_ngung_psc_report()
 
+        #tải báo cáo xác minh tạm dừng
+        print("\n=== Bắt đầu tải báo cáo xác minh tạm dừng ===")
+        xac_minh_tam_dung_download(page_baocao)
+        #xử lý báo cáo xác minh tạm dừng
+        print("\n=== Bắt đầu xử lý báo cáo xác minh tạm dừng ===")
+        xac_minh_tam_dung_process()
+        #gửi cảnh báo xác minh tạm dừng (nếu có)
+        print("\n=== Bắt đầu gửi cảnh báo xác minh tạm dừng (nếu có) ===")
+        send_warning_tam_dung_xac_minh()
+
 
 
         # #Tải báo cáo thu hồi vật tư
@@ -368,7 +401,7 @@ def main():
         # #Xử lý báo cáo tiếp thị fiber, mytv
         # print("\n=== Bắt đầu xử lý báo cáo Tiếp thị Fiber, MyTV ===")
         process_kq_tiep_thi_report()
-    
+
 
         # Tải và xử lý báo cáo C1.x
         print("\n=== Bắt đầu tải các báo cáo C1.x ===")
@@ -495,7 +528,13 @@ def main():
         playwright_baocao.stop()
         logger.add_note("Đã đóng trình duyệt")
 
-
+        #tạo báo cáo KPI NVKT tổng hợp
+        print("\n=== Tạo báo cáo KPI NVKT tổng hợp ===")
+        logger.run_task(
+            "Tạo báo cáo KPI NVKT tổng hợp",
+            tao_bao_cao_tonghop_kpi_nvkt,
+            ["KPI_TongHop_NVKT.xlsx"]
+        )
 
         # #xử lý báo cáo thu hồi vật tư
         # print("\n=== Bắt đầu xử lý báo cáo vật tư thu hồi ===")

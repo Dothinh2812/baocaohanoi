@@ -25,9 +25,11 @@ def download_report_pttb_ngung_psc(page_baocao):
     encoded_date = quote(current_date, safe='')
 
     print(f"Ngày báo cáo: {current_date}")
+    print(f"Ngày sau khi encode: {encoded_date}")
 
     # Truy cập trang báo cáo với ngày hiện tại
     report_url = Config.get_report_data_url('kr6_nvkt', encoded_date)
+    print(f"URL đầy đủ sau encode: {report_url}")
     print(f"Đang truy cập: {report_url}")
     page_baocao.goto(report_url, timeout=Config.NETWORK_IDLE_TIMEOUT)
 
@@ -95,9 +97,11 @@ def download_report_pttb_hoan_cong(page_baocao):
     encoded_date = quote(current_date, safe='')
 
     print(f"Ngày báo cáo: {current_date}")
+    print(f"Ngày sau khi encode: {encoded_date}")
 
     # Truy cập trang báo cáo với ngày hiện tại
     report_url = Config.get_report_data_url('kr6_tonghop', encoded_date)
+    print(f"URL đầy đủ sau encode: {report_url}")
     print(f"Đang truy cập: {report_url}")
     page_baocao.goto(report_url, timeout=Config.NETWORK_IDLE_TIMEOUT)
 
@@ -165,10 +169,12 @@ def download_report_mytv_hoan_cong(page_baocao):
     encoded_date = quote(current_date, safe='')
 
     print(f"Ngày báo cáo: {current_date}")
+    print(f"Ngày sau khi encode: {encoded_date}")
 
     # Truy cập trang báo cáo với ngày hiện tại
     # vdvvt_id=8 là MyTV
     report_url = Config.get_report_data_url('kr7_tonghop', encoded_date)
+    print(f"URL đầy đủ sau encode: {report_url}")
     print(f"Đang truy cập: {report_url}")
     page_baocao.goto(report_url, timeout=Config.NETWORK_IDLE_TIMEOUT)
 
@@ -236,10 +242,12 @@ def download_report_mytv_ngung_psc(page_baocao):
     encoded_date = quote(current_date, safe='')
 
     print(f"Ngày báo cáo: {current_date}")
+    print(f"Ngày sau khi encode: {encoded_date}")
 
     # Truy cập trang báo cáo với ngày hiện tại
     # vdvvt_id=8 là MyTV
     report_url = Config.get_report_data_url('kr7_nvkt', encoded_date)
+    print(f"URL đầy đủ sau encode: {report_url}")
     print(f"Đang truy cập: {report_url}")
     page_baocao.goto(report_url, timeout=Config.NETWORK_IDLE_TIMEOUT)
 

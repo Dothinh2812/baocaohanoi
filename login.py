@@ -108,32 +108,32 @@ def login_baocao_hanoi():
     login_button.click()
     time.sleep(3)
 
-    # Bước 5: Đợi trường input OTP xuất hiện
-    print("Đang đợi trường nhập OTP...")
-    otp_field = page_baocao.locator('//*[@id="passOTP"]')
-    otp_field.wait_for(state="visible", timeout=30000)
+    # # Bước 5: Đợi trường input OTP xuất hiện
+    # print("Đang đợi trường nhập OTP...")
+    # otp_field = page_baocao.locator('//*[@id="passOTP"]')
+    # otp_field.wait_for(state="visible", timeout=30000)
 
-    # Bước 6: Đọc OTP từ file
-    otp_code = read_otp_from_file()
+    # # Bước 6: Đọc OTP từ file
+    # otp_code = read_otp_from_file()
 
-    if otp_code is None:
-        print("❌ Không thể đọc OTP từ file.")
-        print("⏸️  Vui lòng nhập OTP thủ công vào trường trên trang web và click xác nhận.")
-        print("⏸️  Script sẽ chờ 10 giây để bạn hoàn tất đăng nhập...")
-        time.sleep(10)
-        print("✅ Tiếp tục sau khi chờ...")
-    else:
-        # Bước 7: Điền OTP
-        print(f"Đang điền OTP: {otp_code}")
-        otp_field.fill(otp_code)
-        time.sleep(1)
+    # if otp_code is None:
+    #     print("❌ Không thể đọc OTP từ file.")
+    #     print("⏸️  Vui lòng nhập OTP thủ công vào trường trên trang web và click xác nhận.")
+    #     print("⏸️  Script sẽ chờ 10 giây để bạn hoàn tất đăng nhập...")
+    #     time.sleep(10)
+    #     print("✅ Tiếp tục sau khi chờ...")
+    # else:
+    #     # Bước 7: Điền OTP
+    #     print(f"Đang điền OTP: {otp_code}")
+    #     otp_field.fill(otp_code)
+    #     time.sleep(1)
 
-        # Bước 8: Click button xác nhận OTP
-        print("Đang click button xác nhận OTP...")
-        otp_confirm_button = page_baocao.locator('//*[@id="loginForm"]/div[1]/button')
-        otp_confirm_button.wait_for(state="visible", timeout=30000)
-        otp_confirm_button.click()
-        time.sleep(5)
+    #     # Bước 8: Click button xác nhận OTP
+    #     print("Đang click button xác nhận OTP...")
+    #     otp_confirm_button = page_baocao.locator('//*[@id="loginForm"]/div[1]/button')
+    #     otp_confirm_button.wait_for(state="visible", timeout=30000)
+    #     otp_confirm_button.click()
+    #     time.sleep(5)
 
     # Bước 9: Kiểm tra đăng nhập thành công
     page_baocao.wait_for_load_state("networkidle", timeout=Config.PAGE_LOAD_TIMEOUT)

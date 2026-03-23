@@ -1,0 +1,62 @@
+tiếp theo hãy tạo cho tôi hàm tải báo cáo vật tư thu hồi như sau:
+- vào url https://baocao.hanoi.vnpt.vn/report/report-info?id=270922&menu_id=276242
+
+chọn trường: /html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[1]/div/div/div/div/div/div/ngx-dropdown-treeview-select/ngx-dropdown-treeview/div/button
+
+- tìm và click text: "TTVT Sơn Tây"
+- tìm trường: //*[@id="mat-input-0"] xóa trắng text hiện tại sau đó điền "24/09/2025"
+- sau đó tìm trường: /html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[4]/div/div/div/div/div/div/ngx-dropdown-treeview/div/button
+
+và chọn text "Tất cả"
+
+- Tiếp tục tìm /html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[7]/div/div/div/div/div/div/ngx-dropdown-treeview/div/button
+
+và chọn text "Tất cả"
+Tìm và click text "Báo cáo"
+Tìm và click text "Xuất Excel ..."
+TÌm và click text "2.Tất cả dữ liệu" - đồng thời lưu file tải về
+
+
+bị lỗi khi tìm các phần tử, 
+hãy thay đổi cách tiếp cận: 
+- chọn body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-untouched.ng-pristine.ng-valid > div > div > div.box-detail > div.search-criteria > div:nth-child(1) > div > div > div > div > div > div > ngx-dropdown-treeview-select > ngx-dropdown-treeview > div > button
+sau đó chọn:body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-untouched.ng-pristine.ng-valid > div > div > div.box-detail > div.search-criteria > div:nth-child(1) > div > div > div > div > div > div > ngx-dropdown-treeview-select > ngx-dropdown-treeview > div > div > div > ngx-treeview > div.treeview-header > div.row.row-filter.ng-star-inserted > div > input
+
+sau đó điền "ttvt sơn tây"
+sau đó chọn body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-untouched.ng-valid.ng-dirty > div > div > div.box-detail > div.search-criteria > div:nth-child(1) > div > div > div > div > div > div > ngx-dropdown-treeview-select > ngx-dropdown-treeview > div > div > div > ngx-treeview > div:nth-child(2) > div > ngx-treeview-item > div > div:nth-child(2) > ngx-treeview-item > div > div > span
+
+- tìm trường: //*[@id="mat-input-0"] xóa trắng text hiện tại sau đó điền "24/09/2025"
+
+
+OK đã chọn đúng 2 bước, hãy tiếp tục
+- chọn body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-untouched.ng-valid.ng-dirty > div > div > div.box-detail > div.search-criteria > div:nth-child(4) > div > div > div > div > div > div > ngx-dropdown-treeview > div > button
+sau đó chọn body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-untouched.ng-valid.ng-dirty > div > div > div.box-detail > div.search-criteria > div:nth-child(4) > div > div > div > div > div > div > ngx-dropdown-treeview > div > div > div > ngx-treeview > div.treeview-header > div:nth-child(2) > div.row.row-all.ng-star-inserted > div > div > input
+Tiếp tục chọn body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-untouched.ng-valid.ng-dirty > div > div > div.box-detail > div.search-criteria > div:nth-child(7) > div > div > div > div > div > div > ngx-dropdown-treeview > div > button
+sau đó chọn body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-untouched.ng-valid.ng-dirty > div > div > div.box-detail > div.search-criteria > div:nth-child(7) > div > div > div > div > div > div > ngx-dropdown-treeview > div > div > div > ngx-treeview > div.treeview-header > div:nth-child(2) > div.row.row-all.ng-star-inserted > div > div > input
+sau đó click body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div:nth-child(1) > div.ng-untouched.ng-valid.ng-dirty > div > div > div.box-detail > div.button-action > button
+sau đó tìm và click body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div:nth-child(1) > div.ng-untouched.ng-valid.ng-dirty > div > div > div.box-detail > div.button-action > div > button
+sau đó click body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div:nth-child(1) > div.ng-untouched.ng-valid.ng-dirty > div > div > div.box-detail > div.button-action > div > div > i:nth-child(2) để download file báo cáo
+
+
+
+
+hãy làm tiếp theo hướng dẫn sau (các bước 1,2 đã đúng)
+hãy làm chậm, từng bước 1, trước tiên là bước 3:
+- tìm và click /html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[4]/div/div/div/div/div/div/ngx-dropdown-treeview/div/button
+sau đó click: body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-untouched.ng-pristine.ng-valid > div > div > div.box-detail > div.search-criteria > div:nth-child(4) > div > div > div > div > div > div > ngx-dropdown-treeview > div > div > div > ngx-treeview > div.treeview-header > div:nth-child(2) > div.row.row-all.ng-star-inserted > div > div > input
+
+
+không thể tìm được phần tử, bạn hãy tự chạy app, đợi tôi nhập vào otp, sau đó tự kiểm tra cấu trúc trang và tìm cách
+
+hãy giảm thời gian chờ nhập otp xuống 10s, sau đó hãy nghiên cứu trang, in và phân tích cấu trúc của trang để thực hiện các thao tác chuẩn xác
+
+
+hãy sửa lại phần tích chọn Tất cả: 
+tìm và click: body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div.filter > div.ng-valid.ng-dirty.ng-touched > div > div > div.box-detail > div.search-criteria > div:nth-child(7) > div > div > div > div > div > div > ngx-dropdown-treeview > div > div > div > ngx-treeview > div.treeview-header > div:nth-child(2) > div.row.row-all.ng-star-inserted > div > div > input
+
+
+
+
+bước 4 vẫn chưa được, hãy thử: 
+- tìm và click: body > app-root > app-layout > app-vertical > div.body > div.main-content > div > app-report-info-list > div > div:nth-child(1) > div.ng-valid.ng-dirty.ng-touched > div > div > div.box-detail > div.search-criteria > div:nth-child(7) > div > div > div > div > div > div > ngx-dropdown-treeview > div > button
+sau đó ticsk chọn tất cả tại: /html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[4]/div/div/div/div/div/div/ngx-dropdown-treeview/div/div/div/ngx-treeview/div[1]/div[2]/div[1]/div/div/input

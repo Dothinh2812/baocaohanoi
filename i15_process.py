@@ -35,13 +35,16 @@ def add_tt_column(df):
     return df_copy
 
 
-def format_excel_detail(file_path, df):
+def format_excel_detail(file_path, df, sheet_name=None):
     """
     Định dạng file Excel chi tiết NVKT:
     - Kẻ bảng với borders
     - Điều chỉnh độ rộng cột tự động
     - Wrap text
     - Tô màu cột SA cho các giá trị trùng lặp
+    
+    Args:
+        sheet_name: Tên sheet cần format. Nếu None thì format sheet active.
     """
     from openpyxl import load_workbook
     from openpyxl.styles import Border, Side, Alignment, PatternFill, Font
@@ -49,7 +52,7 @@ def format_excel_detail(file_path, df):
     
     try:
         wb = load_workbook(file_path)
-        ws = wb.active
+        ws = wb[sheet_name] if sheet_name else wb.active
         
         # Định nghĩa border
         thin_border = Border(
@@ -141,19 +144,110 @@ def format_excel_detail(file_path, df):
         return False
 
 
-def process_I15_report_with_tracking(force_update=False):
+def create_k2_threshold_report(df, output_dir):
+    """
+    Tạo file I1.5_k2_theo_nguong_report.xlsx với 3 sheet lọc theo ngưỡng
+    Chỉ số OLT RX và Chỉ số ONU RX.
+    """
+    try:
+        print("\n" + "="*80)
+        print("TẠO BÁO CÁO K2 THEO NGƯỠNG")
+        print("="*80)
+
+        olt_col = 'Chỉ số OLT RX'
+        onu_col = 'Chỉ số ONU RX'
+
+        if olt_col not in df.columns or onu_col not in df.columns:
+            print(f"⚠️ Không tìm thấy cột '{olt_col}' hoặc '{onu_col}', bỏ qua tạo báo cáo theo ngưỡng")
+            return False
+
+        # Chuyển sang kiểu số
+        df_work = df.copy()
+        df_work[olt_col] = pd.to_numeric(df_work[olt_col], errors='coerce')
+        df_work[onu_col] = pd.to_numeric(df_work[onu_col], errors='coerce')
+
+        # Các cột cần xuất (DOI_ONE, NVKT_DB_NORMALIZED đứng đầu, sau STT)
+        output_columns = ['DOI_ONE', 'NVKT_DB_NORMALIZED',
+                          'ACCOUNT_CTS', 'TEN_TB_ONE', 'DIACHI_ONE', 'DT_ONE',
+                          'NGAY_SUYHAO', 'THIETBI', 'SA', 'KETCUOI',
+                          olt_col, onu_col]
+        output_columns = [c for c in output_columns if c in df_work.columns]
+
+        # Định nghĩa 3 ngưỡng
+        thresholds = [
+            {
+                'sheet': 'k2_25_26',
+                'low': -26,
+                'high': -25,
+                'low_inclusive': True,
+                'high_inclusive': True,
+            },
+            {
+                'sheet': 'k2_26_26.5',
+                'low': -26.5,
+                'high': -26,
+                'low_inclusive': True,
+                'high_inclusive': False,
+            },
+            {
+                'sheet': 'k2_26.5_27',
+                'low': -27,
+                'high': -26.5,
+                'low_inclusive': True,
+                'high_inclusive': False,
+            },
+        ]
+
+        output_file = os.path.join(output_dir, 'I1.5_k2_theo_nguong_report.xlsx')
+
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            for t in thresholds:
+                low, high = t['low'], t['high']
+
+                # Xây dựng điều kiện cho từng cột
+                if t['low_inclusive'] and t['high_inclusive']:
+                    olt_mask = (df_work[olt_col] >= low) & (df_work[olt_col] <= high)
+                    onu_mask = (df_work[onu_col] >= low) & (df_work[onu_col] <= high)
+                elif t['low_inclusive'] and not t['high_inclusive']:
+                    olt_mask = (df_work[olt_col] >= low) & (df_work[olt_col] < high)
+                    onu_mask = (df_work[onu_col] >= low) & (df_work[onu_col] < high)
+                else:
+                    olt_mask = (df_work[olt_col] > low) & (df_work[olt_col] <= high)
+                    onu_mask = (df_work[onu_col] > low) & (df_work[onu_col] <= high)
+
+                # OR: 1 trong 2 chỉ số nằm trong khoảng
+                df_filtered = df_work[olt_mask | onu_mask][output_columns].copy()
+                df_filtered = df_filtered.sort_values(by=['DOI_ONE', 'NVKT_DB_NORMALIZED']).reset_index(drop=True)
+
+                # Thêm cột STT
+                df_filtered.insert(0, 'STT', range(1, len(df_filtered) + 1))
+
+                df_filtered.to_excel(writer, sheet_name=t['sheet'], index=False)
+                print(f"  ✅ Sheet '{t['sheet']}': {len(df_filtered)} bản ghi")
+
+        print(f"\n✅ Đã tạo file: {output_file}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Lỗi khi tạo báo cáo K2 theo ngưỡng: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+def process_I15_report_with_tracking(force_update=False, report_date=None):
     """Wrapper for K1 report"""
     input_file = os.path.join("downloads", "baocao_hanoi", "I1.5 report.xlsx")
-    return _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="suy_hao_history.db", force_update=force_update)
+    return _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="suy_hao_history.db", force_update=force_update, report_date=report_date)
 
 
-def process_I15_k2_report_with_tracking(force_update=False):
+def process_I15_k2_report_with_tracking(force_update=False, report_date=None):
     """Wrapper for K2 report"""
     input_file = os.path.join("downloads", "baocao_hanoi", "I1.5_k2 report.xlsx")
-    return _process_I15_generic_with_tracking(input_file, k_suffix="K2", history_db="suy_hao_history_k2.db", force_update=force_update)
+    return _process_I15_generic_with_tracking(input_file, k_suffix="K2", history_db="suy_hao_history_k2.db", force_update=force_update, report_date=report_date)
 
 
-def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="suy_hao_history.db", force_update=False):
+def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="suy_hao_history.db", force_update=False, report_date=None):
     """
     Xử lý báo cáo I1.5 (K1 hoặc K2) với tracking lịch sử:
     1. Đọc file đầu vào
@@ -169,6 +263,7 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
         k_suffix (str): Hậu tố K1 hoặc K2 để đặt tên
         history_db (str): Tên file database history tương ứng
         force_update (bool): Nếu True, cho phép ghi đè dữ liệu đã tồn tại trong ngày
+        report_date (str): Ngày báo cáo thủ công (YYYY-MM-DD), nếu None sẽ đọc từ file
     """
     try:
         print("\n" + "="*80)
@@ -190,18 +285,21 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
         df = pd.read_excel(input_file)
         print(f"✅ Đã đọc file, tổng số dòng: {len(df)}, tổng số cột: {df.shape[1]}")
 
-        # Lấy ngày báo cáo từ cột NGAY_SUYHAO
-        if 'NGAY_SUYHAO' in df.columns and len(df) > 0:
-            ngay_str = df['NGAY_SUYHAO'].iloc[0]
+        # Lấy ngày báo cáo - ưu tiên: ngày thủ công > ngày hiện tại > ngày trong file
+        if report_date is not None:
             try:
-                report_date = pd.to_datetime(ngay_str, format='%d/%m/%Y').strftime('%Y-%m-%d')
-                print(f"✓ Ngày báo cáo: {report_date}")
-            except:
-                report_date = datetime.now().strftime('%Y-%m-%d')
-                print(f"⚠️  Không parse được ngày, dùng ngày hiện tại: {report_date}")
+                # Kiểm tra định dạng ngày thủ công
+                pd.to_datetime(report_date, format='%Y-%m-%d')
+                print(f"✓ Sử dụng ngày báo cáo thủ công: {report_date}")
+            except Exception as e:
+                print(f"❌ Định dạng ngày thủ công không hợp lệ (cần YYYY-MM-DD): {report_date}")
+                return False
         else:
             report_date = datetime.now().strftime('%Y-%m-%d')
-            print(f"⚠️  Không tìm thấy NGAY_SUYHAO, dùng ngày hiện tại: {report_date}")
+            print(f"✓ Sử dụng ngày hiện tại: {report_date}")
+
+        # Cập nhật lại cột NGAY_SUYHAO trong DataFrame nếu dùng ngày thủ công
+        df['NGAY_SUYHAO'] = pd.to_datetime(report_date).strftime('%d/%m/%Y')
 
         # Tra cứu thông tin từ danhba.db
         print("\n✓ Đang tra cứu thông tin từ danhba.db...")
@@ -787,14 +885,22 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
         if not os.path.exists(detail_dir):
             os.makedirs(detail_dir)
             print(f"✓ Đã tạo thư mục: {detail_dir}")
+        
+        detail_dir_26_27 = None
+        if k_suffix == "K2":
+            detail_dir_26_27 = os.path.join(base_dir, "shc_NVKT_danh_sach_chi_tiet_K2_26_27")
+            if not os.path.exists(detail_dir_26_27):
+                os.makedirs(detail_dir_26_27)
+                print(f"✓ Đã tạo thư mục: {detail_dir_26_27}")
 
         # Lấy danh sách các cột cần thiết cho file chi tiết
         detail_columns = ['MA_TB', 'ACCOUNT_CTS', 'TEN_TB_ONE', 'DIACHI_ONE', 'DT_ONE', 'DT_ONEDIACHI_ONE', 'NGAY_SUYHAO',
-                         'THIETBI', 'SA', 'KETCUOI']
+                         'THIETBI', 'SA', 'KETCUOI', 'Chỉ số OLT RX', 'Chỉ số ONU RX']
         detail_columns = [c for c in detail_columns if c in df.columns]
 
         # Đếm số file đã tạo
         file_count = 0
+        file_count_26_27 = 0
 
         # Lấy danh sách các tổ có trong dữ liệu
         if 'DOI_ONE' in df.columns:
@@ -807,6 +913,12 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
                 doi_dir = os.path.join(detail_dir, doi_safe)
                 if not os.path.exists(doi_dir):
                     os.makedirs(doi_dir)
+                
+                doi_dir_26_27 = None
+                if detail_dir_26_27:
+                    doi_dir_26_27 = os.path.join(detail_dir_26_27, doi_safe)
+                    if not os.path.exists(doi_dir_26_27):
+                        os.makedirs(doi_dir_26_27)
 
                 # Lấy danh sách NVKT trong tổ
                 df_doi = df[df['DOI_ONE'] == doi]
@@ -833,11 +945,68 @@ def _process_I15_generic_with_tracking(input_file, k_suffix="K1", history_db="su
                     df_formatted.to_excel(file_path, index=False, sheet_name='Chi tiết SHC')
                     # Định dạng file Excel
                     format_excel_detail(file_path, df_formatted)
+
+                    # Thêm các sheet theo ngưỡng cho K2
+                    if k_suffix == "K2":
+                        olt_col = 'Chỉ số OLT RX'
+                        onu_col = 'Chỉ số ONU RX'
+                        # Lấy dữ liệu NVKT với đầy đủ cột (bao gồm OLT/ONU RX)
+                        df_nvkt_full = df_doi[df_doi['NVKT_DB_NORMALIZED'] == nvkt].copy()
+                        if olt_col in df_nvkt_full.columns and onu_col in df_nvkt_full.columns:
+                            df_nvkt_full[olt_col] = pd.to_numeric(df_nvkt_full[olt_col], errors='coerce')
+                            df_nvkt_full[onu_col] = pd.to_numeric(df_nvkt_full[onu_col], errors='coerce')
+                            
+                            nguong_cols = list(dict.fromkeys([c for c in detail_columns if c in df_nvkt_full.columns] + [olt_col, onu_col]))
+                            nguong_thresholds = [
+                                ('k2_25_26', -26, -25, True, True),
+                                ('k2_26_26.5', -26.5, -26, True, False),
+                                ('k2_26.5_27', -27, -26.5, True, False),
+                            ]
+                            with pd.ExcelWriter(file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+                                for sheet_name, low, high, low_inc, high_inc in nguong_thresholds:
+                                    if low_inc and high_inc:
+                                        olt_m = (df_nvkt_full[olt_col] >= low) & (df_nvkt_full[olt_col] <= high)
+                                        onu_m = (df_nvkt_full[onu_col] >= low) & (df_nvkt_full[onu_col] <= high)
+                                    else:
+                                        olt_m = (df_nvkt_full[olt_col] >= low) & (df_nvkt_full[olt_col] < high)
+                                        onu_m = (df_nvkt_full[onu_col] >= low) & (df_nvkt_full[onu_col] < high)
+                                    df_ng = df_nvkt_full[olt_m | onu_m][nguong_cols].copy()
+                                    if 'SA' in df_ng.columns:
+                                        df_ng = df_ng.sort_values(by='SA').reset_index(drop=True)
+                                    df_ng.insert(0, 'STT', range(1, len(df_ng) + 1))
+                                    df_ng.to_excel(writer, sheet_name=sheet_name, index=False)
+                            # Format các sheet ngưỡng (tô màu SA trùng, kẻ bảng)
+                            for sheet_name, _, _, _, _ in nguong_thresholds:
+                                format_excel_detail(file_path, df_nvkt_full, sheet_name=sheet_name)
+                            
+                            # Tạo thêm file chỉ chứa SHC có OLT RX hoặc ONU RX <= -26 cho từng NVKT
+                            if doi_dir_26_27:
+                                range_cols = [c for c in detail_columns if c in df_nvkt_full.columns]
+                                olt_m_26_27 = df_nvkt_full[olt_col] <= -26
+                                onu_m_26_27 = df_nvkt_full[onu_col] <= -26
+                                df_26_27 = df_nvkt_full[olt_m_26_27 | onu_m_26_27][range_cols].copy()
+
+                                if len(df_26_27) > 0:
+                                    if 'SA' in df_26_27.columns:
+                                        df_26_27 = df_26_27.sort_values(by='SA').reset_index(drop=True)
+                                    file_name_26_27 = f"{nvkt_safe}_K2_26-27.xlsx"
+                                    file_path_26_27 = os.path.join(doi_dir_26_27, file_name_26_27)
+                                    df_26_27_formatted = add_tt_column(df_26_27)
+                                    df_26_27_formatted.to_excel(file_path_26_27, index=False, sheet_name='Chi tiết SHC')
+                                    format_excel_detail(file_path_26_27, df_26_27_formatted)
+                                    file_count_26_27 += 1
+
                     file_count += 1
 
             print(f"✅ Đã tạo {file_count} file Excel chi tiết trong thư mục {detail_dir}")
+            if detail_dir_26_27:
+                print(f"✅ Đã tạo {file_count_26_27} file Excel chi tiết ngưỡng <= -26 trong thư mục {detail_dir_26_27}")
         else:
             print("⚠️ Không tìm thấy cột DOI_ONE, bỏ qua tạo file chi tiết theo tổ")
+
+        # Tạo báo cáo K2 theo ngưỡng (chỉ khi xử lý K2)
+        if k_suffix == "K2":
+            create_k2_threshold_report(df, os.path.dirname(input_file))
 
         print("\n" + "="*80)
         print("✅ HOÀN THÀNH XỬ LÝ BÁO CÁO I1.5")
@@ -860,6 +1029,7 @@ if __name__ == "__main__":
     parser.add_argument("--k1", action="store_true", help="Chỉ xử lý báo cáo K1")
     parser.add_argument("--k2", action="store_true", help="Chỉ xử lý báo cáo K2")
     parser.add_argument("--force", action="store_true", help="Ghi đè dữ liệu đã tồn tại")
+    parser.add_argument("--date", type=str, help="Chỉ định ngày báo cáo thủ công (định dạng YYYY-MM-DD)")
     
     args = parser.parse_args()
     
@@ -868,22 +1038,23 @@ if __name__ == "__main__":
     run_k2 = args.k2 or (not args.k1 and not args.k2)
     
     if run_k1:
-        print("\n" + "="*80)
-        print("XỬ LÝ BÁO CÁO K1")
-        print("="*80)
-        process_I15_report_with_tracking(force_update=args.force)
+        # print("\n" + "="*80)
+        # print("XỬ LÝ BÁO CÁO K1")
+        # print("="*80)
+        # process_I15_report_with_tracking(force_update=args.force, report_date=args.date)
         
-        # Tạo báo cáo so sánh SHC ngày (T so với T-1)
-        print("\n" + "="*80)
-        print("TẠO BÁO CÁO SO SÁNH SHC K1 (T so với T-1)")
-        print("="*80)
-        generate_daily_comparison_report()
+        # # Tạo báo cáo so sánh SHC ngày (T so với T-1)
+        # print("\n" + "="*80)
+        # print("TẠO BÁO CÁO SO SÁNH SHC K1 (T so với T-1)")
+        # print("="*80)
+        # generate_daily_comparison_report()
+        pass    
     
     if run_k2:
         print("\n" + "="*80)
         print("XỬ LÝ BÁO CÁO K2")
         print("="*80)
-        process_I15_k2_report_with_tracking(force_update=args.force)
+        process_I15_k2_report_with_tracking(force_update=args.force, report_date=args.date)
         
         # Tạo báo cáo so sánh SHC K2 ngày (T so với T-1)
         print("\n" + "="*80)

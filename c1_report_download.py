@@ -305,7 +305,7 @@ def download_report_c11_chitiet(page_baocao, start_date="01/01/2026", end_date="
 
         # Chọn option "SM4 C11" trong select dropdown
         # Có thể chọn bằng text hoặc value
-        select_element.select_option(label="SM4 C11")
+        select_element.select_option(label="SM4 C11 2026")
         time.sleep(2)
         print("✅ Đã chọn 'SM4 C11' cho Loại phiếu")
 
@@ -325,7 +325,7 @@ def download_report_c11_chitiet(page_baocao, start_date="01/01/2026", end_date="
             select_selector = "div.search-criteria > div:nth-child(7) select"
             select_element = page_baocao.locator(select_selector)
             select_element.wait_for(state="visible", timeout=30000)
-            select_element.select_option(label="SM4 C11")
+            select_element.select_option(label="SM4 C11 2026")
             time.sleep(2)
             print("✅ Đã chọn 'SM4 C11' (cách 2)")
         except Exception as e2:
@@ -616,7 +616,7 @@ def download_report_c11_chitiet_SM2(page_baocao, start_date="01/01/2026", end_da
 
         # Chọn option "SM2 C11" trong select dropdown
         # Có thể chọn bằng text hoặc value
-        select_element.select_option(label="SM2 C11")
+        select_element.select_option(label="SM2 C11 2026")
         time.sleep(2)
         print("✅ Đã chọn 'SM2 C11' cho Loại phiếu")
 
@@ -636,7 +636,7 @@ def download_report_c11_chitiet_SM2(page_baocao, start_date="01/01/2026", end_da
             select_selector = "div.search-criteria > div:nth-child(7) select"
             select_element = page_baocao.locator(select_selector)
             select_element.wait_for(state="visible", timeout=30000)
-            select_element.select_option(label="SM2 C11")
+            select_element.select_option(label="SM2 C11 2026")
             time.sleep(2)
             print("✅ Đã chọn 'SM2 C11' (cách 2)")
         except Exception as e2:
@@ -917,7 +917,7 @@ def download_report_c12_chitiet_SM1(page_baocao, start_date="01/01/2026", end_da
 
         # Chọn option "SM2 C11" trong select dropdown
         # Có thể chọn bằng text hoặc value
-        select_element.select_option(label="SM1 C12")
+        select_element.select_option(label="SM1 C12 2026")
         time.sleep(2)
         print("✅ Đã chọn 'SM1 C12' cho Loại phiếu")
 
@@ -937,7 +937,7 @@ def download_report_c12_chitiet_SM1(page_baocao, start_date="01/01/2026", end_da
             select_selector = "div.search-criteria > div:nth-child(7) select"
             select_element = page_baocao.locator(select_selector)
             select_element.wait_for(state="visible", timeout=30000)
-            select_element.select_option(label="SM1 C12")
+            select_element.select_option(label="SM1 C12 2026")
             time.sleep(2)
             print("✅ Đã chọn 'SM1 C12' (cách 2)")
         except Exception as e2:
@@ -1220,7 +1220,7 @@ def download_report_c12_chitiet_SM2(page_baocao, start_date="01/01/2026", end_da
 
     #     # Chọn option "SM2 C11" trong select dropdown
     #     # Có thể chọn bằng text hoặc value
-    #     select_element.select_option(label="SM1 C12")
+    #     select_element.select_option(label="SM1 C12 2026")
     #     time.sleep(2)
     #     print("✅ Đã chọn 'SM1 C12' cho Loại phiếu")
 
@@ -1240,7 +1240,7 @@ def download_report_c12_chitiet_SM2(page_baocao, start_date="01/01/2026", end_da
     #         select_selector = "div.search-criteria > div:nth-child(7) select"
     #         select_element = page_baocao.locator(select_selector)
     #         select_element.wait_for(state="visible", timeout=30000)
-    #         select_element.select_option(label="SM1 C12")
+    #         select_element.select_option(label="SM1 C12 2026")
     #         time.sleep(2)
     #         print("✅ Đã chọn 'SM1 C12' (cách 2)")
     #     except Exception as e2:
@@ -2142,7 +2142,8 @@ def download_report_c15_chitiet(page_baocao):
 
         # Bước 1: Truy cập URL
         #url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=1&pdonvi_id=284656&pthoigianid=98944771"
-        url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=3&pdonvi_id=284656&pthoigianid=98944630"
+        url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=1&pdonvi_id=284656&pthoigianid=98944630" #tháng 2
+        #url = "https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=1&pdonvi_id=284656&pthoigianid=98944772" #tháng 3
         print(f"\n✓ Đang truy cập: {url}")
         page_baocao.goto(url, wait_until="networkidle", timeout=500000)
         time.sleep(20)
@@ -2508,8 +2509,8 @@ if __name__ == "__main__":
         # download_report_c12_chitiet_SM2(page_baocao)
         # download_report_c14_chitiet(page_baocao)
         #download_report_c15_chitiet(page_baocao)
-        download_report_I15(page_baocao)
-        # download_report_I15_k2(page_baocao)
+        #download_report_I15(page_baocao)
+        download_report_I15_k2(page_baocao)
 
         # Đóng browser sau khi hoàn thành
         print("\n=== Đóng browser ===")

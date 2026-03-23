@@ -1,0 +1,132 @@
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║                    🚨 CRITICAL FIX APPLIED - MUST RESTART 🚨                 ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+
+
+❌ PROBLEM FOUND
+═════════════════════════════════════════════════════════════════════════════════
+
+You correctly identified that after uploading to GCS, the system was NOT calling
+Vision API!
+
+The issue: telegram_bot.py was calling an external N8N webhook instead of the
+local /webhook endpoint.
+
+Error observed:
+  "This webhook is not registered for POST requests. Did you mean to make a GET
+   request?"
+
+
+✅ FIX APPLIED
+═════════════════════════════════════════════════════════════════════════════════
+
+File: /home/vtst/s2/telegram_bot.py
+Line: 18-21
+
+CHANGED FROM:
+  MAIN_WEBHOOK_URL = "https://your-webhook.example.com/webhook/dhsc-text"
+
+CHANGED TO:
+  MAIN_WEBHOOK_URL = "http://localhost:8007/webhook"
+
+
+🔄 CORRECT FLOW (NOW)
+═════════════════════════════════════════════════════════════════════════════════
+
+Step 1: Telegram receives image
+   ↓
+Step 2: Upload to GCS (gcs_storage.py)
+   ↓
+Step 3: Call LOCAL http://localhost:8007/webhook ← FIXED!
+   ↓
+Step 4: /webhook endpoint triggers:
+   ├─ Vision API (process_image_with_vision)
+   ├─ OpenAI (analyze_text_with_openai)
+   └─ Google Sheets + Telegram response
+   ↓
+Step 5: User receives result in Telegram
+
+
+🚨 CRITICAL: YOU MUST RESTART THE APPLICATION
+═════════════════════════════════════════════════════════════════════════════════
+
+The fix will NOT work until you restart!
+
+Commands to restart:
+
+  # Kill all old instances
+  pkill -f "python3.*gsmnv"
+
+  # Verify all stopped
+  ps aux | grep gsmnv.py
+
+  # Restart application
+  cd /home/vtst/s2
+  ./run.sh
+
+
+🧪 TEST AFTER RESTART
+═════════════════════════════════════════════════════════════════════════════════
+
+1. Send image to Telegram group
+2. Wait 3-5 seconds
+3. Check console logs for:
+   ✅ "Step 1: Processing image with Google Cloud Vision"
+   ✅ "Step 2: Analyzing text with OpenAI"
+   ✅ "Step 3: Saving to Google Sheets"
+   ✅ "Gửi tin nhắn Telegram thành công"
+
+4. Verify:
+   ✅ Data appears in Google Sheets
+   ✅ Response appears in Telegram group
+   ✅ Image saved in GCS bucket
+
+
+📊 IMPACT
+═════════════════════════════════════════════════════════════════════════════════
+
+BEFORE FIX:
+  ❌ Only GCS upload worked (20% of workflow)
+  ❌ Vision API NOT called
+  ❌ OpenAI NOT called
+  ❌ No data in Sheets
+  ❌ No Telegram response
+
+AFTER FIX (when restarted):
+  ✅ Complete workflow (100%)
+  ✅ Vision API called
+  ✅ OpenAI called
+  ✅ Data saved to Sheets
+  ✅ Telegram response sent
+
+
+📝 DOCUMENTATION
+═════════════════════════════════════════════════════════════════════════════════
+
+Created: CRITICAL_FIX_WEBHOOK_URL.md
+  - Full details of the issue
+  - Before/after comparison
+  - Testing instructions
+  - Root cause analysis
+
+
+═════════════════════════════════════════════════════════════════════════════════
+
+                    🚀 NEXT STEP: RESTART APPLICATION 🚀
+
+                            cd /home/vtst/s2
+                               ./run.sh
+
+              Then test by sending an image to Telegram group
+
+═════════════════════════════════════════════════════════════════════════════════
+
+
+Status: ✅ FIX APPLIED - WAITING FOR RESTART
+Date: 2025-10-20
+File: telegram_bot.py (line 19)
+Change: External webhook → Local endpoint
+
+═════════════════════════════════════════════════════════════════════════════════
