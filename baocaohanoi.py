@@ -101,15 +101,15 @@ from xac_minh_tam_dung_download import xac_minh_tam_dung_download, xac_minh_tam_
 # CẤU HÌNH NGÀY BÁO CÁO CHI TIẾT (SM4-C11, SM2-C11, SM1-C12, SM2-C12)
 # Định dạng: "dd/mm/yyyy" hoặc None (mặc định: ngày đầu/cuối tháng hiện tại)
 # =============================================================================
-start_date = "26/02/2026"  # Từ ngày (None = ngày đầu tháng hiện tại)
-end_date = "25/03/2026"     # Đến ngày (None = ngày cuối tháng hiện tại)
+start_date = "26/03/2026"  # Từ ngày (None = ngày đầu tháng hiện tại)
+end_date = "25/04/2026"     # Đến ngày (None = ngày cuối tháng hiện tại)
 
 # =============================================================================
 # CẤU HÌNH THÁNG BÁO CÁO (C1.1, C1.2, C1.3, C1.4, C1.5, C1.4 chi tiết, C1.5 chi tiết)
 # Định dạng: "Tháng MM/YYYY" hoặc None (mặc định: tháng hiện tại)
 # Ví dụ: "Tháng 12/2025", "Tháng 01/2026"
 # =============================================================================
-report_month = "Tháng 03/2026"  # Tháng báo cáo (None = tháng hiện tại)
+report_month = "Tháng 04/2026"  # Tháng báo cáo (None = tháng hiện tại)
 
 # =============================================================================
 # CẤU HÌNH GIẢM TRỪ PHIẾU BÁO HỎNG
@@ -491,26 +491,10 @@ def main():
             ["downloads/baocao_hanoi/c1.5_chitiet_report.xlsx"]
         ) or failed_reports.append("C1.5 chi tiết")
         
-        # I1.5 (đang tạm tắt)
-        logger.add_note("I1.5: Đang tạm tắt (comment out)")
-        
-        # I1.5 K2
-        logger.run_task(
-            "Tải + xử lý I1.5 K2",
-            lambda: (download_report_I15_k2(page_baocao), process_I15_k2_report_with_tracking()),
-        ) or failed_reports.append("I1.5 K2")
-        
-        # Tạo báo cáo so sánh SHC ngày (T so với T-1)
-        logger.run_task(
-            "Tạo báo cáo so sánh SHC ngày",
-            generate_daily_comparison_report,
-        ) or failed_reports.append("So sánh SHC ngày")
-        
-        # Tạo báo cáo so sánh SHC K2 ngày (T so với T-1)
-        logger.run_task(
-            "Tạo báo cáo so sánh SHC K2 ngày",
-            generate_daily_comparison_report_k2,
-        ) or failed_reports.append("So sánh SHC K2 ngày")
+        # I1.5 K1/K2 và báo cáo SHC ngày đang tạm dừng trong hàm main
+        logger.add_note("I1.5 K1: Đang tạm tắt trong hàm main")
+        logger.add_note("I1.5 K2: Đang tạm tắt trong hàm main")
+        logger.add_note("So sánh SHC ngày K1/K2: Đang tạm tắt do I1.5 đang dừng")
         
         # In tổng kết các báo cáo bị lỗi
         if failed_reports:

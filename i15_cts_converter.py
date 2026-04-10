@@ -318,6 +318,8 @@ def process_cts_fallback(force_update=False):
         success = process_I15_report_with_tracking(force_update=force_update)
         
         if success:
+            print("\n✓ Đã tạo xong dữ liệu và file chi tiết K1")
+            print("  Có thể chủ động gửi sau bằng module send_k1_detail_files.py")
             print("\n✅ FALLBACK HOÀN THÀNH THÀNH CÔNG")
         else:
             print("\n❌ FALLBACK THẤT BẠI")

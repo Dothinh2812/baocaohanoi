@@ -1061,3 +1061,4 @@ if __name__ == "__main__":
         print("TẠO BÁO CÁO SO SÁNH SHC K2 (T so với T-1)")
         print("="*80)
         generate_daily_comparison_report_k2()
+
