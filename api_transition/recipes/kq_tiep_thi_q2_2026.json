@@ -1,0 +1,51 @@
+{
+  "name": "kq_tiep_thi_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=257495&menu_id=276101",
+  "report_id": "257495",
+  "menu_id": "276101",
+  "export_payload": {
+    "reportId": "257495",
+    "lstInputParams": [
+      {
+        "name": "vngay_bd",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vngay_kt",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vdonvi_id",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "ppageindex",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "ppagesize",
+        "dataType": "NUMBER",
+        "value": "1000000"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "ototalrecord",
+        "dataType": "NUMBER",
+        "value": ""
+      },
+      {
+        "name": "odata",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "BC-Kết quả sản lượng tiếp thị BRCĐ, MyTV theo cá nhân-16.4.2026-31.2.9.xlsx",
+  "captured_at": "2026-04-16T09:02:03.128300",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}

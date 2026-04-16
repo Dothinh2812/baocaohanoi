@@ -1,0 +1,66 @@
+{
+  "name": "tam_dung_khoi_phuc_dich_vu_chi_tiet_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=267844&menu_id=276199",
+  "report_id": "267844",
+  "menu_id": "276199",
+  "export_payload": {
+    "reportId": "267844",
+    "lstInputParams": [
+      {
+        "name": "pdonvi_id",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "vngay_bd",
+        "dataType": "VARCHAR2",
+        "value": "01/04/2026"
+      },
+      {
+        "name": "vngay_kt",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vloaidv",
+        "dataType": "VARCHAR2",
+        "value": "1,4,6,7,8,9,10,13,27,98,25,26,15,22,2,12,14,16"
+      },
+      {
+        "name": "vloaingay",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "vloaibc",
+        "dataType": "NUMBER",
+        "value": "0"
+      },
+      {
+        "name": "ppageindex",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "ppagesize",
+        "dataType": "NUMBER",
+        "value": "1000000"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "ototalrecord",
+        "dataType": "NUMBER",
+        "value": ""
+      },
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "tam_dung_khoi_phuc_dich_vu_chi_tiet.xlsx",
+  "captured_at": "2026-04-16T10:33:50",
+  "notes": "Sinh từ capture file: report_api_capture_2.4.6. Tạm dừng, khôi phục dịch vụ chi tiết.jsonl"
+}

@@ -1,0 +1,36 @@
+{
+  "name": "ghtt_hni_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=534220&menu_id=534238",
+  "report_id": "534220",
+  "menu_id": "534238",
+  "export_payload": {
+    "reportId": "534220",
+    "lstInputParams": [
+      {
+        "name": "vdonvi",
+        "dataType": "NUMBER",
+        "value": "284412"
+      },
+      {
+        "name": "vthoigian",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "vloai",
+        "dataType": "NUMBER",
+        "value": "1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "BC-Duy trì thuê bao BRCĐ hiện hữu gia hạn TTTC-15.4.2026-19.7.22.xlsx",
+  "captured_at": "2026-04-15T22:06:50.529693",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}

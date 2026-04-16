@@ -1,8 +1,69 @@
 # -*- coding: utf-8 -*-
+import argparse
 import time
 import os
+import re
 from config import Config
 from login import login_baocao_hanoi, read_otp_from_file
+
+
+def normalize_report_month(report_month):
+    """Chuẩn hóa tháng báo cáo về dạng 'Tháng MM/YYYY'."""
+    if not report_month:
+        return report_month
+
+    value = report_month.strip()
+    if re.fullmatch(r"Tháng\s+\d{2}/\d{4}", value):
+        return value
+
+    match = re.fullmatch(r"(\d{1,2})/(\d{4})", value)
+    if match:
+        month, year = match.groups()
+        return f"Tháng {int(month):02d}/{year}"
+
+    raise ValueError(
+        f"report_month không hợp lệ: '{report_month}'. Dùng 'Tháng MM/YYYY' hoặc 'MM/YYYY'."
+    )
+
+
+def validate_report_date(date_value, arg_name):
+    """Kiểm tra ngày báo cáo theo định dạng dd/mm/yyyy."""
+    if not re.fullmatch(r"\d{2}/\d{2}/\d{4}", date_value.strip()):
+        raise ValueError(
+            f"{arg_name} không hợp lệ: '{date_value}'. Dùng định dạng dd/mm/yyyy."
+        )
+    return date_value.strip()
+
+
+def parse_standalone_args():
+    """Nhận tham số khi chạy file độc lập."""
+    parser = argparse.ArgumentParser(
+        description="Tải các báo cáo C1 từ hệ thống báo cáo VNPT Hà Nội."
+    )
+    parser.add_argument(
+        "--report-month",
+        default="Tháng 04/2026",
+        help="Tháng báo cáo, ví dụ 'Tháng 04/2026' hoặc '04/2026'.",
+    )
+    parser.add_argument(
+        "--start-date",
+        default="26/03/2026",
+        help="Ngày bắt đầu cho báo cáo chi tiết, định dạng dd/mm/yyyy.",
+    )
+    parser.add_argument(
+        "--end-date",
+        default="25/04/2026",
+        help="Ngày kết thúc cho báo cáo chi tiết, định dạng dd/mm/yyyy.",
+    )
+
+    args = parser.parse_args()
+    try:
+        args.report_month = normalize_report_month(args.report_month)
+        args.start_date = validate_report_date(args.start_date, "start_date")
+        args.end_date = validate_report_date(args.end_date, "end_date")
+    except ValueError as exc:
+        parser.error(str(exc))
+    return args
 
 def download_report_c11(page_baocao, report_month):
     """
@@ -29,7 +90,8 @@ def download_report_c11(page_baocao, report_month):
         print("="*80)
 
         # Bước 1: Truy cập URL
-        url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=522457&menu_id=522561"
+        # url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=522457&menu_id=522561"
+        url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=534964&menu_id=535020"  # BC quý 2-2026
         print(f"\n✓ Đang truy cập: {url}")
         page_baocao.goto(url, wait_until="networkidle", timeout=60000)
         time.sleep(3)
@@ -1387,7 +1449,8 @@ def download_report_c12(page_baocao, report_month="Tháng 01/2026"):
         print("="*80)
 
         # Bước 1: Truy cập URL
-        url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=522513&menu_id=522562"
+        # url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=522513&menu_id=522562"
+        url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=522513&menu_id=535021" # Quý 2-2026
         print(f"\n✓ Đang truy cập: {url}")
         page_baocao.goto(url, wait_until="networkidle", timeout=60000)
         time.sleep(3)
@@ -1521,7 +1584,8 @@ def download_report_c13(page_baocao, report_month="Tháng 01/2026"):
         print("="*80)
 
         # Bước 1: Truy cập URL
-        url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=522600&menu_id=522640"
+        # url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=522600&menu_id=522640"
+        url = "https://baocao.hanoi.vnpt.vn/report/report-info?id=522600&menu_id=535022" # Quý 2-2026
         print(f"\n✓ Đang truy cập: {url}")
         page_baocao.goto(url, wait_until="networkidle", timeout=60000)
         time.sleep(3)
@@ -2495,21 +2559,31 @@ def download_report_I15_k2(page_baocao):
 
 
 if __name__ == "__main__":
+    args = parse_standalone_args()
+
     # Test hàm tải báo cáo
     result = login_baocao_hanoi()
 
     if result:
         page_baocao, browser_baocao, playwright_baocao = result
+        start_date = args.start_date
+        end_date = args.end_date
+        report_month = args.report_month
 
-        # download_report_c11(page_baocao)
-        # download_report_c12(page_baocao)
-        # download_report_c13(page_baocao)
-        # download_report_c11_chitiet_SM2(page_baocao)
-        # download_report_c12_chitiet_SM1(page_baocao)
-        # download_report_c12_chitiet_SM2(page_baocao)
-        # download_report_c14_chitiet(page_baocao)
-        #download_report_c15_chitiet(page_baocao)
-        #download_report_I15(page_baocao)
+        print(
+            f"\nCấu hình standalone: report_month={report_month}, "
+            f"start_date={start_date}, end_date={end_date}"
+        )
+
+        download_report_c11(page_baocao, report_month)
+        download_report_c12(page_baocao, report_month)
+        download_report_c13(page_baocao, report_month)
+        download_report_c11_chitiet_SM2(page_baocao, start_date, end_date)
+        download_report_c12_chitiet_SM1(page_baocao, start_date, end_date)
+        download_report_c12_chitiet_SM2(page_baocao, start_date, end_date)
+        download_report_c14_chitiet(page_baocao, report_month)
+        download_report_c15_chitiet(page_baocao)
+        download_report_I15(page_baocao)
         download_report_I15_k2(page_baocao)
 
         # Đóng browser sau khi hoàn thành

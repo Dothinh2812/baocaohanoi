@@ -1,0 +1,46 @@
+{
+  "name": "ty_le_xac_minh_dung_thoi_gian_quy_dinh_chi_tiet_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=534178&menu_id=",
+  "report_id": "534178",
+  "menu_id": "",
+  "export_payload": {
+    "reportId": "534178",
+    "lstInputParams": [
+      {
+        "name": "ploaibc",
+        "dataType": "VARCHAR2",
+        "value": "-1"
+      },
+      {
+        "name": "pdonvi_id",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "pthoigianid",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "ploaihd",
+        "dataType": "VARCHAR2",
+        "value": "-1"
+      },
+      {
+        "name": "ploaidv",
+        "dataType": "VARCHAR2",
+        "value": "-1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "ty_le_xac_minh_dung_thoi_gian_quy_dinh_chi_tiet.xlsx",
+  "captured_at": "2026-04-16T10:43:42",
+  "notes": "Sinh từ capture file: report_api_capture_2.3.6.1. Tỷ lệ xác minh đúng thời gian quy định_chi_tiet.jsonl"
+}

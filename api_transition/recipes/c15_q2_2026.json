@@ -1,0 +1,14 @@
+{
+  "name": "c15_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=258310&menu_id=305918",
+  "report_id": "258310",
+  "menu_id": "305918",
+  "export_payload": {
+    "reportId": "",
+    "lstInputParams": [],
+    "lstOutputParams": []
+  },
+  "default_output_name": "",
+  "captured_at": "2026-04-15T21:31:21.277629",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}

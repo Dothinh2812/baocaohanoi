@@ -11,7 +11,7 @@ def process_c11_report():
     1. Đọc file c1.1 report.xlsx
     2. Xóa hàng đầu tiên
     3. Loại bỏ 2 dòng: Tổ Kỹ thuật Địa bàn Bất Bạt và Tổ Kỹ thuật Địa bàn Tùng Thiện
-    4. Loại bỏ từ cột thứ 9 trở đi
+    4. Loại bỏ từ cột thứ 12 trở đi (giữ lại 11 cột đầu của nhóm Tổng)
     5. Ghi lại vào sheet mới với tên TH_C1.1
     """
     try:
@@ -46,9 +46,9 @@ def process_c11_report():
         rows_removed = len(df) - len(df_filtered)
         print(f"✅ Đã loại bỏ {rows_removed} dòng, còn lại {len(df_filtered)} dòng")
 
-        # Loại bỏ từ cột thứ 9 trở đi (giữ lại 8 cột đầu tiên)
-        print("\n✓ Đang loại bỏ từ cột thứ 9 trở đi...")
-        df_filtered = df_filtered.iloc[:, :8]
+        # Loại bỏ từ cột thứ 12 trở đi (giữ lại 11 cột đầu tiên của nhóm Tổng)
+        print("\n✓ Đang loại bỏ từ cột thứ 12 trở đi...")
+        df_filtered = df_filtered.iloc[:, :11]
         print(f"✅ Đã giữ lại {df_filtered.shape[1]} cột đầu tiên")
 
         # Đặt tên cột (header)
@@ -60,6 +60,9 @@ def process_c11_report():
             "SM3",
             "SM4",
             "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn",
+            "SM5",
+            "SM6",
+            "Tỷ lệ phiếu sửa chữa trong ngày tại CCCO",
             "Chỉ tiêu BSC"
         ]
 
@@ -3965,17 +3968,17 @@ def process_c12_ti_le_hll():
 
 if __name__ == "__main__":
     #Test các hàm xử lý
-    process_c11_report()
-    process_c12_report()
+    # process_c11_report()
+    # process_c12_report()
     process_c13_report()
-    process_c14_report()
-    process_c14_chitiet_report()
-    process_c15_chitiet_report()
-    process_c15_report()
-    process_I15_report()
-    process_c11_chitiet_report_SM2()
-    process_c12_chitiet_report_SM1SM2()
-    process_c11_chitiet_report()
-    process_c12_ti_le_bao_hong()
-    process_I15_report()
-    process_I15_k2_report()
+    # process_c14_report()
+    # process_c14_chitiet_report()
+    # process_c15_chitiet_report()
+    # process_c15_report()
+    # process_I15_report()
+    # process_c11_chitiet_report_SM2()
+    # process_c12_chitiet_report_SM1SM2()
+    # process_c11_chitiet_report()
+    # process_c12_ti_le_bao_hong()
+    # process_I15_report()
+    # process_I15_k2_report()

@@ -1,0 +1,81 @@
+{
+  "name": "vattu_thuhoi_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=270922&menu_id=276242",
+  "report_id": "270922",
+  "menu_id": "276242",
+  "export_payload": {
+    "reportId": "270922",
+    "lstInputParams": [
+      {
+        "name": "vttvt",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "vtungay",
+        "dataType": "VARCHAR2",
+        "value": "24/11/2025"
+      },
+      {
+        "name": "vdenngay",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vdichvuvt_erp",
+        "dataType": "VARCHAR2",
+        "value": "1,4,6,7,8,9,10,13,27,98,25,26,15,22,2,12,14,16"
+      },
+      {
+        "name": "vloaithu",
+        "dataType": "NUMBER",
+        "value": "0"
+      },
+      {
+        "name": "vloaibatbuoc",
+        "dataType": "NUMBER",
+        "value": "0"
+      },
+      {
+        "name": "vvattu",
+        "dataType": "VARCHAR2",
+        "value": "1,2,3,4,8,6,5"
+      },
+      {
+        "name": "vloaingay",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "vtrangthai",
+        "dataType": "NUMBER",
+        "value": "0"
+      },
+      {
+        "name": "ppageindex",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "ppagesize",
+        "dataType": "NUMBER",
+        "value": "50"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "ototalrecord",
+        "dataType": "NUMBER",
+        "value": ""
+      },
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "",
+  "captured_at": "2026-04-16T09:27:21.760762",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}

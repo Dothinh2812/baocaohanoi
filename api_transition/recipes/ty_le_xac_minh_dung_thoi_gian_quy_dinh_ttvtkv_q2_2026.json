@@ -1,0 +1,41 @@
+{
+  "name": "ty_le_xac_minh_dung_thoi_gian_quy_dinh_ttvtkv_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=533800&menu_id=533812",
+  "report_id": "533800",
+  "menu_id": "533812",
+  "export_payload": {
+    "reportId": "533800",
+    "lstInputParams": [
+      {
+        "name": "vdv",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "vthoigian",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "vloai",
+        "dataType": "VARCHAR2",
+        "value": "-1"
+      },
+      {
+        "name": "vloaixacminh",
+        "dataType": "VARCHAR2",
+        "value": "-1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "ty_le_xac_minh_dung_thoi_gian_quy_dinh_ttvtkv.xlsx",
+  "captured_at": "2026-04-16T10:41:52",
+  "notes": "Sinh từ capture file: report_api_capture_2.3.6.1. Tỷ lệ xác minh đúng thời gian quy định - TTVTKV.jsonl"
+}

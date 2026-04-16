@@ -11,8 +11,8 @@ from datetime import datetime
 def download_GHTT_report_HNI(page_baocao):
     """
     Tải báo cáo KR6 từ trang baocao.hanoi.vnpt.vn
-    10.2.11.5.KR6.Tỷ lệ thuê bao hoàn thành gia hạn TTTC trong tháng T đạt 80% (ĐB mới))
-    https://baocao.hanoi.vnpt.vn/report/report-info?id=523160
+    > 10.BSC/OKR > 10.1 Báo cáo BSC > 10.1.7 Chỉ tiêu công tác gia hạn TTTC > 10.1.7.4 Duy trì thuê bao BRCĐ hiện hữu gia hạn TTTC
+    https://baocao.hanoi.vnpt.vn/report/report-info?id=534220&menu_id=534238
 
     Args:
         page_baocao: Đối tượng page đã đăng nhập
@@ -24,8 +24,8 @@ def download_GHTT_report_HNI(page_baocao):
     print(f"📅 Ngày tra cứu báo cáo: {current_date}")
 
     # Truy cập trang báo cáo
-    report_url = 'https://baocao.hanoi.vnpt.vn/report/report-info?id=523160'
-    print(f"🔗 URL báo cáo KR6 NVKT: {report_url}")
+    report_url = 'https://baocao.hanoi.vnpt.vn/report/report-info?id=534220&menu_id=534238'
+    print(f"🔗 URL báo cáo : {report_url}")
     print(f"Đang truy cập: {report_url}")
     page_baocao.goto(report_url, timeout=60000)
 
@@ -91,7 +91,7 @@ def download_GHTT_report_Son_Tay(page_baocao):
     print(f"📅 Ngày tra cứu báo cáo: {current_date}")
 
     # Truy cập trang báo cáo
-    report_url = 'https://baocao.hanoi.vnpt.vn/report/report-info?id=523160'
+    report_url = 'https://baocao.hanoi.vnpt.vn/report/report-info?id=534220&menu_id=534238'
     print(f"🔗 URL báo cáo KR6 Tổng hợp: {report_url}")
     print(f"Đang truy cập: {report_url}")
     page_baocao.goto(report_url, timeout=60000)
@@ -178,7 +178,7 @@ def download_GHTT_report_nvktdb(page_baocao):
     print(f"📅 Ngày tra cứu báo cáo: {current_date}")
 
     # Truy cập trang báo cáo
-    report_url = 'https://baocao.hanoi.vnpt.vn/report/report-info?id=523160'
+    report_url = 'https://baocao.hanoi.vnpt.vn/report/report-info?id=534220&menu_id=534238'
     print(f"🔗 URL báo cáo GHTT NVKT DB: {report_url}")
     print(f"Đang truy cập: {report_url}")
     page_baocao.goto(report_url, timeout=60000)
@@ -209,10 +209,14 @@ def download_GHTT_report_nvktdb(page_baocao):
         time.sleep(2)
         print("✅ Đã chọn TTVT Sơn Tây")
 
-        # Bước 2: Click vào dropdown select và chọn option thứ 3
-        print("Đang chọn loại báo cáo NVKT DB...")
-        select_xpath = "/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[2]/div/div/div/div/select"
-        page_baocao.locator(f"xpath={select_xpath}").select_option(value="2")
+        # Bước 2: Click vào trường "Loại", sau đó dùng phím mũi tên xuống và Enter
+        print("Đang chọn loại báo cáo NVKT DB bằng bàn phím...")
+        select_xpath = "/html/body/app-root/app-layout/app-vertical/div[2]/div[2]/div/app-report-info-list/div/div[1]/div[2]/div/div/div[2]/div[1]/div[3]/div/div/div/div/select"
+        page_baocao.locator(f"xpath={select_xpath}").click()
+        time.sleep(1)
+        page_baocao.keyboard.press("ArrowDown")
+        time.sleep(1)
+        page_baocao.keyboard.press("Enter")
         time.sleep(2)
         print("✅ Đã chọn loại báo cáo NVKT DB")
 
@@ -530,8 +534,8 @@ def main():
 
         # Tải các báo cáo KR6
         print("\n2. Tải báo cáo KR6...")
-        #download_GHTT_report_HNI(page_baocao)
-        #download_GHTT_report_Son_Tay(page_baocao)
+        # download_GHTT_report_HNI(page_baocao)
+        # download_GHTT_report_Son_Tay(page_baocao)
         download_GHTT_report_nvktdb(page_baocao)
 
         # # Tải các báo cáo KR7

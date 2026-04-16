@@ -1,0 +1,56 @@
+{
+  "name": "i15_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=283632&menu_id=283669",
+  "report_id": "283632",
+  "menu_id": "283669",
+  "export_payload": {
+    "reportId": "283632",
+    "lstInputParams": [
+      {
+        "name": "vdv",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "vngay_bd",
+        "dataType": "VARCHAR2",
+        "value": "14/04/2026"
+      },
+      {
+        "name": "vngay_kt",
+        "dataType": "VARCHAR2",
+        "value": "14/04/2026"
+      },
+      {
+        "name": "vdk",
+        "dataType": "NUMBER",
+        "value": "0"
+      },
+      {
+        "name": "ppageindex",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "ppagesize",
+        "dataType": "NUMBER",
+        "value": "1000000"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "ototalrecord",
+        "dataType": "NUMBER",
+        "value": ""
+      },
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "",
+  "captured_at": "2026-04-15T21:57:19.788676",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}

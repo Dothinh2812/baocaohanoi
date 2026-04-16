@@ -1,0 +1,46 @@
+{
+  "name": "tam_dung_khoi_phuc_dich_vu_tong_hop_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=268463&menu_id=276205",
+  "report_id": "268463",
+  "menu_id": "276205",
+  "export_payload": {
+    "reportId": "268463",
+    "lstInputParams": [
+      {
+        "name": "vdv",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "vngay_bd",
+        "dataType": "VARCHAR2",
+        "value": "01/04/2026"
+      },
+      {
+        "name": "vngay_kt",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vloaidv",
+        "dataType": "VARCHAR2",
+        "value": "1,4,6,7,8,9,10,13,27,98,25,26,15,22,2,12,14,16"
+      },
+      {
+        "name": "vloaibc",
+        "dataType": "NUMBER",
+        "value": "0"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "tam_dung_khoi_phuc_dich_vu_tong_hop.xlsx",
+  "captured_at": "2026-04-16T10:36:08",
+  "notes": "Sinh từ capture file: report_api_capture_ 2.4.7. Tạm dừng, khôi phục dịch vụ tổng hợp.jsonl"
+}

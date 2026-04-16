@@ -1,0 +1,36 @@
+{
+  "name": "ghtt_nvktdb_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=534220&menu_id=534238",
+  "report_id": "534220",
+  "menu_id": "534238",
+  "export_payload": {
+    "reportId": "534220",
+    "lstInputParams": [
+      {
+        "name": "vdonvi",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "vthoigian",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "vloai",
+        "dataType": "NUMBER",
+        "value": "2"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "",
+  "captured_at": "2026-04-15T22:10:03.032941",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}

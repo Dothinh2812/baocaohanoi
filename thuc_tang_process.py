@@ -14,6 +14,50 @@ try:
 except ImportError:
     HISTORY_IMPORT_AVAILABLE = False
 
+
+def _extract_son_tay_ngung_psc_subset(df_raw):
+    """
+    Trích xuất 4 dòng dữ liệu Sơn Tây từ báo cáo nhiều tầng header.
+    Dò cột theo nhãn thực tế để tránh phụ thuộc vào chỉ số cột cố định.
+    """
+    data_row_indices = [3, 4, 5, 6]
+    if len(df_raw) <= max(data_row_indices):
+        raise ValueError(
+            f"File Sơn Tây không đủ số dòng dữ liệu. Cần ít nhất {max(data_row_indices) + 1} dòng, "
+            f"nhưng chỉ có {len(df_raw)} dòng."
+        )
+
+    header_row_count = min(3, len(df_raw))
+    header_map = {}
+    for col_idx in range(df_raw.shape[1]):
+        header_values = [
+            str(df_raw.iat[row_idx, col_idx]).strip()
+            for row_idx in range(header_row_count)
+            if pd.notna(df_raw.iat[row_idx, col_idx]) and str(df_raw.iat[row_idx, col_idx]).strip()
+        ]
+        for value in header_values:
+            header_map.setdefault(value, col_idx)
+
+    required_columns = {
+        "Đơn vị/Nhân viên KT": "Đơn vị/Nhân viên KT",
+        "Hoàn công(*) (1.5)": "Hoàn công(*) (1.5)",
+        "Lũy kế tháng(1.6)": "Lũy kế tháng(1.6)",
+        "Lũy kế năm(1.7)": "Lũy kế năm(1.7)",
+        "Ngưng PSC tạm tính tháng T(5.1)": "Ngưng PSC tạm tính tháng T(5.1)",
+        "TB Ngưng PSC lũy kế năm(4.6) (4.7-4.4)": "TB Ngưng PSC lũy kế năm(4.6) (4.7-4.4)",
+    }
+    missing_headers = [header for header in required_columns if header not in header_map]
+    if missing_headers:
+        raise ValueError(
+            "Không tìm thấy các cột bắt buộc trong báo cáo Sơn Tây: "
+            + ", ".join(missing_headers)
+        )
+
+    selected_col_indices = [header_map[header] for header in required_columns]
+    df_subset = df_raw.iloc[data_row_indices, selected_col_indices].copy()
+    df_subset.columns = list(required_columns.values())
+    return df_subset
+
 def process_ngung_psc_report():
     """
     Xử lý báo cáo ngung_psc:
@@ -1002,25 +1046,9 @@ def process_son_tay_ngung_psc_report():
         latest_file = max(files, key=os.path.getmtime)
         print(f"📂 Đang xử lý file mới nhất: {latest_file}")
 
-        # Đọc file với header=None vì header phức tạp
+        # Đọc file với header=None vì header nhiều tầng
         df_raw = pd.read_excel(latest_file, header=None)
-
-        # Trích xuất dữ liệu:
-        # Rows: indices 3-6
-        # Columns: 0=Đơn vị, 5=HC(1.5), 6=LK tháng(1.6), 7=LK năm(1.7), 38=Ngưng PSC tạm tính(5.1), 32=Ngưng PSC LK năm(4.6)
-        indices = [3, 4, 5, 6]
-        cols = [0, 5, 6, 7, 38, 32]
-        df_subset = df_raw.iloc[indices, cols].copy()
-
-        # Đặt tên cột
-        df_subset.columns = [
-            "Đơn vị/Nhân viên KT",
-            "Hoàn công(*) (1.5)",
-            "Lũy kế tháng(1.6)",
-            "Lũy kế năm(1.7)",
-            "Ngưng PSC tạm tính tháng T(5.1)",
-            "TB Ngưng PSC lũy kế năm(4.6) (4.7-4.4)",
-        ]
+        df_subset = _extract_son_tay_ngung_psc_subset(df_raw)
 
         # Ép kiểu dữ liệu số
         numeric_cols = df_subset.columns[1:]
@@ -1094,25 +1122,9 @@ def process_son_tay_mytv_ngung_psc_report():
         latest_file = max(files, key=os.path.getmtime)
         print(f"📂 Đang xử lý file mới nhất: {latest_file}")
 
-        # Đọc file với header=None vì header phức tạp
+        # Đọc file với header=None vì header nhiều tầng
         df_raw = pd.read_excel(latest_file, header=None)
-
-        # Trích xuất dữ liệu:
-        # Rows: indices 3-6
-        # Columns: 0=Đơn vị, 5=HC(1.5), 6=LK tháng(1.6), 7=LK năm(1.7), 38=Ngưng PSC tạm tính(5.1), 32=Ngưng PSC LK năm(4.6)
-        indices = [3, 4, 5, 6]
-        cols = [0, 5, 6, 7, 38, 32]
-        df_subset = df_raw.iloc[indices, cols].copy()
-
-        # Đặt tên cột
-        df_subset.columns = [
-            "Đơn vị/Nhân viên KT",
-            "Hoàn công(*) (1.5)",
-            "Lũy kế tháng(1.6)",
-            "Lũy kế năm(1.7)",
-            "Ngưng PSC tạm tính tháng T(5.1)",
-            "TB Ngưng PSC lũy kế năm(4.6) (4.7-4.4)",
-        ]
+        df_subset = _extract_son_tay_ngung_psc_subset(df_raw)
 
         # Ép kiểu dữ liệu số
         numeric_cols = df_subset.columns[1:]

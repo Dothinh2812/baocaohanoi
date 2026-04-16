@@ -1,0 +1,41 @@
+{
+  "name": "c14_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=264107&menu_id=275688",
+  "report_id": "264107",
+  "menu_id": "275688",
+  "export_payload": {
+    "reportId": "264107",
+    "lstInputParams": [
+      {
+        "name": "vdonvi",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "vthoigian",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "vloai",
+        "dataType": "NUMBER",
+        "value": "0"
+      },
+      {
+        "name": "vloaidv",
+        "dataType": "NUMBER",
+        "value": "1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "BC-Báo cáo CSKH tổng hợp CCL-15.4.2026-23.33.20.xlsx",
+  "captured_at": "2026-04-15T20:32:54.261079",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}

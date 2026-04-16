@@ -1,0 +1,40 @@
+{
+  "name": "c11_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=534964&menu_id=535020",
+  "report_id": "534964",
+  "menu_id": "535020",
+  "export_payload": {
+    "reportId": "534964",
+    "lstInputParams": [
+      {
+        "name": "ptrungtamid",
+        "dataType": "NUMBER",
+        "value": "14324"
+      },
+      {
+        "name": "pthang",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "ploaict",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "ploai",
+        "dataType": "NUMBER",
+        "value": "1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "odata",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "c1.1 report.xlsx",
+  "notes": "Recipe lấy từ capture thực tế report C1.1 quý 2/2026."
+}

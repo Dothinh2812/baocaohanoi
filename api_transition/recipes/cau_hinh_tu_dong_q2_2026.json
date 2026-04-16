@@ -1,0 +1,31 @@
+{
+  "name": "cau_hinh_tu_dong_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=518362&menu_id=518381",
+  "report_id": "518362",
+  "menu_id": "518381",
+  "export_payload": {
+    "reportId": "518362",
+    "lstInputParams": [
+      {
+        "name": "pthang",
+        "dataType": "NUMBER",
+        "value": "98944548"
+      },
+      {
+        "name": "pdv",
+        "dataType": "NUMBER",
+        "value": "1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "sys_refcursor",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "cau_hinh_tu_dong report.xlsx",
+  "captured_at": "2026-04-16T09:22:21",
+  "notes": "Recipe tạo từ capture thực tế báo cáo cấu hình tự động. pdv=1 là PTM, pdv=13 là Thay Thế."
+}

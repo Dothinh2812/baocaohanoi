@@ -262,7 +262,7 @@ def import_c11(conn: sqlite3.Connection, ngay: str):
             int(row.iloc[4]) if pd.notna(row.iloc[4]) else None,
             int(row.iloc[5]) if pd.notna(row.iloc[5]) else None,
             float(row.iloc[6]) if pd.notna(row.iloc[6]) else None,
-            float(row.iloc[7]) if pd.notna(row.iloc[7]) else None,
+            float(row.iloc[10]) if pd.notna(row.iloc[10]) else None,
         ))
         count += 1
     

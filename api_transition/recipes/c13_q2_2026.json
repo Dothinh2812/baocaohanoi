@@ -1,0 +1,41 @@
+{
+  "name": "c13_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=522600&menu_id=535022",
+  "report_id": "522600",
+  "menu_id": "535022",
+  "export_payload": {
+    "reportId": "522600",
+    "lstInputParams": [
+      {
+        "name": "ptrungtamid",
+        "dataType": "NUMBER",
+        "value": "14324"
+      },
+      {
+        "name": "pthang",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "ploaict",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "ploai",
+        "dataType": "NUMBER",
+        "value": "1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "odata",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "BC-CHỈ TIÊU 1.3 (Q4/2025)-15.4.2026-51.45.19.xlsx",
+  "captured_at": "2026-04-15T19:45:23.264802",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}

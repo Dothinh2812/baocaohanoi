@@ -1,0 +1,40 @@
+{
+  "name": "kpi_nvkt_c11_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=522457&menu_id=522561",
+  "report_id": "522457",
+  "menu_id": "522561",
+  "export_payload": {
+    "reportId": "522457",
+    "lstInputParams": [
+      {
+        "name": "ptrungtamid",
+        "dataType": "NUMBER",
+        "value": "14324"
+      },
+      {
+        "name": "pthang",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "ploaict",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "ploai",
+        "dataType": "NUMBER",
+        "value": "3"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "odata",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "c11-nvktdb report.xlsx",
+  "notes": "Recipe lấy từ capture KPI_NVKT_C11 ngày 2026-04-16, khác report C1.1 q2_2026 đang dùng report_id 534964."
+}

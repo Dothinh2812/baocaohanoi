@@ -1,0 +1,66 @@
+{
+  "name": "xac_minh_tam_dung_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=267844&menu_id=276199",
+  "report_id": "267844",
+  "menu_id": "276199",
+  "export_payload": {
+    "reportId": "267844",
+    "lstInputParams": [
+      {
+        "name": "pdonvi_id",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "vngay_bd",
+        "dataType": "VARCHAR2",
+        "value": "01/04/2026"
+      },
+      {
+        "name": "vngay_kt",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vloaidv",
+        "dataType": "VARCHAR2",
+        "value": "8,9"
+      },
+      {
+        "name": "vloaingay",
+        "dataType": "NUMBER",
+        "value": "0"
+      },
+      {
+        "name": "vloaibc",
+        "dataType": "NUMBER",
+        "value": "0"
+      },
+      {
+        "name": "ppageindex",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "ppagesize",
+        "dataType": "NUMBER",
+        "value": "1000000"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "ototalrecord",
+        "dataType": "NUMBER",
+        "value": ""
+      },
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "",
+  "captured_at": "2026-04-16T07:50:15.582854",
+  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+}
