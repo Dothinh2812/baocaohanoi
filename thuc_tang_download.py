@@ -4,9 +4,38 @@ Module chứa các hàm download báo cáo thực tăng PTTB và MyTV
 """
 import time
 import os
+from pathlib import Path
 from datetime import datetime, timedelta
 from urllib.parse import quote
 from config import Config
+from api_transition.auth import capture_authorization
+from api_transition.report_api_client import export_report, make_common_headers, save_export_file
+
+
+def _download_report_via_api_from_page_session(page_baocao, report_page_url, export_payload, output_filename, output_dir):
+    """
+    Export báo cáo qua report-api bằng chính phiên Playwright đã đăng nhập.
+
+    Args:
+        page_baocao: Đối tượng page đã đăng nhập
+        report_page_url: URL trang report-info để bắt Authorization
+        export_payload: Payload gửi tới API get-data-export
+        output_filename: Tên file output
+        output_dir: Thư mục output
+
+    Returns:
+        str: Đường dẫn file đã lưu
+    """
+    print(f"Đang mở trang để bắt Authorization: {report_page_url}")
+    auth_state = capture_authorization(page_baocao, report_page_url)
+    headers = make_common_headers(auth_state, page_baocao.context.cookies())
+
+    print("Đang gọi API export...")
+    export_response = export_report(headers, export_payload, timeout=300)
+
+    output_path = save_export_file(export_response, output_dir, output_filename)
+    print(f"✅ Đã tải file về: {output_path}")
+    return str(output_path)
 
 
 def download_report_pttb_ngung_psc(page_baocao):
@@ -432,6 +461,64 @@ def download_report_ngung_psc_mytv_thang_t_1_son_tay(page_baocao):
 
     except Exception as e:
         print(f"❌ Lỗi khi tải báo cáo MyTV Sơn Tây: {e}")
+
+
+def download_report_ngung_psc_fiber_thang_t_1_cap_ttvt(page_baocao):
+    """
+    Tải báo cáo "Tình hình ngưng PSC tháng T-1 cấp TTVT" cho dịch vụ Fiber
+    theo payload lấy từ network capture.
+
+    Capture tương ứng:
+    - reportId: 263889
+    - menu_id: 276187
+    - vdvvt_id: 9 (Fiber)
+    - vdonvi_id: 14316 (VNPT Hà Nội)
+    - vloai: 1
+
+    Args:
+        page_baocao: Đối tượng page đã đăng nhập
+    """
+    print("\n=== Bắt đầu tải báo cáo Tình hình ngưng PSC tháng T-1 cấp TTVT Fiber ===")
+
+    report_id = "263889"
+    menu_id = "276187"
+    vdvvt_id = "9"
+    vdonvi_id = "14316"
+    vloai = "1"
+
+    yesterday = datetime.now() - timedelta(days=1)
+    current_date = yesterday.strftime("%d/%m/%Y")
+
+    report_page_url = f"{Config.BAOCAO_BASE_URL}/report/report-info?id={report_id}&menu_id={menu_id}"
+    output_dir = Path(__file__).resolve().parent / "api_transition" / "downloads" / "tam_dung_khoi_phuc_dich_vu"
+    output_filename = "ngung_psc_fiber_thang_t-1_cap_ttvt.xlsx"
+
+    export_payload = {
+        "reportId": report_id,
+        "lstInputParams": [
+            {"name": "vdvvt_id", "dataType": "NUMBER", "value": vdvvt_id},
+            {"name": "vdenngay", "dataType": "VARCHAR2", "value": current_date},
+            {"name": "vdonvi_id", "dataType": "NUMBER", "value": vdonvi_id},
+            {"name": "vloai", "dataType": "NUMBER", "value": vloai},
+        ],
+        "lstOutputParams": [
+            {"name": "returnds", "dataType": "CURSOR", "value": ""}
+        ],
+    }
+
+    print(f"Ngày báo cáo: {current_date}")
+    print(f"Payload export: reportId={report_id}, vdvvt_id={vdvvt_id}, vdonvi_id={vdonvi_id}, vloai={vloai}")
+
+    try:
+        _download_report_via_api_from_page_session(
+            page_baocao=page_baocao,
+            report_page_url=report_page_url,
+            export_payload=export_payload,
+            output_filename=output_filename,
+            output_dir=str(output_dir),
+        )
+    except Exception as e:
+        print(f"❌ Lỗi khi tải báo cáo Tình hình ngưng PSC tháng T-1 cấp TTVT Fiber: {e}")
 
 
 def main():

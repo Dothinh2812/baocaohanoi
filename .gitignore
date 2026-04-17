@@ -69,3 +69,7 @@ gsshc/*.xlsx
 gsshc/openai-vison-key.txt
 gsshc/vision-key.json
 gsshc/ggsheet-key.json
+
+# Local transition work artifacts
+.skill-work/
+api_transition/Processed/

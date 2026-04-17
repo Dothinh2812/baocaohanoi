@@ -1,0 +1,47 @@
+{
+  "name": "Tình hình ngưng PSC FIBER tháng T-1",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187",
+  "report_id": "263889",
+  "menu_id": "276187",
+  "export_payload": {
+    "reportId": "263889",
+    "lstInputParams": [
+      {
+        "name": "vdvvt_id",
+        "dataType": "NUMBER",
+        "value": "9",
+        "text": "Internet trên cáp quang"
+      },
+      {
+        "name": "vdenngay",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vdonvi_id",
+        "dataType": "NUMBER",
+        "value": "14316",
+        "text": "VNPT Hà Nội"
+      },
+      {
+        "name": "vloai",
+        "dataType": "NUMBER",
+        "value": "1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "api_endpoints": {
+    "get_config": "https://baocaobe.myhanoi.vn/report-api/get-info-report/263889?menu_id=276187",
+    "get_data": "https://baocaobe.myhanoi.vn/report-api/get-data-report",
+    "export_excel": "https://baocaobe.myhanoi.vn/report-api/get-data-export"
+  },
+  "captured_at": "2026-04-17T17:50:29.459657",
+  "notes": "Báo cáo PTM dịch vụ Băng rộng (ID=9) tính đến ngày 16/04/2026 cho toàn VNPT Hà Nội."
+}

@@ -1,0 +1,41 @@
+{
+  "name": "ngung_psc_mytv_thang_t_1_cap_ttvt_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187",
+  "report_id": "263889",
+  "menu_id": "276187",
+  "export_payload": {
+    "reportId": "263889",
+    "lstInputParams": [
+      {
+        "name": "vdvvt_id",
+        "dataType": "NUMBER",
+        "value": "8"
+      },
+      {
+        "name": "vdenngay",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vdonvi_id",
+        "dataType": "NUMBER",
+        "value": "14316"
+      },
+      {
+        "name": "vloai",
+        "dataType": "NUMBER",
+        "value": "1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx",
+  "captured_at": "2026-04-17T18:05:14.896150",
+  "notes": "Sinh tự động từ capture"
+}

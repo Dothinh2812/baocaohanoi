@@ -3,6 +3,7 @@
 
 import copy
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from api_transition.auth import capture_authorization, login
@@ -514,6 +515,34 @@ def download_tam_dung_khoi_phuc_dich_vu_tong_hop_api(
         headed=headed,
         output_dir=output_dir,
         output_name="tam_dung_khoi_phuc_dich_vu_tong_hop.xlsx",
+        overrides=overrides,
+        session=session,
+    )
+
+
+def download_ngung_psc_mytv_thang_t_1_cap_ttvt_api(
+    report_date="",
+    unit_id="14316",
+    service_id="8",
+    report_type="1",
+    headed=False,
+    output_dir=group_output_dir("mytv_dich_vu"),
+    session=None,
+):
+    if not report_date:
+        report_date = (datetime.now() - timedelta(days=1)).strftime("%d/%m/%Y")
+
+    overrides = {
+        "vdvvt_id": str(service_id),
+        "vdenngay": str(report_date),
+        "vdonvi_id": str(unit_id),
+        "vloai": str(report_type),
+    }
+    return download_with_recipe(
+        "ngung_psc_mytv_thang_t_1_cap_ttvt_q2_2026",
+        headed=headed,
+        output_dir=output_dir,
+        output_name="ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx",
         overrides=overrides,
         session=session,
     )

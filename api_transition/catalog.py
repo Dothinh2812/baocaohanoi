@@ -155,4 +155,11 @@ MIGRATION_CATALOG = [
         recipe_name="kq_tiep_thi_q2_2026",
         note="Đã capture thành công, có downloader API riêng và đã tải file thành công trên môi trường thực.",
     ),
+    MigrationItem(
+        old_function="download_report_ngung_psc_mytv_thang_t_1_cap_ttvt",
+        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187",
+        status="implemented",
+        recipe_name="ngung_psc_mytv_thang_t_1_cap_ttvt_q2_2026",
+        note="Đã lưu recipe export API và thêm downloader riêng cho raw MyTV cấp TTVT theo ngày T-1.",
+    ),
 ]

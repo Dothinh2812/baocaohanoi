@@ -49,6 +49,7 @@ from api_transition.downloaders import (
     download_phieu_hoan_cong_dich_vu_chi_tiet_api,
     download_tam_dung_khoi_phuc_dich_vu_chi_tiet_api,
     download_tam_dung_khoi_phuc_dich_vu_tong_hop_api,
+    download_ngung_psc_mytv_thang_t_1_cap_ttvt_api,
     download_ty_le_xac_minh_dung_thoi_gian_quy_dinh_ttvtkv_api,
     download_ty_le_xac_minh_dung_thoi_gian_quy_dinh_chi_tiet_api,
     download_kq_tiep_thi_api,
@@ -274,6 +275,13 @@ REPORT_TASKS: List[ReportTask] = [
         func=download_tam_dung_khoi_phuc_dich_vu_tong_hop_api,
         params_type="calendar_month",
         group="tam_dung_khoi_phuc_dich_vu",
+    ),
+    ReportTask(
+        name="Ngưng PSC MyTV tháng T-1 cấp TTVT",
+        func=download_ngung_psc_mytv_thang_t_1_cap_ttvt_api,
+        params_type="t_minus_1",
+        group="mytv_dich_vu",
+        extra_kwargs={"t_minus_1_as_report_date": True},
     ),
     ReportTask(
         name="Tỷ lệ xác minh đúng thời gian quy định - TTVTKV",
