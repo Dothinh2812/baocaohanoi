@@ -73,3 +73,5 @@ gsshc/ggsheet-key.json
 # Local transition work artifacts
 .skill-work/
 api_transition/Processed/
+api_transition/ProcessedDaily/
+api_transition/sqlite_history/__pycache__/

@@ -1,0 +1,44 @@
+{
+  "name": "bc_nhanh_moi_sontay_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187",
+  "report_id": "263889",
+  "menu_id": "276187",
+  "export_payload": {
+    "reportId": "263889",
+    "lstInputParams": [
+      {
+        "name": "vdvvt_id",
+        "dataType": "NUMBER",
+        "value": "9",
+        "text": "Internet trên cáp quang"
+      },
+      {
+        "name": "vdenngay",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vdonvi_id",
+        "dataType": "NUMBER",
+        "value": "14324",
+        "text": "Trung tâm Viễn thông Sơn Tây"
+      },
+      {
+        "name": "vloai",
+        "dataType": "NUMBER",
+        "value": "2"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "export_format": "xlsx",
+  "default_output_name": "BC-Báo Cáo Nhanh(mới)-17.4.2026-48.15.19.xlsx",
+  "captured_at": "2026-04-17T19:15:19.890250",
+  "notes": "Trích xuất báo cáo nhanh cho đơn vị Sơn Tây (ID=14324) với loại dữ liệu số 2."
+}

@@ -162,4 +162,25 @@ MIGRATION_CATALOG = [
         recipe_name="ngung_psc_mytv_thang_t_1_cap_ttvt_q2_2026",
         note="Đã lưu recipe export API và thêm downloader riêng cho raw MyTV cấp TTVT theo ngày T-1.",
     ),
+    MigrationItem(
+        old_function="download_report_ngung_psc_fiber_thang_t_1_cap_ttvt",
+        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187",
+        status="implemented",
+        recipe_name="ngung_psc_fiber_thang_t_1_cap_ttvt_q2_2026",
+        note="Đã lưu recipe export API và thêm downloader riêng cho raw Fiber cấp TTVT theo ngày T-1.",
+    ),
+    MigrationItem(
+        old_function="download_report_ngung_psc_fiber_thang_t_1_cap_to",
+        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187",
+        status="implemented",
+        recipe_name="ngung_psc_fiber_thang_t_1_cap_to_q2_2026",
+        note="Đã lưu recipe export API và thêm downloader riêng cho raw Fiber cấp Tổ theo ngày T-1.",
+    ),
+    MigrationItem(
+        old_function="download_report_ngung_psc_mytv_thang_t_1_cap_to",
+        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187",
+        status="implemented",
+        recipe_name="ngung_psc_mytv_thang_t_1_cap_to_q2_2026",
+        note="Đã lưu recipe export API và thêm downloader riêng cho raw MyTV cấp Tổ theo ngày T-1.",
+    ),
 ]

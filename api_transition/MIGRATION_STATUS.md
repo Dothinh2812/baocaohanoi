@@ -6,6 +6,7 @@ Nguyên tắc áp dụng:
 - Không sửa các downloader đang chạy ở thư mục gốc.
 - Mỗi hàm chuyển đổi thành công sẽ có `recipe` riêng trong `api_transition/recipes/`.
 - Chỉ khi đã tải thành công bằng API mới coi là `implemented`.
+- Ngoài downloader, `api_transition/` hiện đã có tầng processor, full pipeline và import SQLite để vận hành end-to-end.
 
 ## Đã chuyển đổi thành công
 
@@ -85,6 +86,82 @@ Các mục còn lại cần xử lý riêng:
 - `download_report_c11_chitiet_SM2`
 - `download_report_c15`
 - `download_report_c15_chitiet`
+
+## Trạng thái Processor và Orchestrator
+
+### Processor runner
+
+- Đã có runner tổng `api_transition/processors/runner.py`
+- Entry point Python: `from api_transition.processors import run_all_processors`
+- CLI:
+
+```bash
+python3 -m api_transition.processors.runner
+python3 -m api_transition.processors.runner --overwrite-processed
+python3 -m api_transition.processors.runner --group mytv_dich_vu
+python3 -m api_transition.processors.runner --list
+```
+
+- Runner hiện quản lý 30 processor đã được port vào `api_transition/processors/`
+- Có hỗ trợ `--only`, `--skip`, `--group`, `--stop-on-error`
+
+### Full pipeline
+
+- Đã có entrypoint `api_transition/full_pipeline.py`
+- Entry point Python: `from api_transition import run_full_pipeline`
+- CLI:
+
+```bash
+python3 -m api_transition.full_pipeline
+python3 -m api_transition.full_pipeline --snapshot-date 2026-04-19
+python3 api_transition/full_pipeline.py --snapshot-date 2026-04-19
+```
+
+- Luồng hiện tại:
+  - download tất cả qua `run_batch_download()`
+  - xử lý tất cả qua `run_all_processors()`
+  - archive workbook processed thành công sang `ProcessedDaily/<snapshot-date>/...`
+  - import vào `report_history.db`
+  - apply lại views sau import
+- Mặc định pipeline vẫn import phần đã download/process thành công dù một số bước khác lỗi
+- Dùng `--strict` nếu muốn dừng trước bước import khi download/process có lỗi
+
+### SQLite history
+
+- Đã có SQLite local `api_transition/report_history.db`
+- Script import độc lập: `api_transition/sqlite_history/import_processed_to_sqlite.py`
+- Nếu chạy qua `full_pipeline.py`, importer chỉ nạp các workbook processed thành công của chính lượt chạy đó
+- Nếu chạy import CLI độc lập, script sẽ quét toàn bộ `api_transition/Processed`
+- `ProcessedDaily` hiện được tạo ngay sau bước process trong full pipeline, không còn phụ thuộc việc import SQLite có thành công hay không
+
+## Trạng thái Processor nhóm dịch vụ/MyTV
+
+### Đã vận hành được
+
+- `phieu_hoan_cong_dich_vu`
+- `tam_dung_khoi_phuc_chi_tiet`
+- `tam_dung_khoi_phuc_tong_hop`
+- `fiber_thuc_tang`
+- `mytv_ngung_psc`
+- `mytv_hoan_cong`
+- `mytv_thuc_tang`
+- `son_tay_mytv_ngung_psc_t_minus_1`
+- `son_tay_fiber_ngung_psc_t_minus_1`
+
+### Ghi chú migration MyTV
+
+- `mytv_ngung_psc` đã bỏ phụ thuộc vào file legacy `mytv_ngung_psc.xlsx`
+- Raw path mới:
+  - `downloads/tam_dung_khoi_phuc_dich_vu/ngung_psc_mytv_thang_t-1_cap_to.xlsx`
+  - `downloads/mytv_dich_vu/ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx`
+- `mytv_hoan_cong` đã bỏ phụ thuộc vào file legacy `mytv_hoan_cong.xlsx`
+- `mytv_hoan_cong` và `mytv_thuc_tang` hiện lấy dữ liệu MyTV trực tiếp từ `phieu_hoan_cong_dich_vu_chi_tiet.xlsx`
+- `son_tay_mytv_ngung_psc_t_minus_1` hiện đọc từ `downloads/tam_dung_khoi_phuc_dich_vu/ngung_psc_mytv_thang_t-1_sontay.xlsx`
+- Output canonical:
+  - `Processed/mytv_dich_vu/mytv_ngung_psc_processed.xlsx`
+  - `Processed/mytv_dich_vu/mytv_hoan_cong_processed.xlsx`
+  - `Processed/mytv_dich_vu/mytv_thuc_tang_processed.xlsx`
+- Hạn chế hiện tại: raw API ngưng PSC MyTV mới chưa có đủ chi tiết NVKT, nên `mytv_thuc_tang` hiện mới sinh được nhánh tổng hợp theo tổ/TTVT
 
 ## Lệnh chạy nhanh cho các downloader mới đã OK
 

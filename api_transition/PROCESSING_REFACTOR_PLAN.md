@@ -594,15 +594,26 @@ Các file processed đã tạo và kiểm tra:
 - `api_transition/Processed/phieu_hoan_cong_dich_vu/phieu_hoan_cong_dich_vu_chi_tiet_processed.xlsx`
 - `api_transition/Processed/tam_dung_khoi_phuc_dich_vu/tam_dung_khoi_phuc_dich_vu_chi_tiet_processed.xlsx`
 - `api_transition/Processed/tam_dung_khoi_phuc_dich_vu/tam_dung_khoi_phuc_dich_vu_tong_hop_processed.xlsx`
-- `api_transition/Processed/mytv_dich_vu/mytv_ngung_psc_16042026_processed.xlsx`
-- `api_transition/Processed/mytv_dich_vu/mytv_hoan_cong_16042026_processed.xlsx`
+- `api_transition/Processed/mytv_dich_vu/mytv_ngung_psc_processed.xlsx`
+- `api_transition/Processed/mytv_dich_vu/mytv_hoan_cong_processed.xlsx`
 - `api_transition/Processed/mytv_dich_vu/mytv_thuc_tang_processed.xlsx`
-- `api_transition/Processed/mytv_dich_vu/ngung_psc_mytv_thang_t-1_sontay_16042026_processed.xlsx`
+- `api_transition/Processed/mytv_dich_vu/ngung_psc_mytv_thang_t-1_sontay_processed.xlsx`
 
 Ghi chú trạng thái:
-- 4 processor MyTV ở trên mới được kiểm thử bằng file legacy trong thư mục `PTTB-PSC/`.
-- Chưa coi là hoàn tất end-to-end theo chuẩn `api_transition` cho đến khi có downloader API tương ứng đưa raw về `api_transition/downloads/mytv_dich_vu/`.
-- Khi có đủ downloader, cần chạy lại test bằng raw mới trong `api_transition/downloads` trước khi khóa logic.
+- `process_mytv_ngung_psc_api_output` đã chuyển sang đọc raw schema mới:
+  - `api_transition/downloads/tam_dung_khoi_phuc_dich_vu/ngung_psc_mytv_thang_t-1_cap_to.xlsx`
+  - `api_transition/downloads/mytv_dich_vu/ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx`
+- `process_mytv_hoan_cong_api_output` không còn phụ thuộc file legacy `mytv_hoan_cong.xlsx`; dữ liệu MyTV được tách trực tiếp từ `phieu_hoan_cong_dich_vu_chi_tiet.xlsx`.
+- `process_mytv_thuc_tang_api_output` hiện tính được cấp tổ từ 2 nguồn mới ở trên.
+- `process_son_tay_mytv_ngung_psc_t_minus_1_api_output` đã map đúng sang `api_transition/downloads/tam_dung_khoi_phuc_dich_vu/ngung_psc_mytv_thang_t-1_sontay.xlsx`.
+- Đã test lại runner cho 4 task `mytv_ngung_psc`, `mytv_hoan_cong`, `mytv_thuc_tang`, `son_tay_mytv_ngung_psc_t_minus_1` và đều chạy thành công.
+- Đã test import SQLite end-to-end trên DB tạm cho 3 workbook:
+  - `mytv_ngung_psc_processed.xlsx`
+  - `mytv_hoan_cong_processed.xlsx`
+  - `mytv_thuc_tang_processed.xlsx`
+- Hạn chế hiện còn:
+  - raw MyTV ngưng PSC API mới chỉ có cấp tổ/TTVT, chưa có chi tiết NVKT
+  - vì vậy `mytv_thuc_tang_processed.xlsx` hiện chỉ sinh `thuc_tang_theo_to`; thay cho sheet NVKT là `thong_bao`
 
 ### 8.8. Nhóm `ty_le_xac_minh` đã triển khai
 
@@ -699,13 +710,17 @@ Các file processed đã tạo và kiểm tra:
   - sheet `Data`
   - sheet `mytv_ngung_psc_thang`
   - sheet `mytv_ngung_psc_thang_theo_to`
+  - sheet `mytv_ngung_psc_thang_theo_ttvt`
+  - sheet `source_cap_to`
+  - sheet `source_cap_ttvt`
 - `MyTV hoàn công`:
   - sheet `Data`
   - sheet `mytv_hoan_cong_thang`
   - sheet `mytv_hoan_cong_thang_theo_to`
+  - sheet `mytv_hoan_cong_thang_theo_ttvt`
 - `MyTV thực tăng`:
   - sheet `thuc_tang_theo_to`
-  - sheet `thuc_tang_theo_NVKT`
+  - sheet `thong_bao` nếu nguồn ngưng PSC chưa có chi tiết NVKT
 - `MyTV Sơn Tây ngưng PSC tháng T-1`:
   - sheet `TH_ngung_PSC-Thang T-1`
 - `Tỷ lệ xác minh TTVTKV`:
@@ -902,22 +917,31 @@ Mục tiêu:
   - Phiếu hoàn công dịch vụ chi tiết
   - Tạm dừng/khôi phục dịch vụ chi tiết
   - Tạm dừng/khôi phục dịch vụ tổng hợp
-  - Port logic MyTV theo file legacy `PTTB-PSC` để tham chiếu
+  - Port lại logic MyTV theo raw schema mới trong `api_transition/downloads`
   - Tỷ lệ xác minh TTVTKV
   - Tỷ lệ xác minh chi tiết
   - Vật tư thu hồi
   - Quyết toán vật tư
 
 Mục tiêu:
-- đã bao phủ phần lớn raw file mới trong `api_transition`
-- riêng các nhánh còn phụ thuộc downloader chưa có, nhất là một phần nhóm `thuc_tang_process.py`, sẽ quay lại sau khi bổ sung được raw vào `api_transition/downloads`
-- phần còn lại tập trung vào các processor theo dõi lịch sử/state như `I1.5`
+  - đã bao phủ phần lớn raw file mới trong `api_transition`
+  - riêng các nhánh còn thiếu raw chi tiết NVKT thực sự sẽ quay lại khi có API/export phù hợp
+  - phần còn lại tập trung vào các processor theo dõi lịch sử/state như `I1.5`
 
 ### Phase 4: Orchestrator
 
-- tạo batch xử lý sau download
-- map theo `report_key` hoặc theo file path
-- chuẩn bị cho việc chạy end-to-end: download -> process
+- Đã triển khai:
+  - `api_transition/processors/runner.py`
+    - `run_all_processors()`
+    - registry 30 processor
+  - `api_transition/full_pipeline.py`
+    - `run_full_pipeline()`
+    - flow `login -> download -> process -> archive ProcessedDaily -> import report_history.db`
+- Trạng thái hiện tại:
+  - `ProcessedDaily/<snapshot-date>/...` được tạo ngay sau stage process thành công, không còn phụ thuộc việc import SQLite xong mới copy
+  - full pipeline mặc định cho phép tiếp tục import DB với các workbook đã process thành công dù còn lỗi ở một số bước khác
+  - import SQLite không còn quét bừa toàn bộ `Processed`; chỉ import các workbook success của lượt chạy hiện tại để tránh nạp dữ liệu stale
+  - vẫn có chế độ chặt qua `--strict` nếu muốn dừng trước import khi download/process có lỗi
 
 ## 8. Các rủi ro cần lưu ý
 

@@ -1,0 +1,44 @@
+{
+  "name": "bc_nhanh_mytv_sontay_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=263889&menu_id=276187",
+  "report_id": "263889",
+  "menu_id": "276187",
+  "export_payload": {
+    "reportId": "263889",
+    "lstInputParams": [
+      {
+        "name": "vdvvt_id",
+        "dataType": "NUMBER",
+        "value": "8",
+        "text": "MyTV"
+      },
+      {
+        "name": "vdenngay",
+        "dataType": "VARCHAR2",
+        "value": "16/04/2026"
+      },
+      {
+        "name": "vdonvi_id",
+        "dataType": "NUMBER",
+        "value": "14324",
+        "text": "Trung tâm Viễn thông Sơn Tây"
+      },
+      {
+        "name": "vloai",
+        "dataType": "NUMBER",
+        "value": "1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "export_format": "xlsx",
+  "default_output_name": "BC-Báo Cáo Nhanh(mới)-17.4.2026-21.11.18.xlsx",
+  "captured_at": "2026-04-17T18:11:45.700749",
+  "notes": "Trích xuất số liệu nhanh dịch vụ MyTV (ID=8) cho khu vực Sơn Tây."
+}

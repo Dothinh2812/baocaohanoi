@@ -48,8 +48,12 @@ from api_transition.downloaders import (
     download_xac_minh_tam_dung_api,
     download_phieu_hoan_cong_dich_vu_chi_tiet_api,
     download_tam_dung_khoi_phuc_dich_vu_chi_tiet_api,
+    download_tam_dung_khoi_phuc_dich_vu_chi_tiet_khoi_phuc_api,
     download_tam_dung_khoi_phuc_dich_vu_tong_hop_api,
     download_ngung_psc_mytv_thang_t_1_cap_ttvt_api,
+    download_ngung_psc_fiber_thang_t_1_cap_ttvt_api,
+    download_ngung_psc_fiber_thang_t_1_cap_to_api,
+    download_ngung_psc_mytv_thang_t_1_cap_to_api,
     download_ty_le_xac_minh_dung_thoi_gian_quy_dinh_ttvtkv_api,
     download_ty_le_xac_minh_dung_thoi_gian_quy_dinh_chi_tiet_api,
     download_kq_tiep_thi_api,
@@ -77,15 +81,15 @@ MONTH_ID = "98944548"
 MONTH_LABEL = ""                         # Fallback nếu không có month_id
 
 # --- (3) Vật tư thu hồi — mốc bắt đầu cố định ---
-VATTU_START_DATE = "24/11/2025"
+VATTU_START_DATE = "01/04/2025"
 
 # --- Chế độ hiển thị trình duyệt ---
 HEADED = False                           # True = mở browser có giao diện
 
 # --- Retry khi timeout ---
 MAX_RETRIES = 3                          # Số lần thử tối đa (bao gồm lần đầu)
-RETRY_TIMEOUTS = [120, 180, 300]         # Timeout (giây) cho lần 1, 2, 3
-RETRY_DELAY = 5                          # Chờ (giây) giữa các lần retry
+RETRY_TIMEOUTS = [180, 300, 500]         # Timeout (giây) cho lần 1, 2, 3
+RETRY_DELAY = 3                          # Chờ (giây) giữa các lần retry
 
 # ===========================================================================
 # HẾT PHẦN CẤU HÌNH
@@ -271,6 +275,12 @@ REPORT_TASKS: List[ReportTask] = [
         group="tam_dung_khoi_phuc_dich_vu",
     ),
     ReportTask(
+        name="Tạm dừng, khôi phục dịch vụ chi tiết - khôi phục",
+        func=download_tam_dung_khoi_phuc_dich_vu_chi_tiet_khoi_phuc_api,
+        params_type="calendar_month",
+        group="tam_dung_khoi_phuc_dich_vu",
+    ),
+    ReportTask(
         name="Tạm dừng, khôi phục dịch vụ tổng hợp",
         func=download_tam_dung_khoi_phuc_dich_vu_tong_hop_api,
         params_type="calendar_month",
@@ -280,7 +290,28 @@ REPORT_TASKS: List[ReportTask] = [
         name="Ngưng PSC MyTV tháng T-1 cấp TTVT",
         func=download_ngung_psc_mytv_thang_t_1_cap_ttvt_api,
         params_type="t_minus_1",
-        group="mytv_dich_vu",
+        group="tam_dung_khoi_phuc_dich_vu",
+        extra_kwargs={"t_minus_1_as_report_date": True},
+    ),
+    ReportTask(
+        name="Ngưng PSC Fiber tháng T-1 cấp TTVT",
+        func=download_ngung_psc_fiber_thang_t_1_cap_ttvt_api,
+        params_type="t_minus_1",
+        group="tam_dung_khoi_phuc_dich_vu",
+        extra_kwargs={"t_minus_1_as_report_date": True},
+    ),
+    ReportTask(
+        name="Ngưng PSC Fiber tháng T-1 cấp Tổ",
+        func=download_ngung_psc_fiber_thang_t_1_cap_to_api,
+        params_type="t_minus_1",
+        group="tam_dung_khoi_phuc_dich_vu",
+        extra_kwargs={"t_minus_1_as_report_date": True},
+    ),
+    ReportTask(
+        name="Ngưng PSC MyTV tháng T-1 cấp Tổ",
+        func=download_ngung_psc_mytv_thang_t_1_cap_to_api,
+        params_type="t_minus_1",
+        group="tam_dung_khoi_phuc_dich_vu",
         extra_kwargs={"t_minus_1_as_report_date": True},
     ),
     ReportTask(
@@ -301,14 +332,14 @@ REPORT_TASKS: List[ReportTask] = [
         params_type="calendar_month",
         group="kq_tiep_thi",
     ),
-    ReportTask(
-        name="CTS SHC ngày",
-        func=download_cts_gpon_quality_detail_api,
-        params_type="t_minus_1",
-        group="cts",
-        extra_kwargs={"t_minus_1_as_report_date": True},
-        use_shared_session=False,
-    ),
+    # ReportTask(
+    #     name="CTS SHC ngày",
+    #     func=download_cts_gpon_quality_detail_api,
+    #     params_type="t_minus_1",
+    #     group="cts",
+    #     extra_kwargs={"t_minus_1_as_report_date": True},
+    #     use_shared_session=False,
+    # ),
     # --- Nhóm Vật tư thu hồi (date_range dài hạn) ---
     ReportTask(
         name="Vật tư thu hồi",

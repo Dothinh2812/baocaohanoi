@@ -468,7 +468,7 @@ def download_tam_dung_khoi_phuc_dich_vu_chi_tiet_api(
     start_date="01/04/2026",
     end_date="16/04/2026",
     unit_id="284656",
-    service_ids="1,4,6,7,8,9,10,13,27,98,25,26,15,22,2,12,14,16",
+    service_ids="8,9",
     date_type="1",
     report_type="0",
     headed=False,
@@ -488,6 +488,39 @@ def download_tam_dung_khoi_phuc_dich_vu_chi_tiet_api(
         headed=headed,
         output_dir=output_dir,
         output_name="tam_dung_khoi_phuc_dich_vu_chi_tiet.xlsx",
+        overrides=overrides,
+        session=session,
+    )
+
+
+def download_tam_dung_khoi_phuc_dich_vu_chi_tiet_khoi_phuc_api(
+    start_date="01/04/2026",
+    end_date="18/04/2026",
+    unit_id="284656",
+    service_ids="8,9",
+    date_type="1",
+    report_type="1",
+    ppageindex="1",
+    ppagesize="1000000",
+    headed=False,
+    output_dir=group_output_dir("tam_dung_khoi_phuc_dich_vu"),
+    session=None,
+):
+    overrides = {
+        "pdonvi_id": str(unit_id),
+        "vngay_bd": str(start_date),
+        "vngay_kt": str(end_date),
+        "vloaidv": str(service_ids),
+        "vloaingay": str(date_type),
+        "vloaibc": str(report_type),
+        "ppageindex": str(ppageindex),
+        "ppagesize": str(ppagesize),
+    }
+    return download_with_recipe(
+        "tam_dung_khoi_phuc_dich_vu_chi_tiet_khoi_phuc_q2_2026",
+        headed=headed,
+        output_dir=output_dir,
+        output_name="tam_dung_khoi_phuc_dich_vu_chi_tiet_khoi_phuc.xlsx",
         overrides=overrides,
         session=session,
     )
@@ -526,7 +559,7 @@ def download_ngung_psc_mytv_thang_t_1_cap_ttvt_api(
     service_id="8",
     report_type="1",
     headed=False,
-    output_dir=group_output_dir("mytv_dich_vu"),
+    output_dir=group_output_dir("tam_dung_khoi_phuc_dich_vu"),
     session=None,
 ):
     if not report_date:
@@ -543,6 +576,90 @@ def download_ngung_psc_mytv_thang_t_1_cap_ttvt_api(
         headed=headed,
         output_dir=output_dir,
         output_name="ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx",
+        overrides=overrides,
+        session=session,
+    )
+
+
+def download_ngung_psc_fiber_thang_t_1_cap_ttvt_api(
+    report_date="",
+    unit_id="14316",
+    service_id="9",
+    report_type="1",
+    headed=False,
+    output_dir=group_output_dir("tam_dung_khoi_phuc_dich_vu"),
+    session=None,
+):
+    if not report_date:
+        report_date = (datetime.now() - timedelta(days=1)).strftime("%d/%m/%Y")
+
+    overrides = {
+        "vdvvt_id": str(service_id),
+        "vdenngay": str(report_date),
+        "vdonvi_id": str(unit_id),
+        "vloai": str(report_type),
+    }
+    return download_with_recipe(
+        "ngung_psc_fiber_thang_t_1_cap_ttvt_q2_2026",
+        headed=headed,
+        output_dir=output_dir,
+        output_name="ngung_psc_fiber_thang_t-1_cap_ttvt.xlsx",
+        overrides=overrides,
+        session=session,
+    )
+
+
+def download_ngung_psc_fiber_thang_t_1_cap_to_api(
+    report_date="",
+    unit_id="14324",
+    service_id="9",
+    report_type="2",
+    headed=False,
+    output_dir=group_output_dir("tam_dung_khoi_phuc_dich_vu"),
+    session=None,
+):
+    if not report_date:
+        report_date = (datetime.now() - timedelta(days=1)).strftime("%d/%m/%Y")
+
+    overrides = {
+        "vdvvt_id": str(service_id),
+        "vdenngay": str(report_date),
+        "vdonvi_id": str(unit_id),
+        "vloai": str(report_type),
+    }
+    return download_with_recipe(
+        "ngung_psc_fiber_thang_t_1_cap_to_q2_2026",
+        headed=headed,
+        output_dir=output_dir,
+        output_name="ngung_psc_fiber_thang_t-1_cap_to.xlsx",
+        overrides=overrides,
+        session=session,
+    )
+
+
+def download_ngung_psc_mytv_thang_t_1_cap_to_api(
+    report_date="",
+    unit_id="14324",
+    service_id="8",
+    report_type="1",
+    headed=False,
+    output_dir=group_output_dir("tam_dung_khoi_phuc_dich_vu"),
+    session=None,
+):
+    if not report_date:
+        report_date = (datetime.now() - timedelta(days=1)).strftime("%d/%m/%Y")
+
+    overrides = {
+        "vdvvt_id": str(service_id),
+        "vdenngay": str(report_date),
+        "vdonvi_id": str(unit_id),
+        "vloai": str(report_type),
+    }
+    return download_with_recipe(
+        "ngung_psc_mytv_thang_t_1_cap_to_q2_2026",
+        headed=headed,
+        output_dir=output_dir,
+        output_name="ngung_psc_mytv_thang_t-1_cap_to.xlsx",
         overrides=overrides,
         session=session,
     )

@@ -17,11 +17,17 @@ Nguyên tắc:
 - `capture_report_api.py`: capture request/response và sinh recipe JSON
 - `capture_with_legacy_flow.py`: chạy hàm download cũ ở chế độ headless và tự bắt recipe
 - `downloaders.py`: các hàm downloader API mới
+- `ONEBSS.md`: tài liệu chi tiết cho nhóm downloader OneBSS (`onebss_auth.py`, `onebss_report_client.py`, `onebss_downloaders.py`)
 - `cts_api.py`: module API riêng cho CTS, dùng login trong `cts.py` và tải file binary trực tiếp
 - `batch_download.py`: runner batch login 1 lần, tái sử dụng session và tải tuần tự các report đã wired
+- `processors/`: các hàm xử lý workbook raw -> workbook processed
+- `full_pipeline.py`: entrypoint chạy full pipeline từ download đến import SQLite
+- `PROCESSING_REFACTOR_PLAN.md`: trạng thái refactor processor và orchestrator
 - `export_from_recipe.py`: CLI generic chạy bằng recipe
 - `recipes/`: recipe đã capture và xác nhận
 - `downloads/`: thư mục tải file mặc định theo nhóm nghiệp vụ
+- `Processed/`: workbook processed chuẩn hóa để import vào SQLite
+- `ProcessedDaily/`: snapshot processed theo ngày dữ liệu
 - `export_c11_api.py`: PoC export C1.1 qua API
 
 ## Cấu trúc thư mục tải file
@@ -152,6 +158,7 @@ Danh sách report hiện được batch gọi:
 - `I1.5`, `I1.5 K2`
 - `GHTT HNI`, `GHTT Sơn Tây`, `GHTT NVKT DB`
 - `Xác minh tạm dừng`, `Kết quả tiếp thị`, `CTS SHC ngày`
+- `Tạm dừng, khôi phục DV chi tiết`, `Tạm dừng, khôi phục DV chi tiết - khôi phục`, `Tạm dừng, khôi phục DV tổng hợp`
 - `Vật tư thu hồi`, `Quyết toán vật tư`
 - `Cấu hình tự động PTM`, `Cấu hình tự động Thay thế`, `Cấu hình tự động Chi tiết`
 
@@ -172,6 +179,162 @@ Các mục còn lại chưa hoàn tất trong vòng chuyển đổi hiện tại
 - `download_report_c11_chitiet_SM2`
 - `download_report_c15`
 - `download_report_c15_chitiet`
+
+## Processors
+
+`api_transition/processors/` là tầng chuẩn hóa dữ liệu sau download. Mỗi processor đọc workbook raw trong `api_transition/downloads/`, chuẩn hóa lại sheet/cột, rồi ghi workbook kết quả vào `api_transition/Processed/`.
+
+Runner tổng hiện tại là `processors/runner.py`, quản lý 30 processor đã được port vào package.
+
+Ví dụ:
+
+```bash
+python3 -m api_transition.processors.runner
+python3 -m api_transition.processors.runner --overwrite-processed
+python3 -m api_transition.processors.runner --group mytv_dich_vu
+python3 -m api_transition.processors.runner --only mytv_ngung_psc --only mytv_hoan_cong
+python3 -m api_transition.processors.runner --list
+```
+
+Import từ Python:
+
+```python
+from api_transition.processors import run_all_processors
+
+results = run_all_processors(
+    overwrite_processed=True,
+    groups=["mytv_dich_vu"],
+)
+```
+
+Một số lưu ý hiện tại:
+
+- nhóm MyTV đã được port sang raw schema mới thay cho file legacy
+- `mytv_ngung_psc` đọc từ `downloads/tam_dung_khoi_phuc_dich_vu/ngung_psc_mytv_thang_t-1_cap_to.xlsx` và `downloads/mytv_dich_vu/ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx`
+- `mytv_hoan_cong` và `mytv_thuc_tang` hiện lấy dữ liệu MyTV trực tiếp từ `phieu_hoan_cong_dich_vu_chi_tiet.xlsx`
+- `mytv_thuc_tang` hiện mới sinh được sheet theo tổ/TTVT; raw API hiện chưa có đủ chi tiết NVKT cho nhánh ngưng PSC MyTV
+
+## Full Pipeline
+
+`full_pipeline.py` là entrypoint orchestration cho toàn bộ luồng:
+
+1. login và download tất cả report đã wired
+2. chạy toàn bộ processor đã có trong `api_transition/processors`
+3. copy các workbook processed thành công sang `ProcessedDaily/<snapshot-date>/...`
+4. khởi tạo hoặc tái sử dụng `report_history.db`
+5. import vào SQLite chỉ các workbook processed thành công của chính lượt chạy đó
+6. apply lại views sau import
+
+Ví dụ:
+
+```bash
+python3 -m api_transition.full_pipeline
+python3 -m api_transition.full_pipeline --snapshot-date 2026-04-19
+python3 -m api_transition.full_pipeline --snapshot-date 2026-04-19 --overwrite-processed
+python3 -m api_transition.full_pipeline --snapshot-date 2026-04-19 --strict
+python3 api_transition/full_pipeline.py --snapshot-date 2026-04-19
+```
+
+Import từ Python:
+
+```python
+from api_transition import run_full_pipeline
+
+result = run_full_pipeline(overwrite_processed=True)
+```
+
+Hành vi chính:
+
+- mặc định pipeline vẫn archive và import phần report/process thành công dù có một số bước khác lỗi
+- dùng `--strict` nếu muốn dừng trước bước import khi download/process có lỗi
+- `ProcessedDaily` hiện được tạo ngay sau bước process, không còn phụ thuộc vào việc import SQLite thành công hay không
+- bước import trong pipeline chỉ nạp các workbook processed thành công của lượt chạy hiện tại, tránh quét lại toàn bộ `Processed/`
+
+## SQLite history
+
+Đã bổ sung khung SQLite local để lưu lịch sử workbook processed theo từng ngày ngay trong `api_transition`:
+
+- schema SQL: `api_transition/sqlite_history/report_history_schema.sql`
+- view SQL: `api_transition/sqlite_history/report_history_views.sql`
+- script khởi tạo DB: `api_transition/sqlite_history/init_report_history_db.py`
+- script import DB: `api_transition/sqlite_history/import_processed_to_sqlite.py`
+- script apply view: `api_transition/sqlite_history/apply_report_history_views.py`
+- tài liệu bảo trì module: `api_transition/sqlite_history/README.md`
+- tài liệu cho app đọc dữ liệu: `api_transition/sqlite_history/CONSUMER_GUIDE.md`
+- file DB mặc định: `api_transition/report_history.db`
+
+Nguyên tắc hiện tại:
+
+- mỗi báo cáo chỉ có 1 bản hợp lệ cho mỗi cặp `ma_bao_cao + ngay_du_lieu`
+- chạy lại trong cùng ngày sẽ ghi đè dữ liệu ngày đó trong SQLite
+- sang ngày mới sẽ tạo snapshot mới
+- nếu chạy qua `full_pipeline.py`, chỉ các workbook processed thành công của lượt chạy đó mới được import
+- nếu chạy import CLI độc lập, script sẽ quét toàn bộ `api_transition/Processed`
+- tên bảng và tên cột dùng tiếng Việt không dấu, bám theo ý nghĩa báo cáo
+- khi báo cáo phát sinh cột mới, dữ liệu chưa map chính thức sẽ đi vào `du_lieu_bo_sung_json`
+
+Khởi tạo DB:
+
+```bash
+python3 api_transition/sqlite_history/init_report_history_db.py --reset
+```
+
+Tạo DB ở đường dẫn khác để thử:
+
+```bash
+python3 api_transition/sqlite_history/init_report_history_db.py \
+  --db-path /tmp/report_history_test.db \
+  --reset
+```
+
+Import dữ liệu từ `api_transition/Processed` vào SQLite:
+
+```bash
+python3 api_transition/sqlite_history/import_processed_to_sqlite.py \
+  --snapshot-date 2026-04-18 \
+  --skip-archive
+```
+
+Một số lệnh hay dùng:
+
+```bash
+python3 api_transition/sqlite_history/import_processed_to_sqlite.py --snapshot-date 2026-04-19
+python3 api_transition/sqlite_history/import_processed_to_sqlite.py --snapshot-date 2026-04-19 --dry-run --json
+python3 api_transition/sqlite_history/import_processed_to_sqlite.py --snapshot-date 2026-04-19 --path-contains "mytv_dich_vu"
+python3 api_transition/sqlite_history/import_processed_to_sqlite.py --db-path /tmp/report_history_test.db --snapshot-date 2026-04-19 --skip-archive
+```
+
+Lưu ý:
+
+- khi chạy script import trực tiếp và không dùng `--skip-archive`, workbook sẽ được copy sang `ProcessedDaily/<snapshot-date>/...`
+- khi chạy qua `full_pipeline.py`, archive này thường đã được tạo sẵn ngay sau bước process và importer sẽ tái sử dụng lại bản archive đó
+
+Các bảng nền:
+
+- `danh_muc_bao_cao`
+- `bao_cao_ngay`
+- `sheet_bao_cao`
+- `dong_bao_cao_goc`
+- `tep_luu_tru_bao_cao`
+- `nhat_ky_nap_bao_cao`
+- `danh_muc_don_vi`
+- `danh_muc_nhan_vien`
+
+Các bảng nghiệp vụ chính:
+
+- `c11_tong_hop`, `c11_chi_tiet_nvkt`
+- `c12_tong_hop`, `c12_hong_lap_lai_nvkt`
+- `c13_tong_hop`
+- `c14_tong_hop`, `c14_hai_long_nvkt`
+- `ghtt_don_vi`, `ghtt_nvkt`
+- `kpi_nvkt_c11`, `kpi_nvkt_c12`, `kpi_nvkt_c13`
+- `ket_qua_tiep_thi_nv`, `ket_qua_tiep_thi_don_vi`
+- `hoan_cong_fiber`, `ngung_psc_fiber`, `khoi_phuc_fiber`
+- `hoan_cong_mytv`, `ngung_psc_mytv`
+- `thuc_tang_fiber`, `thuc_tang_mytv`
+- `xac_minh_chi_tiet`, `xac_minh_tong_hop_nvkt`, `xac_minh_tong_hop_loai_phieu`
+- `cau_hinh_tu_dong_chi_tiet`, `cau_hinh_tu_dong_tong_hop`, `tong_hop_loi_cau_hinh_tu_dong`
+- `vat_tu_thu_hoi`, `chi_tiet_vat_tu_thu_hoi`, `quyet_toan_vat_tu`
 
 ## Capture report mới và sinh recipe
 
