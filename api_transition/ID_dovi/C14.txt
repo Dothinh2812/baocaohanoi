@@ -1,0 +1,21 @@
+vdonvi
+
+STT	Mã đơn vị (value)	Tên đơn vị tương ứng
+1	1004430	TTVT Ba Đình
+2	284652	TTVT Cầu Giấy
+3	1003576	TTVT Gia Lâm
+4	284649	TTVT Giải Phóng
+5	1003577	TTVT Hoài Đức
+6	1003578	TTVT Hoàn Kiếm
+7	284651	TTVT Hoàng Mai
+8	284655	TTVT Hà Đông
+9	284650	TTVT Long Biên
+10	1003579	TTVT Phú Xuyên
+11	1003580	TTVT Sóc Sơn
+12	284656	TTVT Sơn Tây
+13	284654	TTVT Thanh Trì
+14	1003581	TTVT Thạch Thất
+15	284657	TTVT Tây Hồ
+16	1003582	TTVT Từ Liêm
+17	284653	TTVT Đông Anh
+18	1004431	TTVT Đống Đa

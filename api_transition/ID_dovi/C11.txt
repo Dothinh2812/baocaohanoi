@@ -1,0 +1,38 @@
+STT,Tên Đơn Vị,ID Hệ Thống (ptrungtamid)
+1,TTVT Long Biên,14317
+2,TTVT Giải Phóng,14318
+3,TTVT Hoàng Mai,14319
+4,TTVT Cầu Giấy,14320
+5,TTVT Đông Anh,14321
+6,TTVT Thanh Trì,14322
+7,TTVT Hà Đông,14323
+8,TTVT Sơn Tây,14324
+9,TTVT Tây Hồ,14325
+10,TTVT Gia Lâm,14326
+11,TTVT Hoàn Kiếm,14327
+12,TTVT Đống Đa,14328
+13,TTVT Ba Đình,14329
+14,TTVT Sóc Sơn,14330
+15,TTVT Phú Xuyên,14331
+16,TTVT Hoài Đức,14332
+17,TTVT Thạch Thất,14333
+18,TTVT Từ Liêm,14334
+
+"lst_trung_tam": [
+      { "name": "TTVT Ba Đình", "id": "14329" },
+      { "name": "TTVT Cầu Giấy", "id": "14320" },
+      { "name": "TTVT Gia Lâm", "id": "14326" },
+      { "name": "TTVT Giải Phóng", "id": "14318" },
+      { "name": "TTVT Hoài Đức", "id": "14332" },
+      { "name": "TTVT Hoàn Kiếm", "id": "14327" },
+      { "name": "TTVT Hoàng Mai", "id": "14319" },
+      { "name": "TTVT Hà Đông", "id": "14323" },
+      { "name": "TTVT Long Biên", "id": "14317" },
+      { "name": "TTVT Phú Xuyên", "id": "14331" },
+      { "name": "TTVT Sóc Sơn", "id": "14330" },
+      { "name": "TTVT Sơn Tây", "id": "14324" },
+      { "name": "TTVT Thanh Trì", "id": "14322" },
+      { "name": "TTVT Thạch Thất", "id": "14333" },
+      { "name": "TTVT Tây Hồ", "id": "14325" },
+      { "name": "TTVT Từ Liêm", "id": "14334" },
+      { "name": "TTVT Đông Anh", "id": "14321" }

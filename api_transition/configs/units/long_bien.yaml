@@ -1,0 +1,35 @@
+version: 1
+unit:
+  code: long_bien
+  name: TTVT Long Biên
+runtime:
+  instance_root: runtime/long_bien
+  create_dirs: true
+period:
+  report_month: 4
+  report_year: 2026
+  month_id: "98944548"
+  month_label: "Tháng 04/2026"
+  vattu_start_date: "01/04/2025"
+ids:
+  center_id_14: "14317"
+  unit_id_28: "284650"
+  onebss_tt_id: "14317"
+  onebss_default_team_id: "0"
+  onebss_region_id: "21"
+  onebss_region_text: "Thành phố Hà Nội"
+  onebss_unit_text: "TTVT Long Biên"
+team_ids:
+  family_14: {bo_de: "14335", phuc_loi: "14337", viet_hung: "14338"}
+  family_28: {bo_de: "1003747", phuc_loi: "1003749", viet_hung: "1003750"}
+reports:
+  defaults: {enabled: true}
+  ghtt_hni: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_to: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_to: {enabled: false}
+  onebss_hni_pttb_001: {enabled: false, team_id: "0"}
+  onebss_bc_phieu_ton_dv_chi_tiet_hni: {enabled: false, team_id: "0"}
+  onebss_bc_ton_sua_chua_2026: {enabled: false, team_id: "0"}
+  onebss_bc_chi_tiet_ket_qua_cskh_uc3: {enabled: false, employee_id: "0", employee_text: "Tất cả"}

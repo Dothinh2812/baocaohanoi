@@ -1,0 +1,113 @@
+Trung tâm (TTVT),ID Trung tâm,Các Tổ Kỹ thuật trực thuộc (Tên - ID)
+Ba Đình,14329,"Ba Đình (14385), Giảng Võ (14386), Láng (14387), Ngọc Hà (14388)"
+Cầu Giấy,14320,"Cầu Giấy (14339), Nghĩa Đô (14362), Yên Hòa 1 (14340), Yên Hòa 2 (14465)"
+Gia Lâm,14326,"Bát Tràng (14373), Gia Lâm (14374), Phù Đổng (14375), Thuận An (14376)"
+Giải Phóng,14318,"Tương Mai (14344), Vĩnh Hưng (14470), Vĩnh Tuy (14345)"
+Hoài Đức,14332,"An Khánh (14400), Hoài Đức (14401), Phú Cát (14402), Quốc Oai (14403), Sơn Đồng (14404), Xuân Mai (14350)"
+Hoàn Kiếm,14327,"Cửa Nam (14378), Hai Bà Trưng (14379), Hoàn Kiếm (14380)"
+Hoàng Mai,14319,"Hoàng Liệt (14352), Hoàng Mai (14353), Khương Đình (14354), Lĩnh Nam (14355), Phương Liệt (14356), Định Công (14351)"
+Hà Đông,14323,"Chương Mỹ (14346), Dương Nội (14347), Hà Đông (14348), Kiến Hưng (14349)"
+Long Biên,14317,"Bồ Đề (14335), Phúc Lợi (14337), Việt Hưng (14338)"
+Phú Xuyên,14331,"Hương Sơn (14395), Mỹ Đức (14396), Phú Xuyên (14397), Vân Đình (14399), Đại Xuyên (14394), Ứng Hòa (14398)"
+Sóc Sơn,14330,"Nội Bài (14390), Quang Minh (14391), Sóc Sơn (14392), Trung Giã (14393)"
+Sơn Tây,14324,"Bất Bạt (14357), Phúc Thọ (14467), Quảng Oai (14358), Suối Hai (14360), Sơn Tây (14359), Tùng Thiện (14361)"
+Thanh Trì,14322,"Hồng Vân (14367), Nam Phù (14368), Tam Hưng (14369), Thanh Oai (14370), Thanh Trì (14371), Thường Tín (14372), Đại Thanh (14366)"
+Thạch Thất,14333,"Hát Môn (14406), Hòa Lạc (14407), Thạch Thất (14410), Ô Diên (14408), Đan Phượng (14405)"
+Tây Hồ,14325,"Hồng Hà (14469), Phú Thượng (14363), Thượng Cát (14413), Tây Hồ (14364), Xuân Đỉnh (14365)"
+Từ Liêm,14334,"Phú Diễn (14411), Tây Mỗ (14412), Từ Liêm (14414), Xuân Phương (14415)"
+Đông Anh,14321,"Mê Linh (14389), Phúc Thịnh (14342), Thiên Lộc (14343), Đông Anh (14341)"
+Đống Đa,14328,"Kim Liên (14382), Thanh Xuân (14384), Ô Chợ Dừa (14383), Đại Mỗ (14381)"
+
+| Trung tâm (TTVT) | ID Trung tâm | Tổ Kỹ thuật  | ID Tổ |
+| ---------------- | ------------ | ------------ | ----- |
+| Ba Đình          | 14329        | Ba Đình      | 14385 |
+| Ba Đình          | 14329        | Giảng Võ     | 14386 |
+| Ba Đình          | 14329        | Láng         | 14387 |
+| Ba Đình          | 14329        | Ngọc Hà      | 14388 |
+| Cầu Giấy         | 14320        | Cầu Giấy     | 14339 |
+| Cầu Giấy         | 14320        | Nghĩa Đô     | 14362 |
+| Cầu Giấy         | 14320        | Yên Hòa 1    | 14340 |
+| Cầu Giấy         | 14320        | Yên Hòa 2    | 14465 |
+| Gia Lâm          | 14326        | Bát Tràng    | 14373 |
+| Gia Lâm          | 14326        | Gia Lâm      | 14374 |
+| Gia Lâm          | 14326        | Phù Đổng     | 14375 |
+| Gia Lâm          | 14326        | Thuận An     | 14376 |
+| Giải Phóng       | 14318        | Tương Mai    | 14344 |
+| Giải Phóng       | 14318        | Vĩnh Hưng    | 14470 |
+| Giải Phóng       | 14318        | Vĩnh Tuy     | 14345 |
+| Hoài Đức         | 14332        | An Khánh     | 14400 |
+| Hoài Đức         | 14332        | Hoài Đức     | 14401 |
+| Hoài Đức         | 14332        | Phú Cát      | 14402 |
+| Hoài Đức         | 14332        | Quốc Oai     | 14403 |
+| Hoài Đức         | 14332        | Sơn Đồng     | 14404 |
+| Hoài Đức         | 14332        | Xuân Mai     | 14350 |
+| Hoàn Kiếm        | 14327        | Cửa Nam      | 14378 |
+| Hoàn Kiếm        | 14327        | Hai Bà Trưng | 14379 |
+| Hoàn Kiếm        | 14327        | Hoàn Kiếm    | 14380 |
+| Hoàng Mai        | 14319        | Hoàng Liệt   | 14352 |
+| Hoàng Mai        | 14319        | Hoàng Mai    | 14353 |
+| Hoàng Mai        | 14319        | Khương Đình  | 14354 |
+| Hoàng Mai        | 14319        | Lĩnh Nam     | 14355 |
+| Hoàng Mai        | 14319        | Phương Liệt  | 14356 |
+| Hoàng Mai        | 14319        | Định Công    | 14351 |
+| Hà Đông          | 14323        | Chương Mỹ    | 14346 |
+| Hà Đông          | 14323        | Dương Nội    | 14347 |
+| Hà Đông          | 14323        | Hà Đông      | 14348 |
+| Hà Đông          | 14323        | Kiến Hưng    | 14349 |
+| Long Biên        | 14317        | Bồ Đề        | 14335 |
+| Long Biên        | 14317        | Phúc Lợi     | 14337 |
+| Long Biên        | 14317        | Việt Hưng    | 14338 |
+| Phú Xuyên        | 14331        | Hương Sơn    | 14395 |
+| Phú Xuyên        | 14331        | Mỹ Đức       | 14396 |
+| Phú Xuyên        | 14331        | Phú Xuyên    | 14397 |
+| Phú Xuyên        | 14331        | Vân Đình     | 14399 |
+| Phú Xuyên        | 14331        | Đại Xuyên    | 14394 |
+| Phú Xuyên        | 14331        | Ứng Hòa      | 14398 |
+| Sóc Sơn          | 14330        | Nội Bài      | 14390 |
+| Sóc Sơn          | 14330        | Quang Minh   | 14391 |
+| Sóc Sơn          | 14330        | Sóc Sơn      | 14392 |
+| Sóc Sơn          | 14330        | Trung Giã    | 14393 |
+| Sơn Tây          | 14324        | Bất Bạt      | 14357 |
+| Sơn Tây          | 14324        | Phúc Thọ     | 14467 |
+| Sơn Tây          | 14324        | Quảng Oai    | 14358 |
+| Sơn Tây          | 14324        | Suối Hai     | 14360 |
+| Sơn Tây          | 14324        | Sơn Tây      | 14359 |
+| Sơn Tây          | 14324        | Tùng Thiện   | 14361 |
+| Thanh Trì        | 14322        | Hồng Vân     | 14367 |
+| Thanh Trì        | 14322        | Nam Phù      | 14368 |
+| Thanh Trì        | 14322        | Tam Hưng     | 14369 |
+| Thanh Trì        | 14322        | Thanh Oai    | 14370 |
+| Thanh Trì        | 14322        | Thanh Trì    | 14371 |
+| Thanh Trì        | 14322        | Thường Tín   | 14372 |
+| Thanh Trì        | 14322        | Đại Thanh    | 14366 |
+| Thạch Thất       | 14333        | Hát Môn      | 14406 |
+| Thạch Thất       | 14333        | Hòa Lạc      | 14407 |
+| Thạch Thất       | 14333        | Thạch Thất   | 14410 |
+| Thạch Thất       | 14333        | Ô Diên       | 14408 |
+| Thạch Thất       | 14333        | Đan Phượng   | 14405 |
+| Tây Hồ           | 14325        | Hồng Hà      | 14469 |
+| Tây Hồ           | 14325        | Phú Thượng   | 14363 |
+| Tây Hồ           | 14325        | Thượng Cát   | 14413 |
+| Tây Hồ           | 14325        | Tây Hồ       | 14364 |
+| Tây Hồ           | 14325        | Xuân Đỉnh    | 14365 |
+| Từ Liêm          | 14334        | Phú Diễn     | 14411 |
+| Từ Liêm          | 14334        | Tây Mỗ       | 14412 |
+| Từ Liêm          | 14334        | Từ Liêm      | 14414 |
+| Từ Liêm          | 14334        | Xuân Phương  | 14415 |
+| Đông Anh         | 14321        | Mê Linh      | 14389 |
+| Đông Anh         | 14321        | Phúc Thịnh   | 14342 |
+| Đông Anh         | 14321        | Thiên Lộc    | 14343 |
+| Đông Anh         | 14321        | Đông Anh     | 14341 |
+| Đống Đa          | 14328        | Kim Liên     | 14382 |
+| Đống Đa          | 14328        | Thanh Xuân   | 14384 |
+| Đống Đa          | 14328        | Ô Chợ Dừa    | 14383 |
+| Đống Đa          | 14328        | Đại Mỗ       | 14381 |
+
+
+Tên hiển thị,Giá trị truyền API (value)
+Tháng 04/2026,98944548
+Tháng 03/2026,98944772
+Tháng 02/2026,98944630
+Tháng 01/2026,98944771
+Tháng 12/2025,98944586
+

@@ -1,0 +1,35 @@
+version: 1
+unit:
+  code: ba_dinh
+  name: TTVT Ba Đình
+runtime:
+  instance_root: runtime/ba_dinh
+  create_dirs: true
+period:
+  report_month: 4
+  report_year: 2026
+  month_id: "98944548"
+  month_label: "Tháng 04/2026"
+  vattu_start_date: "01/04/2025"
+ids:
+  center_id_14: "14329"
+  unit_id_28: "1004430"
+  onebss_tt_id: "14329"
+  onebss_default_team_id: "0"
+  onebss_region_id: "21"
+  onebss_region_text: "Thành phố Hà Nội"
+  onebss_unit_text: "TTVT Ba Đình"
+team_ids:
+  family_14: {ba_dinh: "14385", giang_vo: "14386", lang: "14387", ngoc_ha: "14388"}
+  family_28: {ba_dinh: "1003688", giang_vo: "1003689", lang: "1003690", ngoc_ha: "1003691"}
+reports:
+  defaults: {enabled: true}
+  ghtt_hni: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_to: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_to: {enabled: false}
+  onebss_hni_pttb_001: {enabled: false, team_id: "0"}
+  onebss_bc_phieu_ton_dv_chi_tiet_hni: {enabled: false, team_id: "0"}
+  onebss_bc_ton_sua_chua_2026: {enabled: false, team_id: "0"}
+  onebss_bc_chi_tiet_ket_qua_cskh_uc3: {enabled: false, employee_id: "0", employee_text: "Tất cả"}

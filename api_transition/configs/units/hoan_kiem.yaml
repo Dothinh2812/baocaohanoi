@@ -1,0 +1,35 @@
+version: 1
+unit:
+  code: hoan_kiem
+  name: TTVT Hoàn Kiếm
+runtime:
+  instance_root: runtime/hoan_kiem
+  create_dirs: true
+period:
+  report_month: 4
+  report_year: 2026
+  month_id: "98944548"
+  month_label: "Tháng 04/2026"
+  vattu_start_date: "01/04/2025"
+ids:
+  center_id_14: "14327"
+  unit_id_28: "1003578"
+  onebss_tt_id: "14327"
+  onebss_default_team_id: "0"
+  onebss_region_id: "21"
+  onebss_region_text: "Thành phố Hà Nội"
+  onebss_unit_text: "TTVT Hoàn Kiếm"
+team_ids:
+  family_14: {cua_nam: "14378", hai_ba_trung: "14379", hoan_kiem: "14380"}
+  family_28: {cua_nam: "1003734", hai_ba_trung: "1003735", hoan_kiem: "1003736"}
+reports:
+  defaults: {enabled: true}
+  ghtt_hni: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_to: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_to: {enabled: false}
+  onebss_hni_pttb_001: {enabled: false, team_id: "0"}
+  onebss_bc_phieu_ton_dv_chi_tiet_hni: {enabled: false, team_id: "0"}
+  onebss_bc_ton_sua_chua_2026: {enabled: false, team_id: "0"}
+  onebss_bc_chi_tiet_ket_qua_cskh_uc3: {enabled: false, employee_id: "0", employee_text: "Tất cả"}

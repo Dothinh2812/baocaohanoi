@@ -1,0 +1,35 @@
+version: 1
+unit:
+  code: dong_anh
+  name: TTVT Đông Anh
+runtime:
+  instance_root: runtime/dong_anh
+  create_dirs: true
+period:
+  report_month: 4
+  report_year: 2026
+  month_id: "98944548"
+  month_label: "Tháng 04/2026"
+  vattu_start_date: "01/04/2025"
+ids:
+  center_id_14: "14321"
+  unit_id_28: "284653"
+  onebss_tt_id: "14321"
+  onebss_default_team_id: "0"
+  onebss_region_id: "21"
+  onebss_region_text: "Thành phố Hà Nội"
+  onebss_unit_text: "TTVT Đông Anh"
+team_ids:
+  family_14: {dong_anh: "14341", me_linh: "14389", phuc_thinh: "14342", thien_loc: "14343"}
+  family_28: {dong_anh: "1003698", me_linh: "1003761", phuc_thinh: "1003699", thien_loc: "1003700"}
+reports:
+  defaults: {enabled: true}
+  ghtt_hni: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_to: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_to: {enabled: false}
+  onebss_hni_pttb_001: {enabled: false, team_id: "0"}
+  onebss_bc_phieu_ton_dv_chi_tiet_hni: {enabled: false, team_id: "0"}
+  onebss_bc_ton_sua_chua_2026: {enabled: false, team_id: "0"}
+  onebss_bc_chi_tiet_ket_qua_cskh_uc3: {enabled: false, employee_id: "0", employee_text: "Tất cả"}

@@ -1,0 +1,20 @@
+ Danh sách mã Trung tâm (ptrungtamid) và các đơn vị trực thuộc:
+ptrungtamid	Tên Đơn vị Tổng (Center/Area)	Các Đơn vị con (Tổ Kỹ thuật Địa bàn)
+14329	TTVT Ba Đình	Ba Đình, Giảng Võ, Láng, Ngọc Hà
+14320	TTVT Cầu Giấy	Cầu Giấy, Nghĩa Đô, Yên Hòa 1, Yên Hòa 2
+14326	TTVT Gia Lâm	Bát Tràng, Gia Lâm, Phù Đổng, Thuận An
+14318	TTVT Giải Phóng	Tương Mai, Vĩnh Hưng, Vĩnh Tuy
+14332	TTVT Hoài Đức	An Khánh, Hoài Đức, Phú Cát, Quốc Oai, Sơn Đồng, Xuân Mai
+14327	TTVT Hoàn Kiếm	Cửa Nam, Hai Bà Trưng, Hoàn Kiếm
+14319	TTVT Hoàng Mai	Định Công, Hoàng Liệt, Hoàng Mai, Khương Đình, Lĩnh Nam Vĩnh Hưng, Phương Liệt
+14323	TTVT Hà Đông	Chương Mỹ, Dương Nội, Hà Đông, Kiến Hưng
+14317	TTVT Long Biên	Bồ Đề, Phúc Lợi, Việt Hưng
+14331	TTVT Phú Xuyên	Đại Xuyên, Hương Sơn, Mỹ Đức, Ứng Hòa, Phú Xuyên, Vân Đình
+14330	TTVT Sóc Sơn	Nội Bài, Quang Minh, Sóc Sơn, Trung Giã
+14324	TTVT Sơn Tây	Bất Bạt, Phúc Thọ, Quảng Oai, Sơn Tây, Suối hai, Tùng Thiện
+14322	TTVT Thanh Trì	Đại Thanh, Hồng Vân, Nam Phù, Tam Hưng, Thanh Oai, Thanh Trì, Thường Tín
+14333	TTVT Thạch Thất	Đan Phượng, Hát Môn, Hòa Lạc, Ô Diên, Thạch Thất
+14325	TTVT Tây Hồ	Hồng Hà, Phú Thượng, Tây Hồ, Thượng Cát, Xuân Đỉnh
+14334	TTVT Từ Liêm	Phú Diễn, Tây Mỗ, Từ Liêm, Xuân Phương
+14321	TTVT Đông Anh	Đông Anh, Mê Linh, Phúc Thịnh, Thiên Lộc
+14328	TTVT Đống Đa	Đại Mỗ, Kim Liên, Ô Chợ Dừa, Thanh Xuân

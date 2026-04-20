@@ -1,0 +1,35 @@
+version: 1
+unit:
+  code: son_tay
+  name: TTVT Sơn Tây
+runtime:
+  instance_root: runtime/son_tay
+  create_dirs: true
+period:
+  report_month: 4
+  report_year: 2026
+  month_id: "98944548"
+  month_label: "Tháng 04/2026"
+  vattu_start_date: "01/04/2025"
+ids:
+  center_id_14: "14324"
+  unit_id_28: "284656"
+  onebss_tt_id: "14324"
+  onebss_default_team_id: "0"
+  onebss_region_id: "21"
+  onebss_region_text: "Thành phố Hà Nội"
+  onebss_unit_text: "TTVT Sơn Tây"
+team_ids:
+  family_14: {bat_bat: "14357", phuc_tho: "14467", quang_oai: "14358", son_tay: "14359", suoi_hai: "14360", tung_thien: "14361"}
+  family_28: {phuc_tho: "1003785", quang_oai: "1003769", son_tay: "1003770", suoi_hai: "1003771"}
+reports:
+  defaults: {enabled: true}
+  ghtt_hni: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: false}
+  ngung_psc_fiber_thang_t_1_cap_to: {enabled: false}
+  ngung_psc_mytv_thang_t_1_cap_to: {enabled: false}
+  onebss_hni_pttb_001: {enabled: false, team_id: "0"}
+  onebss_bc_phieu_ton_dv_chi_tiet_hni: {enabled: false, team_id: "0"}
+  onebss_bc_ton_sua_chua_2026: {enabled: false, team_id: "0"}
+  onebss_bc_chi_tiet_ket_qua_cskh_uc3: {enabled: false, employee_id: "0", employee_text: "Tất cả"}

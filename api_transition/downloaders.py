@@ -332,6 +332,7 @@ def download_report_i15_k2_api(
 
 
 def download_ghtt_report_hni_api(
+    #https://baocao.hanoi.vnpt.vn/report/report-info?id=534220&menu_id=534238
     month_id="",
     month_label="",
     unit_id="284412",

@@ -1,0 +1,20 @@
+﻿Hàm Download,Report ID,Key Đơn vị,Giá trị Đơn vị,Key Thời gian,Giá trị Thời gian,Folder Download / Filename,URL Gốc
+download_report_c11_api,534964,ptrungtamid,14324,pthang,98944548,chi_tieu_c/c1.1 report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=534964
+download_report_c12_api,522513,ptrungtamid,14324,pthang,98944548,chi_tieu_c/c1.2 report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=522513
+download_report_c13_api,522600,ptrungtamid,14324,pthang,98944548,chi_tieu_c/c1.3 report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=522600
+download_report_c14_api,264107,vdonvi,284656,vthoigian,98944548,chi_tieu_c/c1.4 report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=264107
+download_report_c14_chitiet_api,240277,vdvvt,284656,vthoigian,98944548,chi_tieu_c/c1.4_chitiet_report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=240277
+download_report_c11_chitiet_api,267215,pdonvi_id,284656,vngay_bd-kt,26/03-25/04,chi_tieu_c/c1.1_chitiet_report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=267215
+download_report_c12_chitiet_sm1_api,267215,pdonvi_id,284656,vngay_bd-kt,26/03-25/04,chi_tieu_c/c1.2_chitiet_sm1_report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=267215
+download_report_c12_chitiet_sm2_api,267215,pdonvi_id,284656,vngay_bd-kt,26/03-25/04,chi_tieu_c/c1.2_chitiet_sm2_report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=267215
+download_kpi_nvkt_c11_api,534964,ptrungtamid,14324,pthang,98944548,kpi_nvkt/c11-nvktdb report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=534964
+download_kpi_nvkt_c12_api,522513,ptrungtamid,14324,pthang,98944548,kpi_nvkt/c12-nvktdb report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=522513
+download_kpi_nvkt_c13_api,522600,ptrungtamid,14324,pthang,98944548,kpi_nvkt/c13-nvktdb report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=522600
+download_ghtt_report_hni_api,534220,vdonvi,284656,vthoigian,98944548,ghtt/ghtt_hni report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=534220
+download_ghtt_report_sontay_api,534220,vdonvi,284656,vthoigian,98944548,ghtt/ghtt_sontay report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=534220
+download_ghtt_report_nvktdb_api,534220,vdonvi,284656,vthoigian,98944548,ghtt/ghtt_nvktdb report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=534220
+download_xac_minh_tam_dung_api,267844,pdonvi_id,284656,vngay_bd-kt,01/04-30/04,xac_minh_tam_dung/report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=267844
+download_phieu_hoan_cong_dich_vu_chi_tiet_api,283737,vdv,284656,vngay_bd-kt,01/04-30/04,phieu_hoan_cong/report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=283737
+download_kq_tiep_thi_api,257495,vdonvi_id,284656,vngay_bd-kt,01/04-30/04,kq_tiep_thi/report.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=257495
+download_report_vattu_thuhoi_api,270922,vttvt,284656,vtungay-kt,01/04/25-25/04/26,vat_tu/bc_thu_hoi.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=270922
+download_quyet_toan_vattu_api,532729,vttvt,284656,vtungay-kt,01/04-30/04,vat_tu/quyet_toan.xlsx,https://baocao.hanoi.vnpt.vn/report/report-info?id=532729
