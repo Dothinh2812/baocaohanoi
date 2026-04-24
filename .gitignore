@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Flask
+flask_session/
+instance/
+cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+
+# Test/runtime caches
+.pytest_cache/
+
+# Local data exports
+username.xlsx
+dashboard_data_paths.xlsx
+
+# Environment
+.env
+.env.local
+
+# Local assistant/workspace metadata
+.codex
+.skill_staging/

@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Phát triển thuê bao{% endblock %}
+
+{% block content %}
+<!-- PTTB Section -->
+<div id="pttb-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">📊 Báo cáo Phát triển thuê bao (PTTB)</h2>
+        <p class="dashboard-subtitle">Quản lý và theo dõi phiếu tồn phát triển thuê bao</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Phát triển thuê bao</span>
+        </div>
+    </div>
+
+    <!-- Chi tiết tồn PTTB các tổ -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-list-alt"></i>
+            Chi tiết tồn PTTB các tổ
+        </h3>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="pttb-chitiet-to-tabs">
+                <li class="excel-tab active" data-sheet="ToKT_SonTay">Sơn Tây</li>
+                <li class="excel-tab" data-sheet="ToKT_SuoiHai">Suối Hai</li>
+                <li class="excel-tab" data-sheet="ToKT_QuangOai">Quảng Oai</li>
+                <li class="excel-tab" data-sheet="ToKT_PhucTho">Phúc Thọ</li>
+            </ul>
+            <div id="pttb-chitiet-to-content">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng hợp theo đội -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-users"></i>
+            Tổng hợp theo đội
+        </h3>
+        <div id="pttb-summary-5doi-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng hợp tồn PTTB 4 tổ -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Tổng hợp tồn PTTB 4 tổ
+        </h3>
+        <div class="image-tabs-container">
+            <ul class="image-tabs" id="pttb-3to-tabs">
+                <li class="image-tab active" data-chart="quangoai">Quảng Oai</li>
+                <li class="image-tab" data-chart="sontay">Sơn Tây</li>
+                <li class="image-tab" data-chart="suoihai">Suối Hai</li>
+                <li class="image-tab" data-chart="phuctho">Phúc Thọ</li>
+            </ul>
+            <div id="pttb-3to-content">
+                <div class="chart-card">
+                    <div class="chart-card-body">
+                        <img id="pttb-chart-display" src="/pttb_3_to/chart_pttb_3to_tokt_quangoai.png"
+                            alt="Biểu đồ PTTB Quảng Oai">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Báo cáo Phát triển thuê bao (PTTB)
+        </h3>
+
+        <!-- Tổng quan PTTB -->
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="downloadExcelPTTB()">
+                <i class="fas fa-download"></i>
+                Tải báo cáo PTTB
+            </button>
+        </div>
+
+        <!-- 1. Thống kê tổng hợp đơn giản -->
+        <h4 style="margin: 20px 0 10px 0; color: #1a5089; font-size: 1.1em;">
+            <i class="fas fa-chart-pie"></i> Tổng quan theo loại dịch vụ
+        </h4>
+        <div id="pttb-summary-simple-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+
+        <!-- 3. Thống kê theo trạng thái - ĐÃ ẨN
+        <h4 style="margin: 30px 0 10px 0; color: #1a5089; font-size: 1.1em;">
+            <i class="fas fa-tasks"></i> Thống kê chi tiết theo trạng thái
+        </h4>
+        <div id="pttb-summary-status-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+        -->
+
+        <!-- 4. Chi tiết theo địa bàn (với tabs theo DOI_VT) -->
+        <h4 style="margin: 30px 0 10px 0; color: #1a5089; font-size: 1.1em;">
+            <i class="fas fa-map-marker-alt"></i> Chi tiết theo địa bàn
+        </h4>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="pttb-diaban-tabs">
+                <li class="excel-tab active" data-doi="ToKT_SonTay">Sơn Tây</li>
+                <li class="excel-tab" data-doi="ToKT_SuoiHai">Suối Hai</li>
+                <li class="excel-tab" data-doi="ToKT_QuangOai">Quảng Oai</li>
+                <li class="excel-tab" data-doi="ToKT_PhucTho">Phúc Thọ</li>
+            </ul>
+            <div id="pttb-detail-diaban-table">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Chi tiết từng đội với tabs (3 tổ) - ĐÃ ẨN
+        <h4 style="margin: 30px 0 10px 0; color: #1a5089; font-size: 1.1em;">
+            <i class="fas fa-chart-bar"></i> Thống kê chi tiết từng đội (3 tổ)
+        </h4>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="pttb-detail-tabs">
+                <li class="excel-tab active" data-sheet="TK_ToKT_SonTay">Sơn Tây</li>
+                <li class="excel-tab" data-sheet="TK_ToKT_SuoiHai">Suối Hai</li>
+                <li class="excel-tab" data-sheet="TK_ToKT_QuangOai">Quảng Oai</li>
+            </ul>
+            <div id="pttb-detail-tabs-content">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+        -->
+
+        <!-- 6. Phiếu cần xử lý - ĐÃ ẨN
+        <h4 style="margin: 30px 0 10px 0; color: #e74c3c; font-size: 1.1em;">
+            <i class="fas fa-exclamation-triangle"></i> Phiếu cần xử lý gấp
+        </h4>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="pttb-pending-tabs">
+                <li class="excel-tab active" data-sheet="chua_co_lydoton">Chưa có lý do tồn</li>
+                <li class="excel-tab" data-sheet="phieu_qua_gio">Phiếu quá giờ</li>
+            </ul>
+            <div id="pttb-pending-tabs-content">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+        -->
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/pttb.js') }}"></script>
+{% endblock %}

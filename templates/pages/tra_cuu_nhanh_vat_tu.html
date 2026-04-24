@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Tra cứu nhanh vật tư{% endblock %}
+
+{% block extra_css %}
+<style>
+    #tra-cuu-section .excel-table-body {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    #tra-cuu-section .excel-table {
+        table-layout: auto;
+        width: 100%;
+    }
+    #tra-cuu-section .excel-table th,
+    #tra-cuu-section .excel-table td {
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+    #tra-cuu-section .excel-table th {
+        vertical-align: top;
+        line-height: 1.3;
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+    /* STT */
+    #tra-cuu-section .excel-table th:nth-child(1) {
+        width: 40px;
+        min-width: 40px;
+    }
+    /* ĐVT */
+    #tra-cuu-section .excel-table th:nth-child(5) {
+        width: 50px;
+        min-width: 50px;
+    }
+    /* Số lượng, Đơn giá, Thành tiền */
+    #tra-cuu-section .excel-table th:nth-child(7),
+    #tra-cuu-section .excel-table th:nth-child(8),
+    #tra-cuu-section .excel-table th:nth-child(9) {
+        width: 100px;
+        min-width: 100px;
+    }
+    #tra-cuu-section .excel-table td {
+        font-size: 13px;
+    }
+    #tra-cuu-section .excel-table td:nth-child(1),
+    #tra-cuu-section .excel-table td:nth-child(5),
+    #tra-cuu-section .excel-table td:nth-child(7),
+    #tra-cuu-section .excel-table td:nth-child(8),
+    #tra-cuu-section .excel-table td:nth-child(9) {
+        text-align: center;
+    }
+    #tra-cuu-section .excel-table td:nth-child(2),
+    #tra-cuu-section .excel-table td:nth-child(3),
+    #tra-cuu-section .excel-table td:nth-child(4),
+    #tra-cuu-section .excel-table td:nth-child(6) {
+        text-align: left;
+    }
+    #tra-cuu-section .filter-row input.column-filter {
+        font-size: 11px;
+        padding: 2px 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="tra-cuu-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Tra cứu nhanh vật tư</h2>
+        <p class="dashboard-subtitle">Tra cứu chi tiết toàn bộ vật tư tồn kho TTVT Sơn Tây - Sử dụng bộ lọc để tìm kiếm nhanh</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Tra cứu nhanh vật tư</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-search"></i>
+            Chi tiết tồn kho vật tư
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="window.location.href='/download/ton-kho-vat-tu'">
+                <i class="fas fa-download"></i>
+                Tải file gốc Excel
+            </button>
+        </div>
+        <div id="tra-cuu-table-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/tra_cuu_nhanh_vat_tu.js') }}"></script>
+{% endblock %}

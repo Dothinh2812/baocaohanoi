@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}KPI NVKT{% endblock %}
+
+{% block content %}
+<!-- KPI Section -->
+<div id="kpi-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">📊 KPI NVKT</h2>
+        <p class="dashboard-subtitle">Thông tin KPI của nhân viên kỹ thuật đồng bộ theo ngày dữ liệu</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>KPI NVKT</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="excel-table-card" style="padding: 16px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                <div>
+                    <label for="kpi-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input type="date" id="kpi-date-input" class="form-control" style="min-width: 220px;">
+                </div>
+                <button id="kpi-date-apply" class="btn btn-primary">
+                    <i class="fas fa-filter"></i>
+                    Xem theo ngày
+                </button>
+            </div>
+            <div id="kpi-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-bar"></i>
+            KPI NVKT
+        </h3>
+
+        <!-- Tabs by don_vi -->
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="kpi-donvi-tabs">
+                <li class="excel-tab active" data-donvi="all">Tất cả</li>
+                <li class="excel-tab" data-donvi="Tổ Kỹ thuật Địa bàn Sơn Tây">Sơn Tây</li>
+                <li class="excel-tab" data-donvi="Tổ Kỹ thuật Địa bàn Suối hai">Suối Hai</li>
+                <li class="excel-tab" data-donvi="Tổ Kỹ thuật Địa bàn Quảng Oai">Quảng Oai</li>
+                <li class="excel-tab" data-donvi="Tổ Kỹ thuật Địa bàn Phúc Thọ">Phúc Thọ</li>
+            </ul>
+        </div>
+
+        <!-- 1. KPI NVKT Tóm tắt -->
+        <h4 style="margin: 20px 0 10px 0; color: #1a5089; font-size: 1.1em;">
+            <i class="fas fa-list-ol"></i> KPI NVKT Tóm tắt
+            <span id="kpi-tomtat-timestamp"
+                style="font-size: 12px; color: #999; font-style: italic; margin-left: 15px;"></span>
+        </h4>
+        <div id="kpi-tomtat-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+
+        <!-- 2. KPI NVKT Chi Tiết -->
+        <h4 style="margin: 30px 0 10px 0; color: #1a5089; font-size: 1.1em;">
+            <i class="fas fa-table"></i> KPI NVKT Chi Tiết
+            <span id="kpi-chitiet-timestamp"
+                style="font-size: 12px; color: #999; font-style: italic; margin-left: 15px;"></span>
+        </h4>
+        <div id="kpi-chitiet-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/kpi.js') }}?v={{ range(10000, 99999) | random }}"></script>
+{% endblock %}

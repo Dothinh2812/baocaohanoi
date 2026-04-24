@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Điều hành sửa chữa{% endblock %}
+
+{% block content %}
+<!-- BRCD Section (Điều hành sửa chữa) -->
+<div id="brcd-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Điều hành sửa chữa (BRCD)</h2>
+        <p class="dashboard-subtitle">Quản lý phiếu tồn BRCD, SHC và báo cáo chi tiết</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Điều hành sửa chữa</span>
+        </div>
+    </div>
+
+    <!-- Chi tiết phiếu tồn sửa chữa (moved to top) -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Chi tiết phiếu tồn sửa chữa
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="downloadExcelMain()">
+                <i class="fas fa-download"></i>
+                Tải xuống danh sách chi tiết
+            </button>
+        </div>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="excel-tabs-main">
+                <!-- Tabs will be injected here by JS -->
+            </ul>
+            <div id="excel-tables-container-main">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng hợp phiếu tồn theo dịch vụ -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-bar"></i>
+            Tổng hợp phiếu tồn
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="window.location.href='/download/bc-brcd'">
+                <i class="fas fa-download"></i>
+                Tải bc_BRCD.xlsx
+            </button>
+        </div>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table">
+                    <thead>
+                        <tr>
+                            {% for col in ton_dv_columns %}
+                            <th>{% if col == 'DOI_VT' %}Đội/Tổ{% elif col == 'Điện thoại cố định' %}ĐT cố định{% else
+                                %}{{ col }}{% endif %}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in ton_dv_data %}
+                        <tr{% if row.DOI_VT=='Tổng' %} style="background-color: #6b9bc3; color: #2c3e50;" {% endif %}>
+                            {% for col in ton_dv_columns %}
+                            {% if col == 'DOI_VT' %}
+                            <td><strong>{{ row[col].replace('ToKT_', '') if row[col] else '' }}</strong></td>
+                            {% elif col == 'Tổng' %}
+                            <td
+                                style="text-align: center; font-weight: 600;{% if row.DOI_VT != 'Tổng' %} color: #1a5089;{% endif %}">
+                                {{ row[col] if row[col] is defined else 0 }}</td>
+                            {% else %}
+                            <td style="text-align: center;">{{ row[col] if row[col] is defined else 0 }}</td>
+                            {% endif %}
+                            {% endfor %}
+                            </tr>
+                            {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng hợp tồn theo trạng thái cổng - thời gian tồn -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-clock"></i>
+            Tổng hợp tồn theo trạng thái cổng - thời gian tồn
+        </h3>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table">
+                    <thead>
+                        <tr>
+                            {% for col in ton_5doi_columns %}
+                            <th>{% if col == 'DOI_VT' %}Đội/Tổ{% else %}{{ col }}{% endif %}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in ton_5doi_data %}
+                        <tr{% if row.DOI_VT=='Tổng' %} style="background-color: #6b9bc3; color: #2c3e50;" {% endif %}>
+                            {% for col in ton_5doi_columns %}
+                            {% if col == 'DOI_VT' %}
+                            <td><strong>{{ row[col].replace('ToKT_', '') if row[col] else '' }}</strong></td>
+                            {% elif col == 'Số lượng' %}
+                            <td
+                                style="text-align: center; font-weight: 600;{% if row.DOI_VT != 'Tổng' %} color: #1a5089;{% endif %}">
+                                {{ row[col] if row[col] is defined else 0 }}</td>
+                            {% else %}
+                            <td style="text-align: center;">{{ row[col] if row[col] is defined else 0 }}</td>
+                            {% endif %}
+                            {% endfor %}
+                            </tr>
+                            {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tổng hợp phiếu tồn theo nhân viên kỹ thuật -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-users"></i>
+            Tổng hợp phiếu tồn theo NVKT
+        </h3>
+        <div class="image-tabs-container">
+            <ul class="image-tabs" id="nvkt-tabs">
+                <li class="image-tab active" data-team="PhucTho">Phúc Thọ</li>
+                <li class="image-tab" data-team="SonTay">Sơn Tây</li>
+                <li class="image-tab" data-team="QuangOai">Quảng Oai</li>
+                <li class="image-tab" data-team="SuoiHai">Suối Hai</li>
+            </ul>
+        </div>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table" id="nvkt-table">
+                    <thead>
+                        <tr>
+                            {% for col in ton_nvkt_columns %}
+                            {% if col != 'DOI_VT' %}
+                            <th>{% if col == 'Nhân viên' %}Nhân viên{% elif col == 'Điện thoại cố định' %}ĐT cố định{%
+                                else %}{{ col }}{% endif %}</th>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in ton_nvkt_data %}
+                        <tr class="nvkt-row" data-team="{{ row.DOI_VT.replace('ToKT_', '') if row.DOI_VT else '' }}">
+                            {% for col in ton_nvkt_columns %}
+                            {% if col != 'DOI_VT' %}
+                            {% if col == 'Nhân viên' %}
+                            <td><strong>{{ row[col] if row[col] is defined and row[col] == row[col] else '' }}</strong>
+                            </td>
+                            {% elif col == 'Tổng' %}
+                            <td style="text-align: center; font-weight: 600; color: #1a5089;">{{ row[col] if row[col] is
+                                defined else 0 }}</td>
+                            {% else %}
+                            <td style="text-align: center;">{{ row[col] if row[col] is defined else 0 }}</td>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Tồn sửa chữa theo địa bàn 4 tổ -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-map-marker-alt"></i>
+            Tồn sửa chữa theo địa bàn
+        </h3>
+        <div class="image-tabs-container">
+            <ul class="image-tabs" id="diaban-3to-tabs">
+                <li class="image-tab active" data-chart="ToKT_PhucTho">Phúc Thọ</li>
+                <li class="image-tab" data-chart="ToKT_SonTay">Sơn Tây</li>
+                <li class="image-tab" data-chart="ToKT_QuangOai">Quảng Oai</li>
+                <li class="image-tab" data-chart="ToKT_SuoiHai">Suối Hai</li>
+            </ul>
+            <div id="diaban-3to-content">
+                <div class="chart-card">
+                    <div class="chart-card-body">
+                        <img id="diaban-chart-display" src="/chart/Chart_diaban_ToKT_PhucTho.png"
+                            alt="Biểu đồ địa bàn Phúc Thọ">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HIDDEN: Chi tiết dữ liệu Excel với Tab Navigation
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Chi tiết dữ liệu phiếu tồn down cổng
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="downloadExcel()">
+                <i class="fas fa-download"></i>
+                Tải danh sách chi tiết
+            </button>
+        </div>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="excel-tabs">
+            </ul>
+            <div id="excel-tables-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+    -->
+
+    <!-- HIDDEN: Phiếu chưa nhập tồn hẹn
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-exclamation-circle"></i>
+            Phiếu chưa nhập tồn hẹn
+        </h3>
+        <p class="section-description">Danh sách các phiếu chưa nhập lý do tồn (lydoton = null)</p>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="excel-tabs-pending">
+            </ul>
+            <div id="excel-tables-container-pending">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+    -->
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/brcd.js') }}"></script>
+{% endblock %}

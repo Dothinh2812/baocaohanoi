@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+
+{% block title %}Theo dõi Sự cố SA{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sc-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .sc-header h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  .sc-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .sc-badge.danger  { background: #dc3545; }
+  .sc-badge.success { background: #28a745; }
+
+  .sc-meta {
+    font-size: 0.78rem;
+    color: #888;
+    margin-bottom: 14px;
+  }
+  .sc-section {
+    margin-bottom: 32px;
+  }
+
+  /* spinner */
+  .sc-spinner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #666;
+    padding: 24px 0;
+  }
+  .sc-spinner .spin {
+    width: 22px; height: 22px;
+    border: 3px solid #ccc;
+    border-top-color: #555;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* table */
+  .sc-table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+  .sc-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.83rem;
+  }
+  .sc-table thead th {
+    background: #f5f6fa;
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #e0e0e0;
+    white-space: nowrap;
+  }
+  .sc-table tbody td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  .sc-table tbody tr:hover { background: #fafbff; }
+  .sc-table tbody tr.row-inferred {
+    background: #f8f8f8;
+    color: #999;
+  }
+  .sc-table tbody tr.row-inferred td { font-style: italic; }
+
+  /* tags */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .tag-open    { background: #ffeaea; color: #c0392b; }
+  .tag-closed  { background: #eafaf1; color: #1e8449; }
+  .tag-infer   { background: #f0f0f0; color: #888; }
+  .tag-exact   { background: #eaf4fb; color: #1a5276; }
+  .tag-excel   { background: #fef9e7; color: #9a7d0a; }
+
+  .empty-msg {
+    text-align: center;
+    color: #aaa;
+    padding: 20px;
+    font-style: italic;
+  }
+  .refresh-btn {
+    margin-left: auto;
+    font-size: 0.8rem;
+    padding: 4px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    background: #fff;
+    cursor: pointer;
+    color: #555;
+    transition: background 0.15s;
+  }
+  .refresh-btn:hover { background: #f0f0f0; }
+  .refresh-btn i { margin-right: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="padding: 20px;">
+
+  <div style="display:flex; align-items:center; margin-bottom:18px; gap:12px;">
+    <h1 style="font-size:1.3rem; font-weight:800; margin:0;">
+      <i class="fas fa-exclamation-triangle" style="color:#e74c3c; margin-right:8px;"></i>
+      Theo dõi Sự cố SA
+    </h1>
+    <button class="refresh-btn" id="btnRefresh">
+      <i class="fas fa-sync-alt"></i> Làm mới
+    </button>
+  </div>
+
+  <div id="scMeta" class="sc-meta">Đang tải dữ liệu…</div>
+
+  <!-- Spinner -->
+  <div id="scSpinner" class="sc-spinner">
+    <div class="spin"></div>
+    <span>Đang tải dữ liệu từ hệ thống…</span>
+  </div>
+
+  <!-- Section 1: Đang tồn đọng -->
+  <div id="sectionDangTon" class="sc-section" style="display:none;">
+    <div class="sc-header">
+      <i class="fas fa-fire" style="color:#e74c3c;"></i>
+      <h2>Đang tồn đọng</h2>
+      <span id="badgeDangTon" class="sc-badge danger">0</span>
+    </div>
+    <div class="sc-table-wrap">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Mã sự cố</th>
+            <th>SA</th>
+            <th>Đội</th>
+            <th>Bắt đầu</th>
+            <th>Cập nhật lần cuối</th>
+            <th>Kéo dài (giờ)</th>
+            <th>OFF bắt đầu</th>
+            <th>OFF hiện tại</th>
+            <th>OFF lớn nhất</th>
+            <th>Tổng TB</th>
+            <th>% OFF</th>
+            <th>Source</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyDangTon">
+          <tr><td colspan="14" class="empty-msg">Không có dữ liệu</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Section 2: Đã clear hôm nay -->
+  <div id="sectionDaClear" class="sc-section" style="display:none;">
+    <div class="sc-header">
+      <i class="fas fa-check-circle" style="color:#28a745;"></i>
+      <h2>Đã clear hôm nay</h2>
+      <span id="badgeDaClear" class="sc-badge success">0</span>
+    </div>
+    <div class="sc-table-wrap">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Mã sự cố</th>
+            <th>SA</th>
+            <th>Đội</th>
+            <th>Bắt đầu</th>
+            <th>Kết thúc</th>
+            <th>Thời gian xử lý (giờ)</th>
+            <th>Lý do phục hồi</th>
+            <th>Source</th>
+            <th>Confidence</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyDaClear">
+          <tr><td colspan="10" class="empty-msg">Không có dữ liệu</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const REFRESH_INTERVAL_MS = 60 * 1000; // 60 giây
+
+  function fmtNum(v) {
+    if (v === null || v === undefined || v === '') return '—';
+    return Number(v).toLocaleString('vi-VN');
+  }
+
+  function fmtMinToHour(v) {
+    if (v === null || v === undefined || v === '') return '—';
+    return (Number(v) / 60).toFixed(1) + ' giờ';
+  }
+
+  function fmtPct(v) {
+    if (v === null || v === undefined || v === '') return '—';
+    return Number(v).toFixed(1) + '%';
+  }
+
+  function sourceTag(source) {
+    if (source === 'excel_import') return '<span class="tag tag-excel" title="Dữ liệu lịch sử import">Excel</span>';
+    return '<span class="tag tag-exact">Runtime</span>';
+  }
+
+  function confidenceTag(conf) {
+    if (conf === 'inferred') return '<span class="tag tag-infer" title="Độ tin cậy thấp (suy ra từ lịch sử)">Inferred</span>';
+    return '<span class="tag tag-exact">Exact</span>';
+  }
+
+  function buildDangTonRows(list) {
+    if (!list || list.length === 0) {
+      return '<tr><td colspan="14" class="empty-msg">✅ Không có sự cố nào đang tồn đọng</td></tr>';
+    }
+    return list.map((r, i) => {
+      const isInferred = r.confidence === 'inferred' && r.source === 'excel_import';
+      const rowClass = isInferred ? 'row-inferred' : '';
+      const tooltip = isInferred ? ' title="Dữ liệu lịch sử - độ tin cậy thấp"' : '';
+      return `<tr class="${rowClass}"${tooltip}>
+        <td>${i + 1}</td>
+        <td>${r.incident_code || '—'}</td>
+        <td><strong>${r.sa_code || '—'}</strong></td>
+        <td>${r.doi_vt || '—'}</td>
+        <td>${r.started_at || '—'}</td>
+        <td>${r.last_seen_at || '—'}</td>
+        <td>${fmtMinToHour(r.thoi_gian_keo_dai_phut)}</td>
+        <td>${fmtNum(r.start_off_count)}</td>
+        <td>${fmtNum(r.latest_off_count)}</td>
+        <td>${fmtNum(r.max_off_count)}</td>
+        <td>${fmtNum(r.latest_total_count)}</td>
+        <td>${fmtPct(r.latest_off_percentage)}</td>
+        <td>${sourceTag(r.source)}</td>
+        <td>${confidenceTag(r.confidence)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function buildDaClearRows(list) {
+    if (!list || list.length === 0) {
+      return '<tr><td colspan="10" class="empty-msg">Chưa có sự cố nào được clear hôm nay</td></tr>';
+    }
+    return list.map((r, i) => {
+      const isInferred = r.confidence === 'inferred' && r.source === 'excel_import';
+      const rowClass = isInferred ? 'row-inferred' : '';
+      return `<tr class="${rowClass}">
+        <td>${i + 1}</td>
+        <td>${r.incident_code || '—'}</td>
+        <td><strong>${r.sa_code || '—'}</strong></td>
+        <td>${r.doi_vt || '—'}</td>
+        <td>${r.started_at || '—'}</td>
+        <td>${r.ended_at || '—'}</td>
+        <td>${fmtMinToHour(r.duration_minutes)}</td>
+        <td>${r.recovery_reason || '—'}</td>
+        <td>${sourceTag(r.source)}</td>
+        <td>${confidenceTag(r.confidence)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function loadData() {
+    const spinner   = document.getElementById('scSpinner');
+    const secTon    = document.getElementById('sectionDangTon');
+    const secClear  = document.getElementById('sectionDaClear');
+    const meta      = document.getElementById('scMeta');
+
+    spinner.style.display = 'flex';
+    secTon.style.display  = 'none';
+    secClear.style.display = 'none';
+
+    try {
+      const res  = await fetch('/api/su-co-sa/data');
+      const data = await res.json();
+
+      if (!data.ok) {
+        meta.textContent = '⚠️ Lỗi tải dữ liệu: ' + (data.error || 'unknown');
+        return;
+      }
+
+      // Update meta
+      meta.textContent = `Cập nhật lúc: ${data.generated_at} · Tự động làm mới sau 60 giây`;
+
+      // Đang tồn
+      const ton = data.dang_ton || [];
+      document.getElementById('badgeDangTon').textContent = ton.length;
+      document.getElementById('tbodyDangTon').innerHTML = buildDangTonRows(ton);
+      secTon.style.display = 'block';
+
+      // Đã clear
+      const cleared = data.da_clear_hom_nay || [];
+      document.getElementById('badgeDaClear').textContent = cleared.length;
+      document.getElementById('tbodyDaClear').innerHTML = buildDaClearRows(cleared);
+      secClear.style.display = 'block';
+
+    } catch (err) {
+      meta.textContent = '⚠️ Lỗi kết nối: ' + err.message;
+    } finally {
+      spinner.style.display = 'none';
+    }
+  }
+
+  document.getElementById('btnRefresh').addEventListener('click', loadData);
+
+  // Load ngay khi vào trang
+  loadData();
+
+  // Auto-refresh mỗi 60 giây
+  setInterval(loadData, REFRESH_INTERVAL_MS);
+</script>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Tạm dừng khôi phục{% endblock %}
+
+{% block content %}
+<div id="tamdungkhoiphuc-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Tạm dừng khôi phục dịch vụ</h2>
+        <p class="dashboard-subtitle">Dữ liệu được đồng bộ theo ngày từ 2 bảng tổng hợp theo tổ và theo NVKT</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Tạm dừng khôi phục</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="excel-table-card" style="padding: 16px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                <div>
+                    <label for="tdkp-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input type="date" id="tdkp-date-input" class="form-control" style="min-width: 220px;">
+                </div>
+                <button id="tdkp-date-apply" class="btn btn-primary">
+                    <i class="fas fa-filter"></i>
+                    Xem theo ngày
+                </button>
+            </div>
+            <div id="tdkp-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-layer-group"></i>
+            v_tam_dung_khoi_phuc_dich_vu_chi_tiet_combined_tong_hop_theo_to
+            <span id="tdkp-timestamp" style="font-size: 12px; color: #999; font-style: italic; margin-left: 15px;"></span>
+        </h3>
+        <div id="tdkp-theo-to-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-user-cog"></i>
+            v_tam_dung_khoi_phuc_dich_vu_chi_tiet_combined_tong_hop_theo_nvkt
+        </h3>
+        <div id="tdkp-theo-nvkt-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/tam_dung_khoi_phuc.js') }}?v={{ range(10000, 99999) | random }}"></script>
+{% endblock %}

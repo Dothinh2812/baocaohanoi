@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Xác minh tạm dừng{% endblock %}
+
+{% block content %}
+<div id="xacminhtamdung-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Xác minh tạm dừng</h2>
+        <p class="dashboard-subtitle">Chi tiết xác minh tạm dừng Fiber & MyTV theo tổ</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Xác minh tạm dừng</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-search"></i>
+            KQ xác minh tạm dừng Fiber & MyTV
+            <span id="xmtd-timestamp" style="font-size: 12px; color: #999; font-style: italic; margin-left: 15px;"></span>
+        </h3>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="xmtd-tabs">
+                <li class="loading"><i class="fas fa-spinner"></i> Đang tải...</li>
+            </ul>
+        </div>
+
+        <div id="xmtd-fiber-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+
+        <div id="xmtd-mytv-container" style="margin-top: 20px;">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/xac_minh_tam_dung.js') }}"></script>
+{% endblock %}

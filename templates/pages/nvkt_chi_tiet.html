@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}{{ nvkt_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .nvkt-chart-card {
+        background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+        border: 1px solid #dbe7f3;
+        border-radius: 14px;
+        box-shadow: 0 10px 24px rgba(20, 59, 99, 0.08);
+        overflow: hidden;
+    }
+
+    .nvkt-chart-head {
+        padding: 14px 16px 10px;
+        border-bottom: 1px solid #e6eef7;
+    }
+
+    .nvkt-chart-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #163e67;
+        margin-bottom: 4px;
+    }
+
+    .nvkt-chart-subtitle {
+        font-size: 0.85rem;
+        color: #5f7590;
+    }
+
+    .nvkt-chart-canvas {
+        padding: 12px 14px 16px;
+        height: 320px;
+    }
+
+    .nvkt-chart-canvas canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="nvkt-chi-tiet-section" data-nvkt-name="{{ nvkt_name }}" data-nvkt-slug="{{ nvkt_slug }}">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">📊 {{ nvkt_name }}</h2>
+        <p class="dashboard-subtitle">Chi tiết riêng theo NVKT từ view v_nvkt_tong_hop_da_nguon</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>KPI NVKT BCHN</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>{{ nvkt_name }}</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Biểu đồ chỉ tiêu
+            <span id="nvkt-detail-timestamp" style="font-size: 12px; color: #999; font-style: italic; margin-left: 15px;"></span>
+        </h3>
+        <div id="nvkt-detail-chart" class="nvkt-chart-card">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Dữ liệu raw của NVKT
+        </h3>
+        <div id="nvkt-detail-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/nvkt_chi_tiet.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Tồn kho vật tư TTVT Sơn Tây{% endblock %}
+
+{% block extra_css %}
+<style>
+    #ton-kho-section .excel-table-body {
+        max-width: 100%;
+    }
+    #ton-kho-section .excel-table-body.has-frozen-columns {
+        overflow: visible !important;
+    }
+    #ton-kho-section .excel-freeze-layout {
+        display: flex;
+        align-items: flex-start;
+        min-width: 0;
+    }
+    #ton-kho-section .excel-frozen-pane {
+        flex: 0 0 auto;
+        background: #ffffff;
+        border-right: 1px solid #d9e2ec;
+        box-shadow: 6px 0 14px rgba(15, 23, 42, 0.08);
+        position: relative;
+        z-index: 2;
+    }
+    #ton-kho-section .excel-scroll-pane {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    #ton-kho-section .excel-table,
+    #ton-kho-section .excel-frozen-pane .excel-table,
+    #ton-kho-section .excel-scroll-pane .excel-table {
+        table-layout: auto;
+        width: max-content;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    #ton-kho-section .excel-table th,
+    #ton-kho-section .excel-table td {
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        min-width: 100px;
+        max-width: 100px;
+    }
+    #ton-kho-section .excel-table th {
+        vertical-align: top;
+        line-height: 1.3;
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+    #ton-kho-section .excel-frozen-pane .excel-table th:nth-child(1) {
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px;
+    }
+    #ton-kho-section .excel-frozen-pane .excel-table td:nth-child(1) {
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px;
+    }
+    #ton-kho-section .excel-frozen-pane .excel-table th:nth-child(2) {
+        width: 100px;
+        min-width: 100px;
+        max-width: 100px;
+    }
+    #ton-kho-section .excel-frozen-pane .excel-table td:nth-child(2) {
+        width: 100px;
+        min-width: 100px;
+        max-width: 100px;
+    }
+    #ton-kho-section .excel-frozen-pane .excel-table th:nth-child(3) {
+        width: 140px;
+        min-width: 140px;
+        max-width: 140px;
+    }
+    #ton-kho-section .excel-frozen-pane .excel-table td:nth-child(3) {
+        width: 140px;
+        min-width: 140px;
+        max-width: 140px;
+    }
+    #ton-kho-section .excel-table td {
+        text-align: center;
+        font-size: 13px;
+    }
+    #ton-kho-section .excel-frozen-pane .excel-table td:nth-child(2),
+    #ton-kho-section .excel-frozen-pane .excel-table td:nth-child(3) {
+        text-align: left;
+    }
+    #ton-kho-section .filter-row input.column-filter {
+        font-size: 11px;
+        padding: 2px 4px;
+    }
+    #ton-kho-section .excel-frozen-pane .excel-table th,
+    #ton-kho-section .excel-frozen-pane .excel-table td {
+        background-clip: padding-box;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="ton-kho-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Tồn kho vật tư TTVT Sơn Tây</h2>
+        <p class="dashboard-subtitle">Báo cáo số lượng tồn vật tư theo kho - Chỉ hiển thị cột số lượng (SL)</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Tồn kho vật tư</span>
+        </div>
+    </div>
+
+    <!-- Bảng tổng hợp tồn vật tư thường dùng (tốt) theo đơn vị -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-check-circle"></i>
+            Tổng hợp tồn vật tư thường dùng (tốt) theo đơn vị
+        </h3>
+        <div id="ton-thuong-dung-table-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng tổng hợp tồn vật tư -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-boxes"></i>
+            Tổng hợp tồn vật tư TTVT Sơn Tây - Số lượng tồn
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="window.location.href='/download/ton-kho-vat-tu'">
+                <i class="fas fa-download"></i>
+                Tải file gốc Excel
+            </button>
+        </div>
+        <div id="ton-kho-table-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng tồn theo loại vật tư -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-cubes"></i>
+            Tồn theo loại vật tư
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="window.location.href='/download/ton-kho-vat-tu'">
+                <i class="fas fa-download"></i>
+                Tải file gốc Excel
+            </button>
+        </div>
+        <div id="ton-theo-loai-table-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/ton_kho_vat_tu.js') }}"></script>
+{% endblock %}

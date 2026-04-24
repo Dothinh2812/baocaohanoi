@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}I1.5 - Chất lượng mạng cáp quang thuê bao{% endblock %}
+
+{% block content %}
+<!-- I1.5 Section -->
+<div id="i15-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">I1.5 - Chất lượng mạng cáp quang thuê bao</h2>
+        <p class="dashboard-subtitle">Dữ liệu đọc trực tiếp từ `report_history.db` qua các bảng I1.5 chuẩn theo ngày</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>I1.5 - Chất lượng mạng</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="excel-table-card" style="padding: 16px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                <div>
+                    <label for="i15-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input type="date" id="i15-date-input" class="form-control" style="min-width: 220px;">
+                </div>
+                <button id="i15-date-apply" class="btn btn-primary">
+                    <i class="fas fa-filter"></i>
+                    Xem theo ngày
+                </button>
+            </div>
+            <div id="i15-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
+        </div>
+    </div>
+
+    <!-- Download button -->
+    <div class="excel-download-section" style="text-align: left; margin-bottom: 20px;">
+        <button class="download-btn" onclick="downloadExcelI15()">
+            <i class="fas fa-download"></i>
+            Tải về
+        </button>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-file-download"></i>
+            Tải file chi tiết suy hao cao theo cá nhân
+        </h3>
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label" for="shc-detail-report-type">Loại báo cáo</label>
+                <select id="shc-detail-report-type" class="filter-select"></select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="shc-detail-team">Tổ</label>
+                <select id="shc-detail-team" class="filter-select"></select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="shc-detail-file">Cá nhân</label>
+                <select id="shc-detail-file" class="filter-select"></select>
+            </div>
+        </div>
+        <div class="excel-download-section shc-detail-action-row" style="text-align: left; margin-bottom: 0;">
+            <button id="download-shc-detail-btn" class="download-btn" type="button" disabled>
+                <i class="fas fa-download"></i>
+                Tải file đã chọn
+            </button>
+            <button id="preview-shc-detail-btn" class="download-btn preview-btn" type="button" disabled>
+                <i class="fas fa-eye"></i>
+                Xem chi tiết
+            </button>
+        </div>
+        <div id="shc-detail-status" style="margin-top: 10px; font-size: 13px; color: #495057;"></div>
+    </div>
+
+    <div class="section" id="shc-detail-preview-section" style="display: none;">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Xem trực tiếp file chi tiết cá nhân
+        </h3>
+        <div id="shc-detail-preview-meta" class="shc-detail-preview-meta"></div>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="shc-detail-preview-tabs"></ul>
+            <div id="shc-detail-preview-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng 1: Tổng hợp SHC theo Tổ -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Bảng 1: Tổng hợp SHC theo Tổ
+        </h3>
+        <div id="i15-table-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Biến động SHC theo đơn vị -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-line"></i>
+            Biến động SHC theo đơn vị
+        </h3>
+        <div id="shc-variation-don-vi-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Biến động SHC theo NVKT -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-user-cog"></i>
+            Biến động SHC theo NVKT
+        </h3>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="shc-nvkt-tabs">
+                <!-- Tabs will be injected here by JS -->
+            </ul>
+            <div id="shc-variation-nvkt-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng 2-5: Chi tiết SHC theo Đơn vị (với tabs) -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-list-alt"></i>
+            Chi tiết SHC theo Đơn vị
+        </h3>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="i15-don-vi-tabs">
+                <!-- Tabs will be injected here by JS -->
+            </ul>
+            <div id="i15-don-vi-tables-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng 6: TH SHC theo SA -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-sitemap"></i>
+            Theo dõi SHC theo SA
+        </h3>
+        <div id="i15-sa-table-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/i15.js') }}?v={{ range(10000, 99999) | random }}"></script>
+{% endblock %}

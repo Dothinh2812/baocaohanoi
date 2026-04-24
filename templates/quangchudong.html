@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block title %}Giám sát Quang Chủ động{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 1.25rem;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.danger {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+    }
+
+    .stat-card.secondary {
+        background: linear-gradient(135deg, #6c757d, #545b62);
+    }
+
+    .stat-card.warning {
+        background: linear-gradient(135deg, #fd7e14, #e65c00);
+    }
+
+    .stat-card.success {
+        background: linear-gradient(135deg, #28a745, #218838);
+    }
+
+    .stat-card.info {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+    }
+
+    .stat-card h5 {
+        margin: 0 0 0.5rem 0;
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+
+    .stat-card h2 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+
+    .stat-card h4 {
+        margin: 0;
+        font-size: 0.85rem;
+    }
+
+    .tabs-container {
+        margin-bottom: 1rem;
+    }
+
+    .nav-tabs {
+        border-bottom: 2px solid #dee2e6;
+        display: flex;
+        gap: 0.25rem;
+        flex-wrap: wrap;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 0.6rem 1rem;
+        border: none;
+        background: none;
+        color: #6c757d;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 0.9rem;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+    }
+
+    .nav-tabs .nav-link:hover {
+        color: #495057;
+    }
+
+    .nav-tabs .nav-link.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+    }
+
+    .nav-tabs .nav-link .badge {
+        margin-left: 0.4rem;
+        padding: 0.2rem 0.4rem;
+        border-radius: 10px;
+        font-size: 0.7rem;
+    }
+
+    .tab-content {
+        padding: 1rem 0;
+    }
+
+    .tab-pane {
+        display: none;
+    }
+
+    .tab-pane.active {
+        display: block;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .data-table thead {
+        background: #343a40;
+        color: white;
+    }
+
+    .data-table th,
+    .data-table td {
+        padding: 0.6rem 0.8rem;
+        text-align: left;
+        border-bottom: 1px solid #dee2e6;
+        font-size: 0.9rem;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .data-table tbody tr:nth-child(even) {
+        background: #f8f9fa;
+    }
+
+    .data-table tbody tr:nth-child(even):hover {
+        background: #e9ecef;
+    }
+
+    .filter-row {
+        background: #495057 !important;
+    }
+
+    .filter-row th {
+        padding: 0.4rem 0.3rem;
+        display: table-cell;
+    }
+
+    .filter-input {
+        width: 95%;
+        max-width: 150px;
+        padding: 0.3rem 0.5rem;
+        border: 1px solid #6c757d;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        background: #fff;
+        color: #333;
+        box-sizing: border-box;
+    }
+
+    .filter-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+
+    .filter-input::placeholder {
+        color: #adb5bd;
+    }
+
+    .duration-badge {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .wide-area-badge {
+        background: #fd7e14;
+        color: white;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    .pattern-badge {
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .pattern-badge.night-off {
+        background: #6f42c1;
+        color: white;
+    }
+
+    .pattern-badge.evening-off {
+        background: #20c997;
+        color: white;
+    }
+
+    .pattern-badge.multi-daily {
+        background: #fd7e14;
+        color: white;
+    }
+
+    .pattern-badge.consistent-hour {
+        background: #17a2b8;
+        color: white;
+    }
+
+    .pattern-badge.mixed {
+        background: #6c757d;
+        color: white;
+    }
+
+    .score-bar {
+        width: 60px;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        display: inline-block;
+        margin-left: 0.5rem;
+    }
+
+    .score-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+        border-radius: 4px;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+
+    .refresh-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+        font-size: 1.25rem;
+        transition: all 0.3s ease;
+    }
+
+    .refresh-btn:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 16px rgba(0, 123, 255, 0.5);
+    }
+
+    .refresh-btn.loading i {
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        from {
+            transform: rotate(0deg);
+        }
+
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .page-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .page-header h2 {
+        margin: 0;
+        color: #333;
+    }
+
+    .page-header i {
+        font-size: 2rem;
+        color: #007bff;
+    }
+
+    .subscriber-list {
+        max-width: 250px;
+        white-space: pre-wrap;
+        font-size: 0.8rem;
+    }
+
+    .exclude-reason {
+        background: #ffc107;
+        color: #333;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+        .stats-container {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .data-table {
+            display: block;
+            overflow-x: auto;
+        }
+
+        .data-table thead,
+        .data-table tbody,
+        .data-table tr,
+        .data-table th,
+        .data-table td {
+            display: revert;
+        }
+
+        .nav-tabs .nav-link {
+            padding: 0.5rem 0.6rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <i class="fas fa-satellite-dish"></i>
+    <h2>Giám sát Cảnh báo Quang Chủ động</h2>
+</div>
+
+<!-- Thống kê tổng quan -->
+<div class="stats-container">
+    <div class="stat-card danger">
+        <h5>🔴 Cảnh báo DOWN</h5>
+        <h2 id="alert-count">-</h2>
+    </div>
+    <div class="stat-card info">
+        <h5>Cập nhật lúc</h5>
+        <h4 id="last-update">-</h4>
+    </div>
+</div>
+
+<!-- Bảng Cảnh báo DOWN -->
+<div class="table-filters" id="alert-filters"
+    style="display: grid; grid-template-columns: 1fr 1.1fr 1.3fr 0.9fr 1.3fr 1.3fr 1.2fr 0.7fr 1.1fr 0.7fr 1.1fr; gap: 0.3rem; padding: 0.5rem; background: #495057; border-radius: 4px 4px 0 0;">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="0" placeholder="Mã TB">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="1" placeholder="Tên TB">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="2" placeholder="Địa chỉ">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="3" placeholder="SĐT">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="4" placeholder="NVKT">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="5" placeholder="Đội VT">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="6" placeholder="OLT">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="7" placeholder="SA">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="8" placeholder="Thời gian DOWN">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="9" placeholder="Thời lượng">
+    <input type="text" class="filter-input" data-table="alert-table" data-column="10" placeholder="Phiếu BH">
+</div>
+<table class="data-table" id="alert-table" style="table-layout: fixed; width: 100%;">
+    <colgroup>
+        <col style="width: 8%;">
+        <col style="width: 9%;">
+        <col style="width: 12%;">
+        <col style="width: 7%;">
+        <col style="width: 10%;">
+        <col style="width: 10%;">
+        <col style="width: 10%;">
+        <col style="width: 5%;">
+        <col style="width: 10%;">
+        <col style="width: 6%;">
+        <col style="width: 9%;">
+    </colgroup>
+    <thead>
+        <tr>
+            <th>Mã TB</th>
+            <th>Tên TB</th>
+            <th>Địa chỉ</th>
+            <th>SĐT</th>
+            <th>NVKT</th>
+            <th>Đội VT</th>
+            <th>OLT</th>
+            <th>SA</th>
+            <th>Thời gian DOWN</th>
+            <th>Thời lượng</th>
+            <th>Phiếu BH Lúc</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+</div>
+
+<!-- Nút refresh -->
+<button class="refresh-btn" id="refreshBtn" title="Làm mới dữ liệu">
+    <i class="fas fa-sync-alt"></i>
+</button>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh mỗi 30 giây
+    const REFRESH_INTERVAL = 120000; // 2 phút (dữ liệu cập nhật mỗi 30 phút)
+    let refreshTimer = null;
+
+    function formatDuration(startTime) {
+        if (!startTime) return '-';
+        const start = new Date(startTime);
+        const now = new Date();
+        const diff = Math.floor((now - start) / 60000); // phút
+
+        if (diff < 0) return '-';
+        if (diff < 60) return `${diff} phút`;
+        if (diff < 1440) return `${Math.floor(diff / 60)} giờ ${diff % 60} phút`;
+        return `${Math.floor(diff / 1440)} ngày ${Math.floor((diff % 1440) / 60)} giờ`;
+    }
+
+    function formatDateTime(dateStr) {
+        if (!dateStr) return '-';
+        const date = new Date(dateStr);
+        return date.toLocaleString('vi-VN');
+    }
+
+    function getPatternBadge(patternType) {
+        const patterns = {
+            'NIGHT_OFF': { class: 'night-off', label: 'Tắt đêm' },
+            'EVENING_OFF': { class: 'evening-off', label: 'Tắt tối' },
+            'MULTI_DAILY': { class: 'multi-daily', label: 'Nhiều lần/ngày' },
+            'CONSISTENT_HOUR': { class: 'consistent-hour', label: 'Giờ cố định' },
+            'MIXED': { class: 'mixed', label: 'Hỗn hợp' }
+        };
+        const p = patterns[patternType] || { class: 'mixed', label: patternType || 'N/A' };
+        return `<span class="pattern-badge ${p.class}">${p.label}</span>`;
+    }
+
+    function getScoreBar(score) {
+        const percent = Math.round((score || 0) * 100);
+        return `${percent}% <div class="score-bar"><div class="score-fill" style="width: ${percent}%"></div></div>`;
+    }
+
+    function loadData() {
+        const refreshBtn = document.getElementById('refreshBtn');
+        refreshBtn.classList.add('loading');
+
+        // Load alerts and excluded (from /api/quangchudong/active)
+        fetch('/api/quangchudong/active')
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('alert-count').textContent = 'Lỗi';
+                    console.error(data.error);
+                    return;
+                }
+
+                // Alerts (sự cố thực sự)
+                const alerts = data.alerts || [];
+                document.getElementById('alert-count').textContent = alerts.length;
+                document.getElementById('last-update').textContent =
+                    data.cache && data.cache.refreshed_at
+                        ? data.cache.refreshed_at
+                        : new Date().toLocaleTimeString('vi-VN');
+
+                const alertTbody = document.querySelector('#alert-table tbody');
+                if (alerts.length === 0) {
+                    alertTbody.innerHTML = '<tr><td colspan="11" class="no-data">Không có cảnh báo DOWN nào cần xử lý</td></tr>';
+                } else {
+                    alertTbody.innerHTML = alerts.map(row => `
+                    <tr>
+                        <td>${row.ma_tb || 'N/A'}</td>
+                        <td>${row.ten_tb || 'N/A'}</td>
+                        <td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td>
+                        <td>${row.dienthoai_lh || ''}</td>
+                        <td>${row.ten_nvkt_db || ''}</td>
+                        <td>${row.doi_vt || ''}</td>
+                        <td>${row.olt_name || ''}</td>
+                        <td>${row.sa || ''}</td>
+                        <td>${formatDateTime(row.first_off_time || row.alert_time)}</td>
+                        <td class="duration-badge">${formatDuration(row.first_off_time || row.alert_time)}</td>
+                        <td>${row.ngay_bh || ''}</td>
+                    </tr>
+                `).join('');
+                }
+            })
+            .catch(err => {
+                console.error('Error loading alerts:', err);
+                document.getElementById('alert-count').textContent = 'Lỗi';
+            })
+            .finally(() => {
+                refreshBtn.classList.remove('loading');
+            });
+
+    }
+
+    // Manual refresh
+    document.getElementById('refreshBtn').addEventListener('click', loadData);
+
+    // Load ban đầu
+    loadData();
+
+    // Auto-refresh
+    refreshTimer = setInterval(loadData, REFRESH_INTERVAL);
+
+    // Filter table function
+    function filterTable(tableId) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+
+        const tbody = table.querySelector('tbody');
+        const rows = tbody.querySelectorAll('tr');
+        // Get filters that target this table
+        const filters = document.querySelectorAll(`.filter-input[data-table="${tableId}"]`);
+
+        rows.forEach(row => {
+            let showRow = true;
+            const cells = row.querySelectorAll('td');
+
+            filters.forEach(filter => {
+                const colIndex = parseInt(filter.dataset.column);
+                const filterValue = filter.value.toLowerCase().trim();
+
+                if (filterValue && cells[colIndex]) {
+                    const cellText = cells[colIndex].textContent.toLowerCase();
+                    if (!cellText.includes(filterValue)) {
+                        showRow = false;
+                    }
+                }
+            });
+
+            row.style.display = showRow ? '' : 'none';
+        });
+    }
+
+    // Initialize filter event listeners
+    document.querySelectorAll('.filter-input').forEach(input => {
+        input.addEventListener('input', function () {
+            const tableId = this.dataset.table;
+            if (tableId) {
+                filterTable(tableId);
+            }
+        });
+    });
+</script>
+{% endblock %}

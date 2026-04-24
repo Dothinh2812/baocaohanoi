@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Kết quả xử lý SHC{% endblock %}
+
+{% block extra_css %}
+<style>
+    .shc-report-toolbar {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+        margin-bottom: 24px;
+    }
+
+    .shc-report-state {
+        margin-top: 14px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .shc-state-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: #eef4fb;
+        color: #1a5089;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .shc-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 18px;
+        margin-bottom: 18px;
+    }
+
+    .shc-kpi-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .shc-kpi-card::before {
+        content: '';
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 5px;
+        background: #1a5089;
+    }
+
+    .shc-kpi-card.required::before {
+        background: #f39c12;
+    }
+
+    .shc-kpi-card.monthly::before {
+        background: #2e8b57;
+    }
+
+    .shc-kpi-label {
+        font-size: 13px;
+        font-weight: 700;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 10px;
+    }
+
+    .shc-kpi-value {
+        font-size: 34px;
+        line-height: 1;
+        font-weight: 800;
+        color: #1a5089;
+        margin-bottom: 12px;
+    }
+
+    .shc-kpi-card.required .shc-kpi-value {
+        color: #c97a00;
+    }
+
+    .shc-kpi-card.monthly .shc-kpi-value {
+        color: #1f6b45;
+    }
+
+    .shc-kpi-breakdown {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .shc-kpi-breakdown span {
+        background: #f8f9fa;
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 13px;
+        color: #495057;
+    }
+
+    .shc-note {
+        background: linear-gradient(135deg, #fff8e7, #fff2cc);
+        border: 1px solid #ffe2a8;
+        border-radius: 12px;
+        padding: 16px 18px;
+        color: #805b00;
+        font-size: 14px;
+        margin-bottom: 24px;
+    }
+
+    .shc-note strong {
+        color: #6e4e00;
+    }
+
+    .shc-two-column {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+    }
+
+    .shc-warning-row td {
+        background: #fff3cd !important;
+        color: #7a4f01;
+        font-weight: 700;
+    }
+
+    .shc-section-subtitle {
+        color: #6c757d;
+        font-size: 14px;
+        margin: -8px 0 16px 0;
+    }
+
+    @media (max-width: 768px) {
+        .shc-report-toolbar {
+            padding: 16px;
+        }
+
+        .shc-kpi-value {
+            font-size: 28px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="shc-processing-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Kết quả xử lý SHC</h2>
+        <p class="dashboard-subtitle">Tổng hợp số K1, K2 đã xử lý theo ngày, tháng, NVKT và từng tổ</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Kết quả xử lý SHC</span>
+        </div>
+    </div>
+
+    <div class="shc-report-toolbar">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label" for="shc-report-date">Ngày báo cáo</label>
+                <input id="shc-report-date" class="filter-input" type="date">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="shc-report-team">Lọc theo tổ</label>
+                <select id="shc-report-team" class="filter-select">
+                    <option value="">Tất cả tổ</option>
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button id="shc-report-apply" class="filter-btn apply" type="button">
+                <i class="fas fa-filter"></i>
+                Xem báo cáo
+            </button>
+            <button id="shc-report-reset" class="filter-btn reset" type="button">
+                <i class="fas fa-rotate-left"></i>
+                Đặt lại
+            </button>
+        </div>
+        <div class="shc-report-state" id="shc-report-state"></div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-column"></i>
+            Tổng quan xử lý SHC
+        </h3>
+        <div id="shc-kpi-grid" class="shc-kpi-grid">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="shc-note">
+        <strong>Dòng cảnh báo</strong> được tô nổi khi <strong>tổng đã xử lý &lt; 3</strong> và <strong>tổng cần xử lý &gt;= 3</strong>.
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-user-gear"></i>
+            Theo cá nhân trong ngày
+        </h3>
+        <p class="shc-section-subtitle">Gộp dữ liệu đã xử lý từ DB nội bộ và số cần xử lý từ DB nguồn K1/K2 theo từng NVKT.</p>
+        <div id="shc-daily-user-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-people-group"></i>
+            Theo tổ trong ngày
+        </h3>
+        <p class="shc-section-subtitle">Theo dõi mức xử lý thực tế của từng tổ so với tổng số ticket cần xử lý trong ngày.</p>
+        <div id="shc-daily-team-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-calendar-days"></i>
+            Tổng hợp tháng
+        </h3>
+        <div class="shc-two-column">
+            <div>
+                <p class="shc-section-subtitle">Sản lượng K1/K2 đã xử lý theo tổ trong tháng được chọn.</p>
+                <div id="shc-monthly-team-table">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <br>Đang tải dữ liệu...
+                    </div>
+                </div>
+            </div>
+            <div>
+                <p class="shc-section-subtitle">Diễn biến sản lượng xử lý theo từng ngày trong tháng.</p>
+                <div id="shc-monthly-day-table">
+                    <div class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <br>Đang tải dữ liệu...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/shc_processing_report.js') }}"></script>
+{% endblock %}

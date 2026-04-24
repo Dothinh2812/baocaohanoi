@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Tồn kho vật tư Phúc Thọ{% endblock %}
+
+{% block extra_css %}
+<style>
+    #ton-kho-pto-section .excel-table-body {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    #ton-kho-pto-section .excel-table {
+        table-layout: auto;
+        width: max-content;
+    }
+    #ton-kho-pto-section .excel-table th,
+    #ton-kho-pto-section .excel-table td {
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        min-width: 100px;
+        max-width: 100px;
+    }
+    #ton-kho-pto-section .excel-table th {
+        vertical-align: top;
+        line-height: 1.3;
+        padding: 6px 4px;
+        font-size: 12px;
+    }
+    #ton-kho-pto-section .excel-table th:nth-child(1) {
+        width: 140px;
+        min-width: 140px;
+        max-width: 140px;
+    }
+    #ton-kho-pto-section .excel-table td {
+        text-align: center;
+        font-size: 13px;
+    }
+    #ton-kho-pto-section .excel-table td:nth-child(1) {
+        text-align: left;
+    }
+    #ton-kho-pto-section .filter-row input.column-filter {
+        font-size: 11px;
+        padding: 2px 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="ton-kho-pto-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Tồn kho vật tư Phúc Thọ</h2>
+        <p class="dashboard-subtitle">Báo cáo số lượng tồn vật tư Tổ KTĐB Phúc Thọ - Chỉ hiển thị cột số lượng (SL)</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Tồn kho vật tư Phúc Thọ</span>
+        </div>
+    </div>
+
+    <!-- Bảng tổng hợp tồn vật tư thường dùng (tốt) -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-check-circle"></i>
+            Tổng hợp tồn vật tư thường dùng (tốt) - Phúc Thọ
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="window.location.href='/download/ton-kho-vat-tu-pto-tot-thuong-dung'">
+                <i class="fas fa-download"></i>
+                Tải file vật tư thường dùng (tốt)
+            </button>
+        </div>
+        <div id="ton-thuong-dung-pto-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng tồn kho theo NVKT -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-boxes"></i>
+            Tồn kho Phúc Thọ theo NVKT
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="window.location.href='/download/ton-kho-vat-tu-pto'">
+                <i class="fas fa-download"></i>
+                Tải file gốc Excel
+            </button>
+        </div>
+        <div id="ton-kho-nvkt-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng tồn theo loại vật tư -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-cubes"></i>
+            Tồn kho vật tư theo chủng loại
+        </h3>
+        <div class="excel-download-section">
+            <button class="download-btn" onclick="window.location.href='/download/ton-kho-vat-tu-pto'">
+                <i class="fas fa-download"></i>
+                Tải file gốc Excel
+            </button>
+        </div>
+        <div id="ton-theo-loai-pto-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/ton_kho_vat_tu_pto.js') }}"></script>
+{% endblock %}

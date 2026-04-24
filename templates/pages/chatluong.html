@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Chất lượng{% endblock %}
+
+{% block content %}
+<div id="chatluong-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Chất lượng</h2>
+        <p class="dashboard-subtitle">Hiển thị trực tiếp nội dung từ 9 view chất lượng trong report_history.db, đồng bộ theo ngày dữ liệu</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Chất lượng</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-calendar-alt"></i>
+            Bộ lọc ngày dữ liệu
+        </h3>
+        <div class="excel-table-card" style="padding: 16px;">
+            <div style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
+                <div>
+                    <label for="chatluong-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input id="chatluong-date-input" type="date" style="padding: 8px 10px; min-width: 180px;">
+                </div>
+                <div>
+                    <button id="chatluong-date-apply" class="download-btn" type="button">
+                        <i class="fas fa-filter"></i>
+                        Áp dụng
+                    </button>
+                </div>
+                <div id="chatluong-date-meta" style="font-size: 13px; color: #666;"></div>
+            </div>
+        </div>
+    </div>
+
+    {% set view_ids = [
+        'v_chi_tieu_c_c1_1_report_th_c1_1',
+        'v_chi_tieu_c_c1_1_chitiet_report_chi_tiet',
+        'v_chi_tieu_c_c1_1_chitiet_report_chi_tieu_ko_hen_18h',
+        'v_chi_tieu_c_c1_2_report_th_c1_2',
+        'v_chi_tieu_c_c1_2_chitiet_sm1_report_th_sm1c12_hll_thang',
+        'v_chi_tieu_c_c1_3_report_th_c1_3',
+        'v_chi_tieu_c_c1_4_report_th_c1_4',
+        'v_chi_tieu_c_c1_4_chitiet_report_th_hl_nvkt',
+        'v_chi_tieu_c_c1_5_report_th_c1_5'
+    ] %}
+
+    {% for view_id in view_ids %}
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            {{ view_id }}
+        </h3>
+        <div class="excel-table-card" id="{{ view_id }}-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/chatluong.js') }}"></script>
+{% endblock %}

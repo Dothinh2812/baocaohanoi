@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Tổng hợp cấp tổ{% endblock %}
+
+{% block content %}
+<div id="tong-hop-cap-to-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">📋 Tổng hợp cấp tổ</h2>
+        <p class="dashboard-subtitle">Hiển thị toàn bộ dữ liệu raw từ view v_don_vi_tong_hop_da_nguon</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Tổng hợp cấp tổ</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Dữ liệu raw từ v_don_vi_tong_hop_da_nguon
+            <span id="tong-hop-cap-to-timestamp" style="font-size: 12px; color: #999; font-style: italic; margin-left: 15px;"></span>
+        </h3>
+
+        <div id="tong-hop-cap-to-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/tong_hop_cap_to.js') }}"></script>
+{% endblock %}

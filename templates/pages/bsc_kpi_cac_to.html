@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}BSC KPI các tổ{% endblock %}
+
+{% block content %}
+<div id="bsc-kpi-cac-to-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">📋 BSC KPI các tổ</h2>
+        <p class="dashboard-subtitle">Hiển thị toàn bộ dữ liệu raw từ view v_chi_tieu_bsc_kpi_cac_to</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>BSC KPI các tổ</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Dữ liệu raw từ v_chi_tieu_bsc_kpi_cac_to
+            <span id="bsc-kpi-cac-to-timestamp" style="font-size: 12px; color: #999; font-style: italic; margin-left: 15px;"></span>
+        </h3>
+
+        <div id="bsc-kpi-cac-to-table">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/bsc_kpi_cac_to.js') }}"></script>
+{% endblock %}

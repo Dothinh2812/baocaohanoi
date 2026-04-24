@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}Gia hạn TTTC{% endblock %}
+
+{% block content %}
+<!-- Gia hạn TTTC Section -->
+<div id="giahan-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">📋 Gia hạn TTTC</h2>
+        <p class="dashboard-subtitle">Báo cáo gia hạn Thanh toán trước cước đồng bộ theo ngày dữ liệu</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Gia hạn TTTC</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="excel-table-card" style="padding: 16px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                <div>
+                    <label for="giahan-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input type="date" id="giahan-date-input" class="form-control" style="min-width: 220px;">
+                </div>
+                <button id="giahan-date-apply" class="btn btn-primary">
+                    <i class="fas fa-filter"></i>
+                    Xem theo ngày
+                </button>
+            </div>
+            <div id="giahan-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
+        </div>
+    </div>
+
+    <!-- KQ GHTT HNI -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-bar"></i>
+            KQ GHTT HNI
+        </h3>
+        <div id="ghtt-hni-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- KQ GHTT TTVT STY -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-bar"></i>
+            KQ GHTT TTVT STY
+        </h3>
+        <div id="ghtt-sty-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- KQ GHTT NVKTĐB -->
+    <div class="section">
+        <h3 class="section-title" style="display: flex; align-items: center; gap: 12px;">
+            <span><i class="fas fa-users"></i> KQ GHTT NVKTĐB</span>
+            <a href="/api/giahan-ghtt-download/tong_hop_ghtt_nvktdb.xlsx" class="download-btn" style="padding: 6px 14px; font-size: 13px; border-radius: 6px; text-decoration: none;"><i class="fas fa-download"></i> Tải file gốc</a>
+        </h3>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="ghtt-nvktdb-tabs">
+                <li class="loading"><i class="fas fa-spinner"></i> Đang tải...</li>
+            </ul>
+            <div id="ghtt-nvktdb-tables-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/giahan.js') }}?v={{ range(10000, 99999) | random }}"></script>
+{% endblock %}

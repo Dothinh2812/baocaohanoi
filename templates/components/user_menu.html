@@ -1,0 +1,39 @@
+<div class="user-menu">
+    {% if current_user %}
+    <button class="user-menu-button" id="userMenuButton">
+        <i class="fas fa-user-circle"></i>
+        <span>{{ current_user.name }}</span>
+        {% if current_user.role == 'admin' %}
+        <span class="badge-admin">ADMIN</span>
+        {% endif %}
+        <i class="fas fa-chevron-down" style="font-size: 11px;"></i>
+    </button>
+    <div class="user-dropdown" id="userDropdown">
+        <div class="dropdown-header">
+            <strong>{{ current_user.name }}</strong>
+            <small>{{ current_user.username }}</small>
+        </div>
+        {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('auth.admin_users') }}" class="dropdown-item">
+            <i class="fas fa-users-cog"></i>
+            Quản lý Users
+        </a>
+        <div class="dropdown-divider"></div>
+        {% endif %}
+        <a href="{{ url_for('auth.change_password') }}" class="dropdown-item">
+            <i class="fas fa-key"></i>
+            Đổi mật khẩu
+        </a>
+        <div class="dropdown-divider"></div>
+        <a href="{{ url_for('auth.logout') }}" class="dropdown-item" style="color: #e74c3c;">
+            <i class="fas fa-sign-out-alt"></i>
+            Đăng xuất
+        </a>
+    </div>
+    {% else %}
+    <a href="{{ url_for('auth.login') }}" class="user-menu-button" style="text-decoration: none;">
+        <i class="fas fa-sign-in-alt"></i>
+        <span>Đăng nhập</span>
+    </a>
+    {% endif %}
+</div>

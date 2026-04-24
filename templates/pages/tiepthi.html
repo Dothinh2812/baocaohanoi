@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Kết quả Tiếp thị{% endblock %}
+
+{% block extra_css %}
+<style>
+    #tiepthi-section .excel-table th[data-column="STT"],
+    #tiepthi-section .excel-table td[data-column="STT"] {
+        width: 60px;
+        text-align: center;
+    }
+    #tiepthi-section .excel-table th:first-child,
+    #tiepthi-section .excel-table td:first-child {
+        width: 50px;
+        text-align: center;
+    }
+    #tiepthi-section .excel-table th[data-column="Đơn vị"],
+    #tiepthi-section .excel-table td[data-column="Đơn vị"] {
+        width: 140px;
+    }
+    #tiepthi-section .excel-table th[data-column="Mã NV"],
+    #tiepthi-section .excel-table td[data-column="Mã NV"] {
+        width: 120px;
+        text-align: center;
+    }
+    #tiepthi-section .excel-table th[data-column="Tên NV"],
+    #tiepthi-section .excel-table td[data-column="Tên NV"] {
+        width: 180px;
+    }
+    #tiepthi-section .excel-table th[data-column="Dịch vụ BRCĐ"],
+    #tiepthi-section .excel-table td[data-column="Dịch vụ BRCĐ"],
+    #tiepthi-section .excel-table th[data-column="Dịch vụ MyTV"],
+    #tiepthi-section .excel-table td[data-column="Dịch vụ MyTV"],
+    #tiepthi-section .excel-table th[data-column="Tổng"],
+    #tiepthi-section .excel-table td[data-column="Tổng"] {
+        width: 100px;
+        text-align: center;
+    }
+    #tiepthi-section .excel-table td[data-column="Tổng"] {
+        font-weight: 600;
+        color: #1a5089;
+    }
+    #tiepthi-section .excel-table {
+        table-layout: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="tiepthi-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Kết quả Tiếp thị</h2>
+        <p class="dashboard-subtitle">Báo cáo kết quả tiếp thị dịch vụ BRCĐ, MyTV đồng bộ theo ngày dữ liệu</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Kết quả Tiếp thị</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="excel-table-card" style="padding: 16px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                <div>
+                    <label for="tiepthi-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input type="date" id="tiepthi-date-input" class="form-control" style="min-width: 220px;">
+                </div>
+                <button id="tiepthi-date-apply" class="btn btn-primary">
+                    <i class="fas fa-filter"></i>
+                    Xem theo ngày
+                </button>
+            </div>
+            <div id="tiepthi-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
+        </div>
+    </div>
+
+    <!-- Bảng tổng hợp theo Tổ -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-bar"></i>
+            Tổng hợp kết quả theo Tổ
+        </h3>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table" id="tiepthi-summary-table">
+                    <thead>
+                        <tr>
+                            {% for col in kq_th_columns %}
+                            <th>{{ col }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in kq_th_data %}
+                        <tr{% if row['Đơn vị'] == 'TỔNG CỘNG' %} style="background-color: #6b9bc3; color: #2c3e50; font-weight: 700;"{% endif %}>
+                            {% for col in kq_th_columns %}
+                            {% if col == 'STT' %}
+                            <td style="text-align: center; width: 60px;">{{ row[col] }}</td>
+                            {% elif col == 'Đơn vị' %}
+                            <td style="width: 160px;"><strong>{{ row[col] }}</strong></td>
+                            {% elif col == 'Tổng' %}
+                            <td style="text-align: center; font-weight: 600;{% if row['Đơn vị'] != 'TỔNG CỘNG' %} color: #1a5089;{% endif %}">{{ row[col] }}</td>
+                            {% else %}
+                            <td style="text-align: center;">{{ row[col] }}</td>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chi tiết theo nhân viên -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Chi tiết kết quả theo nhân viên
+        </h3>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="tiepthi-tabs">
+            </ul>
+            <div id="tiepthi-tables-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/tiepthi.js') }}?v={{ range(10000, 99999) | random }}"></script>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Thu hồi TBĐC{% endblock %}
+
+{% block content %}
+<!-- Thu hồi TBĐC Section -->
+<div id="thuhoi-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Thu hồi TBĐC</h2>
+        <p class="dashboard-subtitle">Báo cáo thu hồi thiết bị đầu cuối</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Thu hồi TBĐC</span>
+        </div>
+    </div>
+
+    <!-- Tổng hợp Thu hồi -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Tổng hợp Thu hồi TBĐC
+        </h3>
+        <div id="thuhoi-summary-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <!-- Chi tiết vật tư thu hồi -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-list-alt"></i>
+            Chi tiết vật tư thu hồi
+        </h3>
+        <div id="thuhoi-detail-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/thuhoi.js') }}"></script>
+{% endblock %}

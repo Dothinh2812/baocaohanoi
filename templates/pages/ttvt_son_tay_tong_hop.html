@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}TTVT Sơn Tây tổng hợp{% endblock %}
+
+{% block extra_css %}
+<style>
+    #ttvt-son-tay-tong-hop-section {
+        display: grid;
+        gap: 20px;
+    }
+
+    .ttvt-son-tay-filter-card {
+        padding: 16px;
+    }
+
+    .ttvt-son-tay-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .ttvt-son-tay-filter-meta {
+        margin-top: 10px;
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+        .ttvt-son-tay-filter-row {
+            align-items: stretch;
+        }
+
+        .ttvt-son-tay-filter-row > div,
+        .ttvt-son-tay-filter-row > button {
+            width: 100%;
+        }
+
+        #ttvt-son-tay-date-input {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="ttvt-son-tay-tong-hop-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">TTVT Sơn Tây tổng hợp</h2>
+        <p class="dashboard-subtitle">Trang này chỉ giữ lại bảng Chỉ tiêu chất lượng C, đọc theo ngày từ các bảng C1 trong `report_history.db`.</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>TTVT Sơn Tây tổng hợp</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-calendar-alt"></i>
+            Bộ lọc ngày dữ liệu
+        </h3>
+        <div class="excel-table-card ttvt-son-tay-filter-card">
+            <div class="ttvt-son-tay-filter-row">
+                <div>
+                    <label for="ttvt-son-tay-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input id="ttvt-son-tay-date-input" type="date" style="padding: 8px 10px; min-width: 180px;">
+                </div>
+                <button id="ttvt-son-tay-date-apply" class="download-btn" type="button">
+                    <i class="fas fa-filter"></i>
+                    Áp dụng
+                </button>
+            </div>
+            <div id="ttvt-son-tay-date-meta" class="ttvt-son-tay-filter-meta"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Chỉ tiêu chất lượng C
+        </h3>
+        <div id="ttvt-son-tay-chat-luong-c">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/ttvt_son_tay_tong_hop.js') }}"></script>
+{% endblock %}

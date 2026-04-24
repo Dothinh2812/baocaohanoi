@@ -1,0 +1,912 @@
+/* ========================================
+   COMPONENT STYLES
+   - Charts & Cards
+   - Tables
+   - Buttons & Downloads
+   - Tabs
+   - Modals
+   - Filters
+   - Alerts & Warnings
+   ======================================== */
+
+/* ===== CHART GRID ===== */
+.chart-grid {
+    display: grid;
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+.chart-grid-2 {
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+}
+
+.chart-grid-3 {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+/* ===== CHART CARDS ===== */
+.chart-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+}
+
+.chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.chart-card-header {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.chart-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a5089;
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+.chart-card-subtitle {
+    font-size: 13px;
+    color: #6c757d;
+    line-height: 1.5;
+}
+
+.chart-card-timestamp {
+    font-size: 12px;
+    color: #999;
+    font-style: italic;
+    margin-top: 5px;
+}
+
+.chart-card-body {
+    padding: 20px;
+}
+
+.chart-card img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+    max-width: 100%;
+    object-fit: contain;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.chart-card img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== IMAGE ZOOM MODAL ===== */
+.zoom-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(5px);
+}
+
+.zoom-modal.active {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.zoom-modal-content {
+    position: relative;
+    max-width: 95%;
+    max-height: 95%;
+    margin: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.zoom-modal img {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+    transform: scale(0.8);
+    animation: zoomIn 0.3s ease forwards;
+}
+
+.zoom-close {
+    position: absolute;
+    top: 20px;
+    right: 35px;
+    color: #fff;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 2001;
+    transition: all 0.3s ease;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.zoom-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ===== EXCEL TABLES ===== */
+.excel-table-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    margin-bottom: 30px;
+    border: 1px solid #e9ecef;
+}
+
+.excel-table-header {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.excel-table-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a5089;
+    margin: 0;
+}
+
+.excel-table-count {
+    font-size: 14px;
+    color: #6c757d;
+    background: #e9ecef;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.excel-table-timestamp {
+    font-size: 12px;
+    color: #999;
+    font-style: italic;
+    margin-top: 5px;
+}
+
+.excel-table-body {
+    padding: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.excel-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.excel-table th {
+    background-color: #1a5089;
+    color: white;
+    padding: 12px 8px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+.excel-table th .excel-header-text {
+    display: inline;
+}
+
+.excel-table th.excel-header-wrap {
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+    min-width: 130px;
+    max-width: 220px;
+}
+
+.excel-table th.excel-header-wrap.is-long {
+    min-width: 160px;
+    max-width: 240px;
+}
+
+.excel-table th.excel-header-wrap.is-very-long {
+    min-width: 190px;
+    max-width: 280px;
+}
+
+.excel-table th.excel-header-wrap .excel-header-text {
+    display: inline-block;
+    max-width: 100%;
+    white-space: normal;
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Sticky header for header row */
+.excel-table thead tr.header-row th {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: #1a5089;
+}
+
+/* Sticky header for filter row - positioned below header row */
+.excel-table thead tr.filter-row th {
+    position: sticky;
+    top: var(--excel-filter-row-top, 42px);
+    z-index: 19;
+    background-color: #2a6cb3;
+}
+
+/* Allow wrapping for long column headers in C1 table */
+.excel-table.c1-table th {
+    white-space: normal;
+    word-wrap: break-word;
+    min-width: 100px;
+    max-width: 200px;
+    line-height: 1.4;
+}
+
+/* Specific styling for very long headers */
+.excel-table.c1-table th[data-column*="Tỷ lệ"],
+.excel-table.c1-table th[data-column*="Tỉ lệ"] {
+    min-width: 150px;
+    max-width: 250px;
+}
+
+.excel-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: top;
+    font-size: 13px;
+    word-wrap: break-word;
+}
+
+.excel-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.excel-table tbody tr:nth-child(even) {
+    background-color: #fafbfc;
+}
+
+.excel-table tbody tr:nth-child(even):hover {
+    background-color: #f1f3f4;
+}
+
+/* Status column styling */
+.status-down {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+.status-up {
+    color: #28a745;
+    font-weight: 600;
+}
+
+/* New subscriber data columns styling */
+.excel-table th[data-column="NVKT"],
+.excel-table td[data-column="NVKT"] {
+    min-width: 220px;
+    white-space: nowrap !important;
+    word-wrap: normal !important;
+}
+
+.excel-table td[data-column="Lịch sử hỏng"],
+.excel-table td[data-column="Lịch sử KHL"] {
+    max-width: 300px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.excel-table td[data-column="Số lần hỏng"],
+.excel-table td[data-column="Số lần KHL"] {
+    text-align: center;
+    font-weight: 600;
+}
+
+.excel-table td[data-column="Số lần hỏng"] {
+    color: #dc3545;
+}
+
+.excel-table td[data-column="Số lần KHL"] {
+    color: #fd7e14;
+}
+
+.excel-table td[data-column="Trạng thái TTTC"] {
+    font-weight: 600;
+}
+
+.excel-table td[data-column="Ngày hết hạn TTTC"] {
+    font-weight: 500;
+    color: #0d6efd;
+}
+
+/* Pending Cell Styling */
+.pending-cell {
+    background-color: #fff3cd !important;
+    color: #856404 !important;
+    font-weight: 600;
+    font-style: italic;
+}
+
+/* Filtered Row */
+.excel-table tbody tr.filtered-out {
+    display: none;
+}
+
+.excel-table tbody tr.filtered-in {
+    background-color: #fff3cd;
+}
+
+/* Column Filter Row in Table Header */
+.excel-table thead tr.filter-row {
+    display: table-row;
+}
+
+.excel-table thead tr.filter-row th {
+    padding: 6px 4px;
+}
+
+/* Filter wrapper with dropdown */
+.filter-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.excel-table thead tr.filter-row th .column-filter {
+    width: 100%;
+    padding: 6px 24px 6px 8px;
+    font-size: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    box-sizing: border-box;
+}
+
+.excel-table thead tr.filter-row th .column-filter:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.excel-table thead tr.filter-row th .column-filter::placeholder {
+    color: #aaa;
+    font-style: italic;
+}
+
+.filter-dropdown-toggle {
+    position: absolute;
+    right: 2px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    padding: 2px 4px;
+    color: #666;
+    font-size: 12px;
+    line-height: 1;
+    border-radius: 2px;
+    transition: color 0.2s;
+    z-index: 1;
+}
+
+.filter-dropdown-toggle:hover {
+    color: #007bff;
+}
+
+.filter-dropdown-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    min-width: 150px;
+    max-height: 250px;
+    overflow-y: auto;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    margin-top: 2px;
+}
+
+.filter-dropdown-list.open {
+    display: block;
+}
+
+.filter-dropdown-item {
+    padding: 6px 10px;
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.filter-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.filter-dropdown-item:hover {
+    background-color: #e8f0fe;
+    color: #1a5089;
+}
+
+.filter-dropdown-item.active {
+    background-color: #1a5089;
+    color: white;
+    font-weight: 600;
+}
+
+.filter-dropdown-item.filter-operator {
+    color: #1a5089;
+    font-weight: 600;
+    border-bottom: 1px dashed #dee2e6;
+}
+
+.filter-dropdown-item.filter-operator:hover {
+    background-color: #d0e3f7;
+}
+
+/* Empty state */
+.empty-table {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.empty-table i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Enhanced Empty State for Success */
+.empty-table i.fa-check-circle {
+    font-size: 48px;
+    margin-bottom: 15px;
+    color: #28a745;
+}
+
+/* ===== DOWNLOAD BUTTONS ===== */
+.excel-download-section {
+    margin-bottom: 20px;
+    text-align: left;
+    position: relative;
+}
+
+.download-btn {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 12px rgba(40, 167, 69, 0.35);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: auto;
+    min-width: 200px;
+}
+
+.download-btn:hover {
+    background: linear-gradient(135deg, #218838 0%, #1ca085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 18px rgba(40, 167, 69, 0.45);
+}
+
+.download-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(40, 167, 69, 0.3);
+}
+
+.download-btn i {
+    font-size: 18px;
+}
+
+.download-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+    transform: none;
+    box-shadow: none;
+}
+
+.download-btn.preview-btn {
+    background: linear-gradient(135deg, #1a5089 0%, #2d6aa3 100%);
+    box-shadow: 0 3px 12px rgba(26, 80, 137, 0.35);
+}
+
+.download-btn.preview-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #16426f 0%, #245789 100%);
+    box-shadow: 0 5px 18px rgba(26, 80, 137, 0.45);
+}
+
+.download-btn.preview-btn:active:not(:disabled) {
+    box-shadow: 0 2px 10px rgba(26, 80, 137, 0.3);
+}
+
+.shc-detail-action-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.shc-detail-preview-meta {
+    margin-bottom: 12px;
+    color: #495057;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Download menu dropdown */
+.download-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: auto;
+    margin-top: 5px;
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    min-width: 320px;
+    max-width: 400px;
+    z-index: 1000;
+    overflow: hidden;
+    animation: dropdownSlide 0.2s ease-out;
+}
+
+@keyframes dropdownSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.download-menu a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    color: #2c3e50;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f1f3f5;
+    white-space: nowrap;
+}
+
+.download-menu a:last-child {
+    border-bottom: none;
+}
+
+.download-menu a:hover {
+    background: #f8f9fa;
+    color: #28a745;
+    padding-left: 22px;
+}
+
+.download-menu a i {
+    color: #28a745;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+/* Ensure dropdown doesn't overflow on mobile */
+@media (max-width: 768px) {
+    .download-menu {
+        min-width: 280px;
+        max-width: calc(100vw - 40px);
+        right: -10px;
+    }
+
+    .download-menu a {
+        font-size: 13px;
+        padding: 10px 15px;
+    }
+}
+
+/* ===== TABS ===== */
+.excel-tabs-container,
+.image-tabs-container {
+    margin-bottom: 20px;
+}
+
+.excel-tabs,
+.image-tabs {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 10px 0;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.excel-tab,
+.image-tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #1a5089;
+    background: #e9ecef;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    margin-right: 6px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    position: relative;
+}
+
+.excel-tab.active,
+.image-tab.active {
+    background: #fff;
+    color: #1a5089;
+    font-weight: 700;
+    border-bottom: 3px solid #1a5089;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.excel-tab:hover:not(.active),
+.image-tab:hover:not(.active) {
+    background: #dee2e6;
+}
+
+/* ===== WARNING & ALERTS ===== */
+.warning-note {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.warning-note i {
+    color: #f39c12;
+}
+
+/* ===== FILTER PANEL ===== */
+.filter-panel {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.filter-panel.active {
+    display: block;
+}
+
+.filter-toggle-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-toggle-btn:hover {
+    background: #5a6268;
+}
+
+.filter-toggle-btn.active {
+    background: #007bff;
+}
+
+.filter-toggle-btn.active:hover {
+    background: #0056b3;
+}
+
+.filter-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.filter-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+}
+
+.filter-input,
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s ease;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.filter-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.filter-btn.apply {
+    background: #28a745;
+    color: white;
+}
+
+.filter-btn.apply:hover {
+    background: #218838;
+}
+
+.filter-btn.clear {
+    background: #dc3545;
+    color: white;
+}
+
+.filter-btn.clear:hover {
+    background: #c82333;
+}
+
+.filter-btn.reset {
+    background: #6c757d;
+    color: white;
+}
+
+.filter-btn.reset:hover {
+    background: #5a6268;
+}
+
+.filter-status {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 10px;
+    font-size: 13px;
+    display: none;
+}
+
+.filter-status.active {
+    display: block;
+}
+
+/* ===== SUMMARY TABLE (Tổng hợp phiếu tồn) ===== */
+.summary-table {
+    width: max-content;
+    min-width: 100%;
+}
+
+.summary-table th {
+    text-align: center !important;
+    padding: 14px 15px !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+}
+
+.summary-table th:first-child {
+    text-align: left !important;
+    min-width: 120px;
+}
+
+.summary-table th:not(:first-child) {
+    min-width: 110px;
+}
+
+.summary-table td {
+    text-align: center;
+    padding: 12px 10px !important;
+    font-size: 14px;
+    vertical-align: middle !important;
+}
+
+.summary-table td:first-child {
+    text-align: left;
+}
+
+.summary-table tbody tr:hover {
+    background-color: #e8f4fc !important;
+}
+
+.summary-table tbody tr:last-child {
+    background-color: #d4edda !important;
+    font-weight: 600;
+}
+
+.summary-table tbody tr:last-child td {
+    color: #155724;
+}

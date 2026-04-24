@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Thực tăng Fiber, MyTV{% endblock %}
+
+{% block content %}
+<!-- Thực tăng Section -->
+<div id="thuctang-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Thực tăng Fiber, MyTV</h2>
+        <p class="dashboard-subtitle">Báo cáo thực tăng thuê bao Fiber và MyTV</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Thực tăng Fiber, MyTV</span>
+        </div>
+    </div>
+
+    <!-- Thực tăng Fiber -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-wifi"></i>
+            Thực tăng Fiber
+        </h3>
+        <div class="chart-card">
+            <div class="chart-card-body" style="text-align: center;">
+                <img src="/baocaohanoi/chart/thuc_tang_fiber/thuc_tang_fiber_pttb.png"
+                     alt="Biểu đồ thực tăng Fiber"
+                     style="max-width: 100%; height: auto; cursor: pointer;"
+                     onclick="zoomImage(this.src)">
+                <div class="chart-card-timestamp" id="timestamp-thuc_tang_fiber-thuc_tang_fiber_pttb-png"></div>
+            </div>
+        </div>
+        <div class="chart-card" style="margin-top: 20px;">
+            <div class="chart-card-body" style="text-align: center;">
+                <img src="/baocaohanoi/chart/thuc_tang_fiber/fiber_thuctang_nvkt.png"
+                     alt="Biểu đồ thực tăng Fiber theo NVKT"
+                     style="max-width: 100%; height: auto; cursor: pointer;"
+                     onclick="zoomImage(this.src)">
+                <div class="chart-card-timestamp" id="timestamp-thuc_tang_fiber-fiber_thuctang_nvkt-png"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Thực tăng MyTV -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-tv"></i>
+            Thực tăng MyTV
+        </h3>
+        <div class="chart-card">
+            <div class="chart-card-body" style="text-align: center;">
+                <img src="/baocaohanoi/chart/thuc_tang_mytv/thuc_tang_mytv_pttb.png"
+                     alt="Biểu đồ thực tăng MyTV"
+                     style="max-width: 100%; height: auto; cursor: pointer;"
+                     onclick="zoomImage(this.src)">
+                <div class="chart-card-timestamp" id="timestamp-thuc_tang_mytv-thuc_tang_mytv_pttb-png"></div>
+            </div>
+        </div>
+        <div class="chart-card" style="margin-top: 20px;">
+            <div class="chart-card-body" style="text-align: center;">
+                <img src="/baocaohanoi/chart/thuc_tang_mytv/mytv_thuctang_nvkt.png"
+                     alt="Biểu đồ thực tăng MyTV theo NVKT"
+                     style="max-width: 100%; height: auto; cursor: pointer;"
+                     onclick="zoomImage(this.src)">
+                <div class="chart-card-timestamp" id="timestamp-thuc_tang_mytv-mytv_thuctang_nvkt-png"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/thuctang.js') }}"></script>
+{% endblock %}

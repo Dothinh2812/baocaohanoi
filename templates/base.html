@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %} - VNPT Hà Nội</title>
+
+    <!-- CSS Files -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v={{ range(10000, 99999) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v={{ range(10000, 99999) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v={{ range(10000, 99999) | random }}">
+
+    <!-- External CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <!-- HEADER (Fixed top bar) -->
+    <div class="header">
+        <div class="header-left">
+            <button class="mobile-toggle" id="mobileToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1>HỆ THỐNG BÁO CÁO ĐIỀU HÀNH SẢN XUẤT KINH DOANH TTVT SƠN TÂY - VNPT HÀ NỘI</h1>
+        </div>
+        <div class="user-info">
+            {% include 'components/user_menu.html' %}
+        </div>
+    </div>
+
+    <div id="saTickerBar" style="display:none; background:#b71c1c; color:#fff; font-size:0.82rem; font-weight:600; height:var(--sa-ticker-height); line-height:var(--sa-ticker-height); overflow:hidden; position:fixed; top:var(--header-height); left:0; right:0; width:100%; z-index:998; box-shadow:0 1px 4px rgba(0,0,0,0.15);">
+        <span style="background:#7f0000; padding:0 12px; height:var(--sa-ticker-height); line-height:var(--sa-ticker-height); display:inline-block; white-space:nowrap; flex-shrink:0; position:relative; z-index:1;">
+            <i class="fas fa-exclamation-triangle" style="margin-right:5px;"></i>SỰ CỐ SA
+        </span>
+        <div style="display:inline-block; width:calc(100% - 120px); overflow:hidden; position:absolute; right:0; top:0; height:var(--sa-ticker-height);">
+            <div id="saTickerInner" style="display:inline-block; white-space:nowrap; animation:saTicker 30s linear infinite; padding-left:100%; line-height:var(--sa-ticker-height); will-change:transform;"></div>
+        </div>
+    </div>
+    <style>
+        @keyframes saTicker {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+        #saTickerInner span.ticker-item {
+            margin-right: 60px;
+        }
+        #saTickerInner span.ticker-sep {
+            opacity: 0.5;
+            margin-right: 60px;
+        }
+        @media (max-width: 768px) {
+            #saTickerBar {
+                z-index: 1001 !important;
+                font-size: 0.72rem !important;
+            }
+            #saTickerBar > span {
+                padding: 0 8px !important;
+            }
+            #saTickerInner span.ticker-item,
+            #saTickerInner span.ticker-sep {
+                margin-right: 32px;
+            }
+        }
+    </style>
+
+
+
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- SIDEBAR (Left menu) -->
+    <div class="sidebar" id="sidebar">
+        <!-- Mobile User Profile (Visible only on mobile and when logged in) -->
+        {% if current_user %}
+        <div class="sidebar-user-profile">
+            <div class="user-identity">
+                <div class="user-avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <div class="user-text">
+                    <div class="user-name">{{ current_user.fullname }}</div>
+                    <div class="user-role-badge">{{ current_user.role }}</div>
+                </div>
+            </div>
+            <div class="user-links">
+                <a href="{{ url_for('auth.change_password') }}" class="user-link">
+                    <i class="fas fa-key"></i> Đổi mật khẩu
+                </a>
+                <a href="{{ url_for('auth.logout') }}" class="user-link logout">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <input type="text" class="search-box" id="searchBox" placeholder="Tìm kiếm chức năng...">
+
+        <!-- Menu items with active state -->
+        <a href="{{ url_for('operations.page_brcd') }}" class="menu-item {% if active_page == 'brcd' %}active{% endif %}"
+            data-tooltip="Điều hành sửa chữa">
+            <i class="fas fa-wrench"></i>
+            <span>1. Điều hành sửa chữa</span>
+        </a>
+
+        <a href="{{ url_for('operations.page_pttb') }}" class="menu-item {% if active_page == 'pttb' %}active{% endif %}"
+            data-tooltip="Phát triển thuê bao">
+            <i class="fas fa-chart-line"></i>
+            <span>2. Phát triển thuê bao</span>
+        </a>
+
+        <a href="{{ url_for('operations.page_cau_hinh_tu_dong') }}" class="menu-item {% if active_page == 'cau_hinh_tu_dong' %}active{% endif %}"
+            data-tooltip="Cấu hình tự động">
+            <i class="fas fa-sliders-h"></i>
+            <span>2.1. Cấu hình tự động</span>
+        </a>
+
+        <a href="{{ url_for('operations.page_ttvt_son_tay_tong_hop') }}" class="menu-item {% if active_page == 'ttvt_son_tay_tong_hop' %}active{% endif %}"
+            data-tooltip="Dashboard tổng hợp các chỉ tiêu TTVT Sơn Tây">
+            <i class="fas fa-chart-column"></i>
+            <span>2.2. TTVT Sơn Tây tổng hợp</span>
+        </a>
+
+        <!-- <a href="{{ url_for('operations.page_thuctang') }}" class="menu-item {% if active_page == 'thuctang' %}active{% endif %}"
+            data-tooltip="Thực tăng Fiber, MyTV">
+            <i class="fas fa-chart-area"></i>
+            <span>3. Thực tăng Fiber, MyTV</span>
+        </a> -->
+
+        <a href="{{ url_for('retention.page_giahan') }}" class="menu-item {% if active_page == 'giahan' %}active{% endif %}"
+            data-tooltip="Gia hạn TTTC">
+            <i class="fas fa-check-circle"></i>
+            <span>4. Gia hạn TTTC</span>
+        </a>
+
+        <!-- <a href="{{ url_for('retention.page_thuhoi') }}" class="menu-item {% if active_page == 'thuhoi' %}active{% endif %}"
+            data-tooltip="Thu hồi TBĐC">
+            <i class="fas fa-undo"></i>
+            <span>5. Thu hồi TBĐC</span>
+        </a> -->
+
+        <a href="{{ url_for('quality.page_chatluong') }}" class="menu-item {% if active_page == 'chatluong' %}active{% endif %}"
+            data-tooltip="C1 - Chất lượng phục vụ khách hàng">
+            <i class="fas fa-star"></i>
+            <span>6. C1 - Chất lượng phục vụ khách hàng</span>
+        </a>
+
+        <a href="{{ url_for('quality.page_i15') }}" class="menu-item {% if active_page == 'i15' %}active{% endif %}"
+            data-tooltip="I1.5 - Chất lượng mạng cáp quang thuê bao">
+            <i class="fas fa-network-wired"></i>
+            <span>7.1 -  I1.5 - k1</span>
+        </a>
+
+        <a href="{{ url_for('quality.page_i15k2') }}" class="menu-item {% if active_page == 'i15k2' %}active{% endif %}"
+            data-tooltip="I1.5 K2 - Chất lượng mạng cáp quang thuê bao">
+            <i class="fas fa-network-wired"></i>
+            <span>7.2 -  I1.5 - K2</span>
+        </a>
+
+        <a href="{{ url_for('auth.redirect_sh_portal') }}" class="menu-item" target="_blank" rel="noopener noreferrer"
+            data-tooltip="Mở hệ thống SH theo username đang đăng nhập">
+            <i class="fas fa-right-to-bracket"></i>
+            <span>7.3 - Cập nhật kết quả xử lý phiếu shc</span>
+        </a>
+
+        <a href="{{ url_for('quality.page_shc_processing') }}" class="menu-item {% if active_page == 'shc_processing' %}active{% endif %}"
+            data-tooltip="Báo cáo kết quả xử lý SHC">
+            <i class="fas fa-clipboard-check"></i>
+            <span>7.4 - Kết quả xử lý SHC</span>
+        </a>
+
+        <a href="{{ url_for('quangchudong.page_quangchudong') }}"
+            class="menu-item {% if active_page == 'quangchudong' %}active{% endif %}"
+            data-tooltip="Giám sát Quang Chủ động">
+            <i class="fas fa-satellite-dish"></i>
+            <span>8. Giám sát Quang Chủ động</span>
+        </a>
+        <a href="{{ url_for('sa_outage.page_su_co_sa') }}"
+            class="menu-item {% if active_page == 'su_co_sa' %}active{% endif %}"
+            data-tooltip="Theo dõi sự cố SA">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>8.1 Sự cố SA</span>
+        </a>
+
+
+        <a href="{{ url_for('growth.page_tiepthi') }}" class="menu-item {% if active_page == 'tiepthi' %}active{% endif %}"
+            data-tooltip="Kết quả Tiếp thị">
+            <i class="fas fa-bullhorn"></i>
+            <span>10. Kết quả Tiếp thị</span>
+        </a>
+
+        <a href="{{ url_for('growth.page_ngungpsc') }}" class="menu-item {% if active_page == 'ngungpsc' %}active{% endif %}"
+            data-tooltip="Thực tăng Ngưng PSC">
+            <i class="fas fa-signal"></i>
+            <span>11. Thực tăng Ngưng PSC</span>
+        </a>
+
+        <!-- <a href="{{ url_for('operations.page_kpi') }}" class="menu-item {% if active_page == 'kpi' %}active{% endif %}"
+            data-tooltip="KPI NVKT">
+            <i class="fas fa-trophy"></i>
+            <span>9. KPI NVKT</span>
+        </a> -->
+
+        <a href="{{ url_for('operations.page_kpi_nvkt_bchn') }}" class="menu-item {% if active_page == 'kpi_nvkt_bchn' %}active{% endif %}"
+            data-tooltip="KPI NVKT BCHN">
+            <i class="fas fa-medal"></i>
+            <span>9.1. KPI NVKT BCHN</span>
+        </a>
+
+        <a href="{{ url_for('inventory.page_tra_cuu_nhanh_vat_tu') }}" class="menu-item {% if active_page == 'tra_cuu_nhanh_vat_tu' %}active{% endif %}">
+            <i class="fas fa-search"></i>
+            <span>10.1-Vật tư- Tra cứu nhanh</span>
+        </a>
+
+        <a href="{{ url_for('inventory.page_tong_hop_tien') }}" class="menu-item {% if active_page == 'tong_hop_tien' %}active{% endif %}">
+            <i class="fas fa-coins"></i>
+            <span>10.2-Vật tư-Tiền tồn kho</span>
+        </a>
+
+        <!-- <a href="{{ url_for('inventory.page_xac_minh_tam_dung') }}" class="menu-item {% if active_page == 'xac_minh_tam_dung' %}active{% endif %}"
+            data-tooltip="Xác minh tạm dừng">
+            <i class="fas fa-pause-circle"></i>
+            <span>13. Xác minh tạm dừng</span>
+        </a> -->
+
+        <a href="{{ url_for('inventory.page_tam_dung_khoi_phuc') }}" class="menu-item {% if active_page == 'tam_dung_khoi_phuc' %}active{% endif %}"
+            data-tooltip="Tạm dừng khôi phục">
+            <i class="fas fa-play-circle"></i>
+            <span>13. Tạm dừng khôi phục</span>
+        </a>
+
+        <div class="menu-group {% if active_page in ['ton_kho_vat_tu', 'ton_kho_vat_tu_qoi', 'ton_kho_vat_tu_shi', 'ton_kho_vat_tu_sty', 'ton_kho_vat_tu_pto'] %}open{% endif %}">
+            <div class="menu-group-toggle" onclick="this.parentElement.classList.toggle('open')">
+                <i class="fas fa-warehouse menu-icon"></i>
+                <span>12. Tồn kho vật tư</span>
+                <i class="fas fa-chevron-right menu-arrow"></i>
+            </div>
+            <div class="menu-submenu">
+                <a href="{{ url_for('inventory.page_ton_kho_vat_tu') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu' %}active{% endif %}">
+                    <i class="fas fa-boxes"></i>
+                    <span>Tổng hợp TTVT</span>
+                </a>
+                <a href="{{ url_for('inventory.page_ton_kho_vat_tu_qoi') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu_qoi' %}active{% endif %}">
+                    <i class="fas fa-box"></i>
+                    <span>Quảng Oai</span>
+                </a>
+                <a href="{{ url_for('inventory.page_ton_kho_vat_tu_sty') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu_sty' %}active{% endif %}">
+                    <i class="fas fa-box"></i>
+                    <span>Sơn Tây</span>
+                </a>
+                <a href="{{ url_for('inventory.page_ton_kho_vat_tu_shi') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu_shi' %}active{% endif %}">
+                    <i class="fas fa-box"></i>
+                    <span>Suối Hai</span>
+                </a>
+                <a href="{{ url_for('inventory.page_ton_kho_vat_tu_pto') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu_pto' %}active{% endif %}">
+                    <i class="fas fa-box"></i>
+                    <span>Phúc Thọ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT AREA -->
+    <div class="main-content" id="mainContent">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Zoom Modal -->
+    <div id="zoomModal" class="zoom-modal">
+        <span class="zoom-close" id="zoomClose">&times;</span>
+        <div class="zoom-modal-content">
+            <img id="zoomImage" src="" alt="Zoomed Image">
+        </div>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Base JS -->
+    <script src="{{ url_for('static', filename='js/utils.js') }}?v={{ range(10000, 99999) | random }}"></script>
+    <script src="{{ url_for('static', filename='js/api.js') }}?v={{ range(10000, 99999) | random }}"></script>
+    <script src="{{ url_for('static', filename='js/base.js') }}?v={{ range(10000, 99999) | random }}"></script>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+    (function() {
+        var REFRESH_MS = 2 * 60 * 1000; // 2 phút
+        var TICKER_HEIGHT = 32;
+
+        function setTickerOffset(isVisible) {
+            document.documentElement.style.setProperty('--sa-ticker-offset', isVisible ? TICKER_HEIGHT + 'px' : '0px');
+        }
+
+        function fmtHour(minutes) {
+            if (minutes === null || minutes === undefined || minutes === '') return '';
+            return (Number(minutes) / 60).toFixed(1) + 'h';
+        }
+
+        function buildTickerText(list) {
+            return list.map(function(r) {
+                var dur = fmtHour(r.thoi_gian_keo_dai_phut);
+                return '<span class="ticker-item">'
+                    + '<strong>' + (r.sa_code || '') + '</strong>'
+                    + ' [' + (r.doi_vt || '') + ']'
+                    + (dur ? ' &bull; Kéo dài: ' + dur : '')
+                    + ' &bull; OFF: ' + (r.latest_off_count || 0) + '/' + (r.latest_total_count || 0)
+                    + '</span>'
+                    + '<span class="ticker-sep">&#9646;</span>';
+            }).join('');
+        }
+
+        function loadTicker() {
+            fetch('/api/su-co-sa/data')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    var list = data.dang_ton || [];
+                    var bar = document.getElementById('saTickerBar');
+                    var inner = document.getElementById('saTickerInner');
+
+                    if (list.length === 0) {
+                        bar.style.display = 'none';
+                        setTickerOffset(false);
+                        return;
+                    }
+
+                    var text = buildTickerText(list);
+                    inner.innerHTML = text;
+
+                    // tốc độ cuộn tuỳ theo số lượng sự cố
+                    var duration = Math.max(20, list.length * 8);
+                    inner.style.animation = 'none';
+                    // force reflow
+                    void inner.offsetWidth;
+                    inner.style.animation = 'saTicker ' + duration + 's linear infinite';
+
+                    bar.style.display = 'block';
+                    setTickerOffset(true);
+                })
+                .catch(function() {
+                    var bar = document.getElementById('saTickerBar');
+                    if (bar) {
+                        bar.style.display = 'none';
+                    }
+                    setTickerOffset(false);
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTicker();
+            setInterval(loadTicker, REFRESH_MS);
+        });
+    })();
+    </script>
+
+</body>
+
+</html>

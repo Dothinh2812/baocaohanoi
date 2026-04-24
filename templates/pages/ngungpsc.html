@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Thực tăng Ngưng PSC{% endblock %}
+
+{% block content %}
+<div id="ngungpsc-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Thực tăng Ngưng PSC</h2>
+        <p class="dashboard-subtitle">Dữ liệu được đồng bộ theo ngày từ 2 bảng tổng hợp cấp TTVT cho Fiber và MyTV</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Thực tăng Ngưng PSC</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="excel-table-card" style="padding: 16px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                <div>
+                    <label for="ngungpsc-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input type="date" id="ngungpsc-date-input" class="form-control" style="min-width: 220px;">
+                </div>
+                <button id="ngungpsc-date-apply" class="btn btn-primary">
+                    <i class="fas fa-filter"></i>
+                    Xem theo ngày
+                </button>
+            </div>
+            <div id="ngungpsc-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            v_ngung_psc_fiber_thang_t_1_cap_ttvt
+            <span id="ngungpsc-timestamp" style="font-size: 12px; color: #999; font-style: italic; margin-left: 15px;"></span>
+        </h3>
+        <div id="ngungpsc-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            v_ngung_psc_mytv_thang_t_1_cap_ttvt
+        </h3>
+        <div id="ngungpsc-mytv-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/ngungpsc.js') }}?v={{ range(10000, 99999) | random }}"></script>
+{% endblock %}

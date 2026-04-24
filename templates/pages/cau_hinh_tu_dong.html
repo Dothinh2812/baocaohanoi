@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Cấu hình tự động{% endblock %}
+
+{% block extra_css %}
+<style>
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    .summary-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f6f9ff 100%);
+        border: 1px solid #dce7f5;
+        border-radius: 14px;
+        padding: 16px 18px;
+        box-shadow: 0 8px 20px rgba(26, 80, 137, 0.08);
+    }
+
+    .summary-card-label {
+        font-size: 0.9rem;
+        color: #58708d;
+        margin-bottom: 8px;
+    }
+
+    .summary-card-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #143b63;
+        line-height: 1.1;
+    }
+
+    .summary-card-note {
+        font-size: 0.82rem;
+        color: #6d7f92;
+        margin-top: 6px;
+    }
+
+    .info-banner {
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: #eef6ff;
+        border: 1px solid #cfe1f8;
+        color: #29517d;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="cau-hinh-tu-dong-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">⚙️ Cấu hình tự động</h2>
+        <p class="dashboard-subtitle">Tổng hợp và chi tiết cấu hình tự động, đồng bộ theo ngày dữ liệu cho TTVT Sơn Tây</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Cấu hình tự động</span>
+        </div>
+    </div>
+
+    <div class="info-banner">
+        Nguồn dữ liệu chính: <strong>v_cau_hinh_tu_dong_chi_tiet_th_theo_to</strong> và <strong>v_cau_hinh_tu_dong_chi_tiet_th_theo_nvkt</strong>.
+        Bộ lọc cố định: <strong>TTVT Sơn Tây</strong>.
+    </div>
+
+    <div class="section">
+        <div class="excel-table-card" style="padding: 16px;">
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
+                <div>
+                    <label for="cau-hinh-tu-dong-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
+                    <input type="date" id="cau-hinh-tu-dong-date-input" class="form-control" style="min-width: 220px;">
+                </div>
+                <button id="cau-hinh-tu-dong-date-apply" class="btn btn-primary">
+                    <i class="fas fa-filter"></i>
+                    Xem theo ngày
+                </button>
+            </div>
+            <div id="cau-hinh-tu-dong-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Tổng hợp cấu hình tự động theo tổ
+        </h3>
+        <div id="cau-hinh-tu-dong-tong-hop">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-pie"></i>
+            Tổng quan Sơn Tây
+        </h3>
+        <div id="cau-hinh-tu-dong-summary" class="summary-grid">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-users"></i>
+            Tổng hợp cấu hình tự động theo NVKT
+        </h3>
+        <div id="cau-hinh-tu-dong-team-summary">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/cau_hinh_tu_dong.js') }}?v={{ range(10000, 99999) | random }}"></script>
+{% endblock %}
