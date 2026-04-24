@@ -66,7 +66,6 @@ report_id_sources:
       - ty_le_xac_minh_chi_tiet
       - kq_tiep_thi
       - vattu_thu_hoi
-      - quyet_toan_vat_tu
   no_unit_id:
     reports:
       - cau_hinh_tu_dong_ptm

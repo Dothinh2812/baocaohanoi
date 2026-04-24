@@ -65,34 +65,51 @@ def _format_percent_value(value):
         return text
 
 
-def _prepare_ghtt_summary_df(input_path):
+def _prepare_ghtt_summary_df(input_path, *, keep_ttvt=True):
     raw_path = _resolve_path(input_path)
-    df_raw = pd.read_excel(raw_path)
+    df_raw = pd.read_excel(raw_path, header=None, skiprows=2, usecols=range(12), dtype=object)
+    df_raw = df_raw.dropna(how="all").reset_index(drop=True)
     if df_raw.shape[1] < 12:
         raise ValueError(f"Bao cao GHTT khong du cot de xu ly: {raw_path}")
 
-    df = df_raw.iloc[1:].reset_index(drop=True).copy()
-    df.columns = [
-        "Đơn vị",
-        "TTVT",
-        "Hoàn thành T",
-        "Giao NVKT T",
-        "Tỷ lệ T",
-        "Hoàn thành T+1",
-        "Giao NVKT T+1",
-        "Tỷ lệ T+1",
-        "SL GHTT >=6T",
-        "Hoàn thành >=6T T+1",
-        "Tỷ lệ >=6T T+1",
-        "Tỷ lệ Tổng",
-    ]
+    if keep_ttvt:
+        df = df_raw.iloc[:, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]].copy()
+        df.columns = [
+            "Đơn vị",
+            "TTVT",
+            "Hoàn thành T",
+            "Giao NVKT T",
+            "Tỷ lệ T",
+            "Hoàn thành T+1",
+            "Giao NVKT T+1",
+            "Tỷ lệ T+1",
+            "SL GHTT >=6T",
+            "Hoàn thành >=6T T+1",
+            "Tỷ lệ >=6T T+1",
+            "Tỷ lệ Tổng",
+        ]
+    else:
+        df = df_raw.iloc[:, [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]].copy()
+        df.columns = [
+            "Đơn vị",
+            "Hoàn thành T",
+            "Giao NVKT T",
+            "Tỷ lệ T",
+            "Hoàn thành T+1",
+            "Giao NVKT T+1",
+            "Tỷ lệ T+1",
+            "SL GHTT >=6T",
+            "Hoàn thành >=6T T+1",
+            "Tỷ lệ >=6T T+1",
+            "Tỷ lệ Tổng",
+        ]
 
     for col in ["Tỷ lệ T", "Tỷ lệ T+1", "Tỷ lệ >=6T T+1", "Tỷ lệ Tổng"]:
         df[col] = df[col].apply(_format_percent_value)
 
     numeric_cols = ["Hoàn thành T", "Giao NVKT T", "Hoàn thành T+1", "Giao NVKT T+1", "SL GHTT >=6T", "Hoàn thành >=6T T+1"]
     for col in numeric_cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
 
     return raw_path, df
 
@@ -103,7 +120,7 @@ def process_ghtt_hni_api_output(
     sheet_name="kq_hni",
 ):
     """Xu ly bao cao GHTT HNI va ghi ket qua vao file processed."""
-    raw_path, df = _prepare_ghtt_summary_df(input_path)
+    raw_path, df = _prepare_ghtt_summary_df(input_path, keep_ttvt=False)
     processed_path = ensure_processed_workbook(raw_path, overwrite=overwrite_processed)
     append_or_replace_sheet(processed_path, sheet_name, df)
     return processed_path
@@ -115,7 +132,7 @@ def process_ghtt_sontay_api_output(
     sheet_name="kq_sontay",
 ):
     """Xu ly bao cao GHTT Son Tay va ghi ket qua vao file processed."""
-    raw_path, df = _prepare_ghtt_summary_df(input_path)
+    raw_path, df = _prepare_ghtt_summary_df(input_path, keep_ttvt=True)
     processed_path = ensure_processed_workbook(raw_path, overwrite=overwrite_processed)
     append_or_replace_sheet(processed_path, sheet_name, df)
     return processed_path
@@ -128,7 +145,7 @@ def process_ghtt_nvktdb_api_output(
     sheet_name="kq_nvktdb",
 ):
     """Xu ly bao cao GHTT NVKTDB va bo sung cot don vi tu dsnv.xlsx."""
-    raw_path, df = _prepare_ghtt_summary_df(input_path)
+    raw_path, df = _prepare_ghtt_summary_df(input_path, keep_ttvt=True)
 
     df = df.rename(columns={"Đơn vị": "NVKT raw"})
     df["NVKT"] = df["NVKT raw"].apply(

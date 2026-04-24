@@ -21,6 +21,18 @@ DEFAULT_C13_INPUT = DOWNLOADS_DIR / "chi_tieu_c" / "c1.3 report.xlsx"
 DEFAULT_C13_SHEET = "TH_C1.3"
 DEFAULT_C14_INPUT = DOWNLOADS_DIR / "chi_tieu_c" / "c1.4 report.xlsx"
 DEFAULT_C14_SHEET = "TH_C1.4"
+DEFAULT_C15_INPUT = DOWNLOADS_DIR / "chi_tieu_c" / "c1.5 report.xlsx"
+DEFAULT_C15_SHEET = "TH_C1.5"
+DEFAULT_C15_DETAIL_INPUT = DOWNLOADS_DIR / "chi_tieu_c" / "c1.5_chitiet_report.xlsx"
+DEFAULT_C15_DETAIL_SHEETS = (
+    "KQ_C15_chitiet",
+    "TH_TTVTST",
+    "Chi_tiet_TG",
+    "TH_KIEULD",
+    "TH_DVVT",
+    "TH_DVVT_DOI",
+    "TH_DVVT_TTVT",
+)
 DEFAULT_C14_DETAIL_INPUT = DOWNLOADS_DIR / "chi_tieu_c" / "c1.4_chitiet_report.xlsx"
 DEFAULT_C14_DETAIL_SHEET = "TH_HL_NVKT"
 DEFAULT_C11_DETAIL_INPUT = DOWNLOADS_DIR / "chi_tieu_c" / "c1.1_chitiet_report.xlsx"
@@ -59,6 +71,37 @@ def _apply_first_column_exclusions(df, exclude_patterns):
     return df[
         ~df.iloc[:, 0].astype(str).str.contains(pattern, na=False)
     ].reset_index(drop=True)
+
+
+def _flatten_excel_columns(columns):
+    """Chuan hoa header Excel 2 dong thanh ten cot on dinh."""
+    flattened = []
+    for column in columns:
+        if isinstance(column, tuple):
+            parts = [str(part).strip() for part in column if str(part).strip() and not str(part).startswith("Unnamed:")]
+            if not parts:
+                flattened.append("")
+                continue
+            if len(parts) == 1 or parts[0] == parts[-1]:
+                flattened.append(parts[-1])
+            else:
+                flattened.append(" - ".join(parts))
+        else:
+            flattened.append(str(column).strip())
+    return flattened
+
+
+def _calculate_c15_bsc(rate_percent):
+    """Tinh diem BSC cho C1.5 tu ty le dang phan tram."""
+    if pd.isna(rate_percent):
+        return pd.NA
+
+    rate_decimal = float(rate_percent) / 100 if float(rate_percent) > 1 else float(rate_percent)
+    if rate_decimal >= 0.995:
+        return 5.0
+    if rate_decimal > 0.895:
+        return round(1 + 4 * (rate_decimal - 0.895) / 0.10, 2)
+    return 1.0
 
 
 def _extract_nvkt_name(ten_kv):
@@ -157,6 +200,103 @@ def _build_unique_ma_tb_summary(df, value_column_name, has_team_column):
     )
     sort_columns = ["TEN_DOI", "NVKT"] if has_team_column else ["NVKT"]
     return grouped.sort_values(sort_columns, kind="stable").reset_index(drop=True)
+
+
+def _empty_c15_detail_outputs():
+    return {
+        "KQ_C15_chitiet": pd.DataFrame(
+            columns=[
+                "DOIVT",
+                "NVKT",
+                "Phiếu đạt",
+                "Phiếu không đạt",
+                "Tổng Hoàn công",
+                "Tỉ lệ đạt (%)",
+            ]
+        ),
+        "TH_TTVTST": pd.DataFrame(
+            columns=[
+                "DOIVT",
+                "Phiếu đạt",
+                "Phiếu không đạt",
+                "Tổng Hoàn công",
+                "Tỉ lệ đạt (%)",
+            ]
+        ),
+        "Chi_tiet_TG": pd.DataFrame(
+            columns=[
+                "DOIVT",
+                "MA_TB",
+                "NGAY_LHD",
+                "NGAY_HC",
+                "TG_THI_CONG",
+                "KET_QUA",
+                "NVKT",
+            ]
+        ),
+        "TH_KIEULD": pd.DataFrame(
+            columns=[
+                "DOIVT",
+                "NVKT",
+                "TEN_KIEULD",
+                "Phiếu đạt",
+                "Phiếu không đạt",
+                "Tổng Hoàn công",
+                "Tỉ lệ đạt (%)",
+            ]
+        ),
+        "TH_DVVT": pd.DataFrame(
+            columns=[
+                "DOIVT",
+                "NVKT",
+                "TEN_DVVT",
+                "Phiếu đạt",
+                "Phiếu không đạt",
+                "Tổng Hoàn công",
+                "Tỉ lệ đạt (%)",
+            ]
+        ),
+        "TH_DVVT_DOI": pd.DataFrame(
+            columns=[
+                "DOIVT",
+                "TEN_DVVT",
+                "Phiếu đạt",
+                "Phiếu không đạt",
+                "Tổng Hoàn công",
+                "Tỉ lệ đạt (%)",
+            ]
+        ),
+        "TH_DVVT_TTVT": pd.DataFrame(
+            columns=[
+                "TEN_DVVT",
+                "Phiếu đạt",
+                "Phiếu không đạt",
+                "Tổng Hoàn công",
+                "Tỉ lệ đạt (%)",
+            ]
+        ),
+    }
+
+
+def _summarize_c15_detail(df, group_columns, rename_map):
+    grouped = (
+        df.groupby(group_columns, dropna=False, as_index=False)
+        .agg(
+            **{
+                "Phiếu đạt": ("KET_QUA", lambda s: int((s == "Đạt").sum())),
+                "Phiếu không đạt": ("KET_QUA", lambda s: int((s == "Không đạt").sum())),
+                "Tổng Hoàn công": ("KET_QUA", "size"),
+            }
+        )
+    )
+    grouped["Tỉ lệ đạt (%)"] = grouped.apply(
+        lambda row: round(row["Phiếu đạt"] / row["Tổng Hoàn công"] * 100, 2)
+        if row["Tổng Hoàn công"] > 0
+        else 0,
+        axis=1,
+    )
+    grouped = grouped.rename(columns=rename_map)
+    return grouped
 
 
 def process_c11_report_api_output(
@@ -347,6 +487,349 @@ def process_c14_report_api_output(
 
     processed_path = ensure_processed_workbook(raw_path, overwrite=overwrite_processed)
     append_or_replace_sheet(processed_path, sheet_name, df_filtered)
+    return processed_path
+
+
+def process_c15_report_api_output(
+    input_path=DEFAULT_C15_INPUT,
+    overwrite_processed=False,
+    sheet_name=DEFAULT_C15_SHEET,
+):
+    """Xu ly bao cao C1.5 va ghi ket qua tong hop vao file _processed."""
+    raw_path = _resolve_path(input_path)
+
+    df = pd.read_excel(raw_path, header=[0, 1])
+    if df.shape[1] < 17:
+        raise ValueError(
+            f"Bao cao C1.5 khong du cot de xu ly. So cot hien tai: {df.shape[1]}"
+        )
+
+    df = df.copy()
+    df.columns = _flatten_excel_columns(df.columns)
+    df = df.iloc[:, :17].copy()
+    df.columns = [
+        "Đơn vị",
+        "Tổng - SM1",
+        "Tổng - SM2",
+        "Tổng - KQ thực hiện chỉ tiêu",
+        "Tổng - Điểm BSC",
+        "CCCO - SM1",
+        "CCCO - SM2",
+        "CCCO - Tỷ lệ",
+        "CCCO - Điểm BSC",
+        "Không CCCO - SM1",
+        "Không CCCO - SM2",
+        "Không CCCO - Tỷ lệ",
+        "Không CCCO - Điểm BSC",
+        "CCCO xã hội hóa - SM1",
+        "CCCO xã hội hóa - SM2",
+        "CCCO xã hội hóa - Tỷ lệ",
+        "CCCO xã hội hóa - Điểm BSC",
+    ]
+
+    df["Đơn vị"] = df["Đơn vị"].astype(str).str.strip()
+    df = df[df["Đơn vị"].ne("")].reset_index(drop=True)
+
+    numeric_columns = [column for column in df.columns if column != "Đơn vị"]
+    for column in numeric_columns:
+        df[column] = pd.to_numeric(df[column], errors="coerce")
+
+    total_sm1 = df["Tổng - SM1"].sum(min_count=1)
+    total_sm2 = df["Tổng - SM2"].sum(min_count=1)
+    total_rate = round(total_sm1 / total_sm2 * 100, 2) if total_sm2 and pd.notna(total_sm2) else pd.NA
+
+    ccco_sm1 = df["CCCO - SM1"].sum(min_count=1)
+    ccco_sm2 = df["CCCO - SM2"].sum(min_count=1)
+    ccco_rate = round(ccco_sm1 / ccco_sm2 * 100, 2) if ccco_sm2 and pd.notna(ccco_sm2) else pd.NA
+
+    khong_ccco_sm1 = df["Không CCCO - SM1"].sum(min_count=1)
+    khong_ccco_sm2 = df["Không CCCO - SM2"].sum(min_count=1)
+    khong_ccco_rate = (
+        round(khong_ccco_sm1 / khong_ccco_sm2 * 100, 2)
+        if khong_ccco_sm2 and pd.notna(khong_ccco_sm2)
+        else pd.NA
+    )
+
+    xhh_sm1 = df["CCCO xã hội hóa - SM1"].sum(min_count=1)
+    xhh_sm2 = df["CCCO xã hội hóa - SM2"].sum(min_count=1)
+    xhh_rate = round(xhh_sm1 / xhh_sm2 * 100, 2) if xhh_sm2 and pd.notna(xhh_sm2) else pd.NA
+
+    total_row = pd.DataFrame(
+        [
+            {
+                "Đơn vị": "Tổng",
+                "Tổng - SM1": total_sm1,
+                "Tổng - SM2": total_sm2,
+                "Tổng - KQ thực hiện chỉ tiêu": total_rate,
+                "Tổng - Điểm BSC": _calculate_c15_bsc(total_rate),
+                "CCCO - SM1": ccco_sm1,
+                "CCCO - SM2": ccco_sm2,
+                "CCCO - Tỷ lệ": ccco_rate,
+                "CCCO - Điểm BSC": _calculate_c15_bsc(ccco_rate),
+                "Không CCCO - SM1": khong_ccco_sm1,
+                "Không CCCO - SM2": khong_ccco_sm2,
+                "Không CCCO - Tỷ lệ": khong_ccco_rate,
+                "Không CCCO - Điểm BSC": _calculate_c15_bsc(khong_ccco_rate),
+                "CCCO xã hội hóa - SM1": xhh_sm1,
+                "CCCO xã hội hóa - SM2": xhh_sm2,
+                "CCCO xã hội hóa - Tỷ lệ": xhh_rate,
+                "CCCO xã hội hóa - Điểm BSC": _calculate_c15_bsc(xhh_rate),
+            }
+        ]
+    )
+    df = pd.concat([df, total_row], ignore_index=True)
+
+    processed_path = ensure_processed_workbook(raw_path, overwrite=overwrite_processed)
+    append_or_replace_sheet(processed_path, sheet_name, df)
+    return processed_path
+
+
+def process_c15_chitiet_report_api_output(
+    input_path=DEFAULT_C15_DETAIL_INPUT,
+    overwrite_processed=False,
+):
+    """Xu ly bao cao chi tiet C1.5 va tao cac sheet tong hop on dinh cho multi-instance."""
+    raw_path = _resolve_path(input_path)
+    processed_path = ensure_processed_workbook(raw_path, overwrite=overwrite_processed)
+
+    df = pd.read_excel(raw_path)
+    if df.empty or df.shape[1] == 0:
+        for sheet_name, empty_df in _empty_c15_detail_outputs().items():
+            append_or_replace_sheet(processed_path, sheet_name, empty_df)
+        return processed_path
+
+    required_columns = ["NGAY_LHD", "NGAY_HC"]
+    missing_columns = [column for column in required_columns if column not in df.columns]
+    if missing_columns:
+        raise ValueError(
+            "Bao cao C1.5 chi tiet thieu cac cot can thiet: "
+            + ", ".join(missing_columns)
+        )
+
+    nvkt_source_column = None
+    for candidate in ("TEN_NVKT", "TEN_KV"):
+        if candidate in df.columns:
+            nvkt_source_column = candidate
+            break
+    if nvkt_source_column is None:
+        raise ValueError("Bao cao C1.5 chi tiet thieu cot TEN_NVKT/TEN_KV de xac dinh NVKT")
+
+    has_team_column = "DOIVT" in df.columns
+    has_service_column = "TEN_DVVT" in df.columns
+    has_kieuld_column = "TEN_KIEULD" in df.columns
+    unit_name = ""
+    if "TTVT" in df.columns:
+        non_empty_units = (
+            df["TTVT"].dropna().astype(str).str.strip().replace("", pd.NA).dropna().unique()
+        )
+        if len(non_empty_units):
+            unit_name = str(non_empty_units[0]).strip()
+
+    working_df = df.copy()
+    working_df["NGAY_LHD"] = pd.to_datetime(
+        working_df["NGAY_LHD"], errors="coerce", dayfirst=True
+    )
+    working_df["NGAY_HC"] = pd.to_datetime(
+        working_df["NGAY_HC"], errors="coerce", dayfirst=True
+    )
+    working_df["TG_THI_CONG"] = (
+        working_df["NGAY_HC"] - working_df["NGAY_LHD"]
+    ).dt.total_seconds() / 3600
+    working_df["KET_QUA"] = working_df["TG_THI_CONG"].apply(
+        lambda value: "Không đạt" if pd.notna(value) and value > 24 else "Đạt"
+    )
+    working_df["NVKT"] = working_df[nvkt_source_column].apply(_extract_nvkt_name)
+
+    filtered_df = working_df[
+        working_df["NVKT"].notna() & working_df["TG_THI_CONG"].notna()
+    ].copy()
+
+    if has_team_column:
+        filtered_df["DOIVT"] = (
+            filtered_df["DOIVT"].astype(str).str.strip().replace("nan", "")
+        )
+
+    summary_outputs = _empty_c15_detail_outputs()
+    if filtered_df.empty:
+        for sheet_name, empty_df in summary_outputs.items():
+            append_or_replace_sheet(processed_path, sheet_name, empty_df)
+        return processed_path
+
+    group_columns = ["DOIVT", "NVKT"] if has_team_column else ["NVKT"]
+    detail_summary = _summarize_c15_detail(filtered_df, group_columns, {})
+    sort_columns = ["DOIVT", "NVKT"] if has_team_column else ["NVKT"]
+    detail_summary = detail_summary.sort_values(sort_columns, kind="stable").reset_index(drop=True)
+    if not has_team_column:
+        detail_summary.insert(0, "DOIVT", "")
+    summary_outputs["KQ_C15_chitiet"] = detail_summary[
+        [
+            "DOIVT",
+            "NVKT",
+            "Phiếu đạt",
+            "Phiếu không đạt",
+            "Tổng Hoàn công",
+            "Tỉ lệ đạt (%)",
+        ]
+    ]
+
+    team_summary = _summarize_c15_detail(
+        filtered_df,
+        ["DOIVT"] if has_team_column else ["NVKT"],
+        {},
+    )
+    if has_team_column:
+        team_summary = team_summary.sort_values(["DOIVT"], kind="stable").reset_index(drop=True)
+        total_row_name = unit_name or "Toàn đơn vị"
+    else:
+        team_summary = pd.DataFrame(
+            [
+                {
+                    "DOIVT": unit_name or "Tất cả",
+                    "Phiếu đạt": int((filtered_df["KET_QUA"] == "Đạt").sum()),
+                    "Phiếu không đạt": int((filtered_df["KET_QUA"] == "Không đạt").sum()),
+                    "Tổng Hoàn công": int(len(filtered_df)),
+                    "Tỉ lệ đạt (%)": round(
+                        (filtered_df["KET_QUA"] == "Đạt").sum() / len(filtered_df) * 100,
+                        2,
+                    ),
+                }
+            ]
+        )
+        total_row_name = unit_name or "Tất cả"
+
+    total_row = pd.DataFrame(
+        [
+            {
+                "DOIVT": total_row_name,
+                "Phiếu đạt": int((filtered_df["KET_QUA"] == "Đạt").sum()),
+                "Phiếu không đạt": int((filtered_df["KET_QUA"] == "Không đạt").sum()),
+                "Tổng Hoàn công": int(len(filtered_df)),
+                "Tỉ lệ đạt (%)": round(
+                    (filtered_df["KET_QUA"] == "Đạt").sum() / len(filtered_df) * 100,
+                    2,
+                ),
+            }
+        ]
+    )
+    if has_team_column and (
+        team_summary.empty or str(team_summary.iloc[-1]["DOIVT"]).strip() != total_row_name
+    ):
+        team_summary = pd.concat([team_summary, total_row], ignore_index=True)
+    summary_outputs["TH_TTVTST"] = team_summary[
+        ["DOIVT", "Phiếu đạt", "Phiếu không đạt", "Tổng Hoàn công", "Tỉ lệ đạt (%)"]
+    ]
+
+    detail_columns = ["DOIVT", "MA_TB", "NGAY_LHD", "NGAY_HC", "TG_THI_CONG", "KET_QUA", "NVKT"]
+    available_detail_columns = [column for column in detail_columns if column in filtered_df.columns]
+    detail_sheet = filtered_df[available_detail_columns].copy()
+    for column in detail_columns:
+        if column not in detail_sheet.columns:
+            detail_sheet[column] = pd.NA
+    if "TG_THI_CONG" in detail_sheet.columns:
+        detail_sheet["TG_THI_CONG"] = detail_sheet["TG_THI_CONG"].round(2)
+    summary_outputs["Chi_tiet_TG"] = detail_sheet[
+        ["DOIVT", "MA_TB", "NGAY_LHD", "NGAY_HC", "TG_THI_CONG", "KET_QUA", "NVKT"]
+    ]
+
+    if has_kieuld_column:
+        kieuld_df = filtered_df[filtered_df["TEN_KIEULD"].notna()].copy()
+        if not kieuld_df.empty:
+            kieuld_summary = _summarize_c15_detail(
+                kieuld_df,
+                (["DOIVT"] if has_team_column else [])
+                + ["NVKT", "TEN_KIEULD"],
+                {},
+            )
+            sort_columns = (["DOIVT"] if has_team_column else []) + ["NVKT", "TEN_KIEULD"]
+            kieuld_summary = kieuld_summary.sort_values(sort_columns, kind="stable").reset_index(drop=True)
+            if not has_team_column:
+                kieuld_summary.insert(0, "DOIVT", "")
+            summary_outputs["TH_KIEULD"] = kieuld_summary[
+                [
+                    "DOIVT",
+                    "NVKT",
+                    "TEN_KIEULD",
+                    "Phiếu đạt",
+                    "Phiếu không đạt",
+                    "Tổng Hoàn công",
+                    "Tỉ lệ đạt (%)",
+                ]
+            ]
+
+    if has_service_column:
+        dvvt_df = filtered_df[filtered_df["TEN_DVVT"].notna()].copy()
+        if not dvvt_df.empty:
+            dvvt_summary = _summarize_c15_detail(
+                dvvt_df,
+                (["DOIVT"] if has_team_column else []) + ["NVKT", "TEN_DVVT"],
+                {},
+            )
+            sort_columns = (["DOIVT"] if has_team_column else []) + ["NVKT", "TEN_DVVT"]
+            dvvt_summary = dvvt_summary.sort_values(sort_columns, kind="stable").reset_index(drop=True)
+            if not has_team_column:
+                dvvt_summary.insert(0, "DOIVT", "")
+            summary_outputs["TH_DVVT"] = dvvt_summary[
+                [
+                    "DOIVT",
+                    "NVKT",
+                    "TEN_DVVT",
+                    "Phiếu đạt",
+                    "Phiếu không đạt",
+                    "Tổng Hoàn công",
+                    "Tỉ lệ đạt (%)",
+                ]
+            ]
+
+            if has_team_column:
+                dvvt_team_summary = _summarize_c15_detail(
+                    dvvt_df,
+                    ["DOIVT", "TEN_DVVT"],
+                    {},
+                )
+                dvvt_team_summary = dvvt_team_summary.sort_values(
+                    ["DOIVT", "TEN_DVVT"], kind="stable"
+                ).reset_index(drop=True)
+                summary_outputs["TH_DVVT_DOI"] = dvvt_team_summary[
+                    [
+                        "DOIVT",
+                        "TEN_DVVT",
+                        "Phiếu đạt",
+                        "Phiếu không đạt",
+                        "Tổng Hoàn công",
+                        "Tỉ lệ đạt (%)",
+                    ]
+                ]
+
+            dvvt_unit_summary = _summarize_c15_detail(dvvt_df, ["TEN_DVVT"], {})
+            dvvt_unit_summary = dvvt_unit_summary.sort_values(["TEN_DVVT"], kind="stable").reset_index(drop=True)
+            total_dvvt_row = pd.DataFrame(
+                [
+                    {
+                        "TEN_DVVT": f"{unit_name} (Tổng)" if unit_name else "Tổng",
+                        "Phiếu đạt": int((dvvt_df["KET_QUA"] == "Đạt").sum()),
+                        "Phiếu không đạt": int((dvvt_df["KET_QUA"] == "Không đạt").sum()),
+                        "Tổng Hoàn công": int(len(dvvt_df)),
+                        "Tỉ lệ đạt (%)": round(
+                            (dvvt_df["KET_QUA"] == "Đạt").sum() / len(dvvt_df) * 100,
+                            2,
+                        ),
+                    }
+                ]
+            )
+            dvvt_unit_summary = pd.concat([dvvt_unit_summary, total_dvvt_row], ignore_index=True)
+            summary_outputs["TH_DVVT_TTVT"] = dvvt_unit_summary[
+                [
+                    "TEN_DVVT",
+                    "Phiếu đạt",
+                    "Phiếu không đạt",
+                    "Tổng Hoàn công",
+                    "Tỉ lệ đạt (%)",
+                ]
+            ]
+
+    for sheet_name in DEFAULT_C15_DETAIL_SHEETS:
+        append_or_replace_sheet(processed_path, sheet_name, summary_outputs[sheet_name])
+
     return processed_path
 
 

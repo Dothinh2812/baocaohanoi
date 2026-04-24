@@ -1,0 +1,36 @@
+{
+  "name": "ty_le_thiet_lap_dv_brcd_sm2_q2_2026",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=522920",
+  "report_id": "522920",
+  "menu_id": "",
+  "export_payload": {
+    "reportId": "522920",
+    "lstInputParams": [
+      {
+        "name": "ploaibc",
+        "dataType": "VARCHAR2",
+        "value": "1"
+      },
+      {
+        "name": "pdonvi_id",
+        "dataType": "NUMBER",
+        "value": "284656"
+      },
+      {
+        "name": "pthoigianid",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
+  },
+  "default_output_name": "BC-Tỷ lệ thiết lập dịch vụ BRCĐ đạt thời gian quy định SM2 - từ Q4 2025-21.4.2026-57.37.8.xlsx",
+  "captured_at": "2026-04-21T08:37:30.558081",
+  "notes": "Trích xuất dữ liệu chi tiết SM2 cho TTVT Sơn Tây"
+}

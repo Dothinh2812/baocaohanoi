@@ -14,6 +14,8 @@ period:
 ids:
   center_id_14: "14324"
   unit_id_28: "284656"
+  service_scope_ttvt_id: "14316"
+  service_scope_team_id: "14324"
   onebss_tt_id: "14324"
   onebss_default_team_id: "0"
   onebss_region_id: "21"
@@ -24,11 +26,11 @@ team_ids:
   family_28: {phuc_tho: "1003785", quang_oai: "1003769", son_tay: "1003770", suoi_hai: "1003771"}
 reports:
   defaults: {enabled: true}
-  ghtt_hni: {enabled: false}
-  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: false}
-  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: false}
-  ngung_psc_fiber_thang_t_1_cap_to: {enabled: false}
-  ngung_psc_mytv_thang_t_1_cap_to: {enabled: false}
+  ghtt_hni: {enabled: true}
+  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: true}
+  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: true}
+  ngung_psc_fiber_thang_t_1_cap_to: {enabled: true}
+  ngung_psc_mytv_thang_t_1_cap_to: {enabled: true}
   onebss_hni_pttb_001: {enabled: false, team_id: "0"}
   onebss_bc_phieu_ton_dv_chi_tiet_hni: {enabled: false, team_id: "0"}
   onebss_bc_ton_sua_chua_2026: {enabled: false, team_id: "0"}

@@ -1,1544 +1,1087 @@
--- View layer cho api_transition/report_history.db
--- Gom 3 lop:
--- 1. view quan tri / helper
--- 2. view lich su va moi nhat cho tung nhom nghiep vu
--- 3. view tong hop cho dashboard
+-- View layer cho schema summary per-report-per-sheet
 
 BEGIN;
 
-DROP VIEW IF EXISTS v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao;
-CREATE VIEW v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao AS
+CREATE VIEW IF NOT EXISTS v_bao_cao_tong_hop_moi_nhat_theo_ma_bao_cao AS
 SELECT b.*
-FROM bao_cao_ngay b
+FROM bao_cao_tong_hop_ngay b
 JOIN (
     SELECT ma_bao_cao, MAX(ngay_du_lieu) AS ngay_du_lieu
-    FROM bao_cao_ngay
-    WHERE trang_thai_nap = 'thanh_cong'
+    FROM bao_cao_tong_hop_ngay
+    WHERE trang_thai_nap IN ('thanh_cong', 'khong_co_sheet_tong_hop')
     GROUP BY ma_bao_cao
 ) mx
   ON b.ma_bao_cao = mx.ma_bao_cao
  AND b.ngay_du_lieu = mx.ngay_du_lieu;
 
-DROP VIEW IF EXISTS v_bao_cao_ngay_moi_nhat_toan_bo;
-CREATE VIEW v_bao_cao_ngay_moi_nhat_toan_bo AS
+CREATE VIEW IF NOT EXISTS v_bao_cao_tong_hop_moi_nhat_toan_bo AS
 SELECT *
-FROM bao_cao_ngay
+FROM bao_cao_tong_hop_ngay
 WHERE ngay_du_lieu = (
-    SELECT MAX(ngay_du_lieu) FROM bao_cao_ngay WHERE trang_thai_nap = 'thanh_cong'
+    SELECT MAX(ngay_du_lieu)
+    FROM bao_cao_tong_hop_ngay
+    WHERE trang_thai_nap IN ('thanh_cong', 'khong_co_sheet_tong_hop')
 );
 
-DROP VIEW IF EXISTS v_nhat_ky_nap_gan_nhat;
-CREATE VIEW v_nhat_ky_nap_gan_nhat AS
+CREATE VIEW IF NOT EXISTS v_nhat_ky_nap_tong_hop_gan_nhat AS
 SELECT n.*
-FROM nhat_ky_nap_bao_cao n
+FROM nhat_ky_nap_tong_hop n
 JOIN (
     SELECT ma_bao_cao, MAX(id) AS id_moi_nhat
-    FROM nhat_ky_nap_bao_cao
+    FROM nhat_ky_nap_tong_hop
     GROUP BY ma_bao_cao
 ) mx
   ON n.ma_bao_cao = mx.ma_bao_cao
  AND n.id = mx.id_moi_nhat;
 
-DROP VIEW IF EXISTS v_tien_do_nap_bao_cao;
-CREATE VIEW v_tien_do_nap_bao_cao AS
+CREATE VIEW IF NOT EXISTS v_tong_hop_bang_du_lieu_theo_bao_cao AS
+SELECT
+    ma_bao_cao,
+    COUNT(*) AS so_bang_du_lieu_dang_ky,
+    GROUP_CONCAT(ten_bang_du_lieu, ', ') AS danh_sach_bang_du_lieu
+FROM danh_muc_bang_du_lieu_bao_cao
+GROUP BY ma_bao_cao;
+
+CREATE VIEW IF NOT EXISTS v_tien_do_nap_tong_hop AS
 SELECT
     d.ma_bao_cao,
     d.ten_bao_cao,
     d.nhom_bao_cao,
     d.duong_dan_processed_mac_dinh,
+    g.so_bang_du_lieu_dang_ky,
+    g.danh_sach_bang_du_lieu,
     b.ngay_du_lieu,
     b.trang_thai_nap,
-    b.so_dong_goc,
+    b.so_sheet_tong_hop,
+    b.so_bang_du_lieu,
     b.so_dong_tong_hop,
-    b.so_dong_chi_tiet,
+    b.so_chi_tieu_tong_hop,
+    b.ten_tep_nguon,
+    b.duong_dan_tep_nguon,
     b.ghi_chu,
     n.bat_dau_luc,
     n.ket_thuc_luc,
     n.trang_thai AS trang_thai_nhat_ky,
     n.thong_diep
-FROM danh_muc_bao_cao d
-LEFT JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao b
+FROM danh_muc_bao_cao_tong_hop d
+LEFT JOIN v_tong_hop_bang_du_lieu_theo_bao_cao g
+  ON d.ma_bao_cao = g.ma_bao_cao
+LEFT JOIN v_bao_cao_tong_hop_moi_nhat_theo_ma_bao_cao b
   ON d.ma_bao_cao = b.ma_bao_cao
-LEFT JOIN v_nhat_ky_nap_gan_nhat n
+LEFT JOIN v_nhat_ky_nap_tong_hop_gan_nhat n
   ON d.ma_bao_cao = n.ma_bao_cao;
 
-DROP VIEW IF EXISTS v_sheet_bao_cao_moi_nhat;
-CREATE VIEW v_sheet_bao_cao_moi_nhat AS
-SELECT
-    b.ma_bao_cao,
-    b.ngay_du_lieu,
-    s.*
-FROM sheet_bao_cao s
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao b
-  ON s.bao_cao_ngay_id = b.id;
-
-DROP VIEW IF EXISTS v_dong_bao_cao_goc_moi_nhat;
-CREATE VIEW v_dong_bao_cao_goc_moi_nhat AS
-SELECT
-    b.ma_bao_cao,
-    b.ngay_du_lieu,
-    r.*
-FROM dong_bao_cao_goc r
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao b
-  ON r.bao_cao_ngay_id = b.id;
-
-DROP VIEW IF EXISTS v_tep_luu_tru_moi_nhat;
-CREATE VIEW v_tep_luu_tru_moi_nhat AS
+CREATE VIEW IF NOT EXISTS v_tep_nguon_bao_cao_tong_hop_moi_nhat AS
 SELECT
     b.ma_bao_cao,
     b.ngay_du_lieu,
     t.*
-FROM tep_luu_tru_bao_cao t
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao b
-  ON t.bao_cao_ngay_id = b.id;
+FROM tep_nguon_bao_cao_tong_hop t
+JOIN v_bao_cao_tong_hop_moi_nhat_theo_ma_bao_cao b
+  ON t.bao_cao_tong_hop_ngay_id = b.id;
 
-DROP VIEW IF EXISTS v_c11_tong_hop_lich_su;
-CREATE VIEW v_c11_tong_hop_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM c11_tong_hop t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_c11_tong_hop_moi_nhat;
-CREATE VIEW v_c11_tong_hop_moi_nhat AS
-SELECT v.*
-FROM v_c11_tong_hop_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'chi_tieu_c_c1_1_report';
-
-DROP VIEW IF EXISTS v_c11_nvkt_lich_su;
-CREATE VIEW v_c11_nvkt_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM c11_chi_tiet_nvkt t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_c11_nvkt_moi_nhat;
-CREATE VIEW v_c11_nvkt_moi_nhat AS
-SELECT v.*
-FROM v_c11_nvkt_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'chi_tieu_c_c1_1_chitiet_report';
-
-DROP VIEW IF EXISTS v_c12_tong_hop_lich_su;
-CREATE VIEW v_c12_tong_hop_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM c12_tong_hop t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_c12_tong_hop_moi_nhat;
-CREATE VIEW v_c12_tong_hop_moi_nhat AS
-SELECT v.*
-FROM v_c12_tong_hop_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'chi_tieu_c_c1_2_report';
-
-DROP VIEW IF EXISTS v_c12_nvkt_lich_su;
-CREATE VIEW v_c12_nvkt_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM c12_hong_lap_lai_nvkt t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_c12_nvkt_moi_nhat;
-CREATE VIEW v_c12_nvkt_moi_nhat AS
-SELECT v.*
-FROM v_c12_nvkt_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'chi_tieu_c_c1_2_chitiet_sm1_report';
-
-DROP VIEW IF EXISTS v_c13_tong_hop_lich_su;
-CREATE VIEW v_c13_tong_hop_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM c13_tong_hop t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_c13_tong_hop_moi_nhat;
-CREATE VIEW v_c13_tong_hop_moi_nhat AS
-SELECT v.*
-FROM v_c13_tong_hop_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'chi_tieu_c_c1_3_report';
-
-DROP VIEW IF EXISTS v_c14_tong_hop_lich_su;
-CREATE VIEW v_c14_tong_hop_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM c14_tong_hop t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_c14_tong_hop_moi_nhat;
-CREATE VIEW v_c14_tong_hop_moi_nhat AS
-SELECT v.*
-FROM v_c14_tong_hop_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'chi_tieu_c_c1_4_report';
-
-DROP VIEW IF EXISTS v_c14_nvkt_lich_su;
-CREATE VIEW v_c14_nvkt_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM c14_hai_long_nvkt t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_c14_nvkt_moi_nhat;
-CREATE VIEW v_c14_nvkt_moi_nhat AS
-SELECT v.*
-FROM v_c14_nvkt_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'chi_tieu_c_c1_4_chitiet_report';
-
-DROP VIEW IF EXISTS v_ghtt_don_vi_lich_su;
-CREATE VIEW v_ghtt_don_vi_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM ghtt_don_vi t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_ghtt_don_vi_moi_nhat;
-CREATE VIEW v_ghtt_don_vi_moi_nhat AS
-SELECT v.*
-FROM v_ghtt_don_vi_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m
-  ON v.ma_bao_cao = m.ma_bao_cao
- AND v.ngay_du_lieu = m.ngay_du_lieu;
-
-DROP VIEW IF EXISTS v_ghtt_nvkt_lich_su;
-CREATE VIEW v_ghtt_nvkt_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM ghtt_nvkt t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_ghtt_nvkt_moi_nhat;
-CREATE VIEW v_ghtt_nvkt_moi_nhat AS
-SELECT v.*
-FROM v_ghtt_nvkt_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'ghtt_ghtt_nvktdb_report';
-
-DROP VIEW IF EXISTS v_kpi_nvkt_tong_hop_lich_su;
-CREATE VIEW v_kpi_nvkt_tong_hop_lich_su AS
+CREATE VIEW IF NOT EXISTS v_sheet_bao_cao_tong_hop_moi_nhat AS
 SELECT
-    'c11' AS nhom_chi_tieu,
     b.ma_bao_cao,
     b.ngay_du_lieu,
-    t.don_vi,
-    t.nvkt,
-    t.sm1,
-    t.sm2,
-    t.sm3,
-    t.sm4,
-    NULL AS sm5,
-    NULL AS sm6,
-    t.ty_le_sua_chua_chat_luong_chu_dong AS chi_so_1,
-    'ty_le_sua_chua_chat_luong_chu_dong' AS ten_chi_so_1,
-    t.ty_le_bao_hong_brcd_dung_quy_dinh AS chi_so_2,
-    'ty_le_bao_hong_brcd_dung_quy_dinh' AS ten_chi_so_2,
-    NULL AS chi_so_3,
-    NULL AS ten_chi_so_3,
-    t.chi_tieu_bsc,
-    t.du_lieu_bo_sung_json
-FROM kpi_nvkt_c11 t JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id
-UNION ALL
+    s.*
+FROM sheet_bao_cao_tong_hop s
+JOIN v_bao_cao_tong_hop_moi_nhat_theo_ma_bao_cao b
+  ON s.bao_cao_tong_hop_ngay_id = b.id;
+
+CREATE VIEW IF NOT EXISTS v_danh_muc_bang_du_lieu_bao_cao AS
 SELECT
-    'c12',
-    b.ma_bao_cao,
-    b.ngay_du_lieu,
-    t.don_vi,
-    t.nvkt,
-    t.sm1,
-    t.sm2,
-    t.sm3,
-    t.sm4,
-    NULL,
-    NULL,
-    t.ty_le_hong_lap_lai,
-    'ty_le_hong_lap_lai',
-    t.ty_le_su_co_brcd,
-    'ty_le_su_co_brcd',
-    NULL,
-    NULL,
-    t.chi_tieu_bsc,
-    t.du_lieu_bo_sung_json
-FROM kpi_nvkt_c12 t JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id
-UNION ALL
+    d.ma_bao_cao,
+    d.ten_bao_cao,
+    d.nhom_bao_cao,
+    g.ten_sheet_goc,
+    g.ma_sheet,
+    g.ten_bang_du_lieu,
+    g.che_do_luu_tru,
+    g.tong_so_cot,
+    g.danh_sach_cot_json,
+    g.mo_ta,
+    g.thoi_gian_tao,
+    g.thoi_gian_cap_nhat
+FROM danh_muc_bao_cao_tong_hop d
+JOIN danh_muc_bang_du_lieu_bao_cao g
+  ON d.ma_bao_cao = g.ma_bao_cao;
+
+CREATE VIEW IF NOT EXISTS v_cau_hinh_tu_dong_chi_tiet_th_theo_to AS
 SELECT
-    'c13',
-    b.ma_bao_cao,
-    b.ngay_du_lieu,
-    t.don_vi,
-    t.nvkt,
-    t.sm1,
-    t.sm2,
-    t.sm3,
-    t.sm4,
-    t.sm5,
-    t.sm6,
-    t.ty_le_sua_chua_dung_han,
-    'ty_le_sua_chua_dung_han',
-    t.ty_le_hong_lap_lai_kenh_tsl,
-    'ty_le_hong_lap_lai_kenh_tsl',
-    t.ty_le_su_co_kenh_tsl,
-    'ty_le_su_co_kenh_tsl',
-    t.chi_tieu_bsc,
-    t.du_lieu_bo_sung_json
-FROM kpi_nvkt_c13 t JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
+    "Trung tâm Viễn thông",
+    "Đội Viễn thông",
+    "Tổng hợp đồng",
+    "Lắp mới",
+    "Thay thế",
+    "Cấu hình WAN",
+    "Cấu hình WiFi",
+    "Thành công",
+    "Thất bại",
+    "Chưa có trạng thái",
+    "Tỷ lệ thành công (%)",
+    "Tỷ lệ thất bại (%)"
+FROM "cau_hinh_tu_dong_cau_hinh_tu_dong_chi_tiet_th_theo_to";
 
-DROP VIEW IF EXISTS v_kpi_nvkt_tong_hop_moi_nhat;
-CREATE VIEW v_kpi_nvkt_tong_hop_moi_nhat AS
-SELECT v.*
-FROM v_kpi_nvkt_tong_hop_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.ma_bao_cao = m.ma_bao_cao AND v.ngay_du_lieu = m.ngay_du_lieu;
-
-DROP VIEW IF EXISTS v_ket_qua_tiep_thi_nv_lich_su;
-CREATE VIEW v_ket_qua_tiep_thi_nv_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM ket_qua_tiep_thi_nv t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_ket_qua_tiep_thi_nv_moi_nhat;
-CREATE VIEW v_ket_qua_tiep_thi_nv_moi_nhat AS
-SELECT v.*
-FROM v_ket_qua_tiep_thi_nv_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'kq_tiep_thi_kq_tiep_thi_report';
-
-DROP VIEW IF EXISTS v_ket_qua_tiep_thi_don_vi_lich_su;
-CREATE VIEW v_ket_qua_tiep_thi_don_vi_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM ket_qua_tiep_thi_don_vi t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_ket_qua_tiep_thi_don_vi_moi_nhat;
-CREATE VIEW v_ket_qua_tiep_thi_don_vi_moi_nhat AS
-SELECT v.*
-FROM v_ket_qua_tiep_thi_don_vi_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'kq_tiep_thi_kq_tiep_thi_report';
-
-DROP VIEW IF EXISTS v_hoan_cong_fiber_lich_su;
-CREATE VIEW v_hoan_cong_fiber_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM hoan_cong_fiber t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_hoan_cong_fiber_moi_nhat;
-CREATE VIEW v_hoan_cong_fiber_moi_nhat AS
-SELECT v.*
-FROM v_hoan_cong_fiber_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'phieu_hoan_cong_dich_vu_phieu_hoan_cong_dich_vu_chi_tiet';
-
-DROP VIEW IF EXISTS v_ngung_psc_fiber_lich_su;
-CREATE VIEW v_ngung_psc_fiber_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM ngung_psc_fiber t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_ngung_psc_fiber_moi_nhat;
-CREATE VIEW v_ngung_psc_fiber_moi_nhat AS
-SELECT v.*
-FROM v_ngung_psc_fiber_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'tam_dung_khoi_phuc_dich_vu_tam_dung_khoi_phuc_dich_vu_chi_tiet';
-
-DROP VIEW IF EXISTS v_khoi_phuc_fiber_lich_su;
-CREATE VIEW v_khoi_phuc_fiber_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM khoi_phuc_fiber t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_khoi_phuc_fiber_moi_nhat;
-CREATE VIEW v_khoi_phuc_fiber_moi_nhat AS
-SELECT v.*
-FROM v_khoi_phuc_fiber_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'tam_dung_khoi_phuc_dich_vu_tam_dung_khoi_phuc_dich_vu_chi_tiet_khoi_phuc';
-
-DROP VIEW IF EXISTS v_hoan_cong_mytv_lich_su;
-CREATE VIEW v_hoan_cong_mytv_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM hoan_cong_mytv t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_hoan_cong_mytv_moi_nhat;
-CREATE VIEW v_hoan_cong_mytv_moi_nhat AS
-SELECT v.*
-FROM v_hoan_cong_mytv_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'mytv_dich_vu_mytv_hoan_cong';
-
-DROP VIEW IF EXISTS v_ngung_psc_mytv_lich_su;
-CREATE VIEW v_ngung_psc_mytv_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM ngung_psc_mytv t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_ngung_psc_mytv_moi_nhat;
-CREATE VIEW v_ngung_psc_mytv_moi_nhat AS
-SELECT v.*
-FROM v_ngung_psc_mytv_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'mytv_dich_vu_mytv_ngung_psc';
-
-DROP VIEW IF EXISTS v_thuc_tang_fiber_lich_su;
-CREATE VIEW v_thuc_tang_fiber_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM thuc_tang_fiber t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_thuc_tang_fiber_moi_nhat;
-CREATE VIEW v_thuc_tang_fiber_moi_nhat AS
-SELECT v.*
-FROM v_thuc_tang_fiber_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'thuc_tang_ngung_psc_fiber_thuc_tang';
-
-DROP VIEW IF EXISTS v_thuc_tang_mytv_lich_su;
-CREATE VIEW v_thuc_tang_mytv_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM thuc_tang_mytv t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_thuc_tang_mytv_moi_nhat;
-CREATE VIEW v_thuc_tang_mytv_moi_nhat AS
-SELECT v.*
-FROM v_thuc_tang_mytv_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'mytv_dich_vu_mytv_thuc_tang';
-
-DROP VIEW IF EXISTS v_xac_minh_chi_tiet_lich_su;
-CREATE VIEW v_xac_minh_chi_tiet_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM xac_minh_chi_tiet t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_xac_minh_chi_tiet_moi_nhat;
-CREATE VIEW v_xac_minh_chi_tiet_moi_nhat AS
-SELECT v.*
-FROM v_xac_minh_chi_tiet_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'ty_le_xac_minh_ty_le_xac_minh_dung_thoi_gian_quy_dinh_chi_tiet';
-
-DROP VIEW IF EXISTS v_xac_minh_nvkt_lich_su;
-CREATE VIEW v_xac_minh_nvkt_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM xac_minh_tong_hop_nvkt t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_xac_minh_nvkt_moi_nhat;
-CREATE VIEW v_xac_minh_nvkt_moi_nhat AS
-SELECT v.*
-FROM v_xac_minh_nvkt_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'ty_le_xac_minh_ty_le_xac_minh_dung_thoi_gian_quy_dinh_chi_tiet';
-
-DROP VIEW IF EXISTS v_xac_minh_loai_phieu_lich_su;
-CREATE VIEW v_xac_minh_loai_phieu_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM xac_minh_tong_hop_loai_phieu t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_xac_minh_loai_phieu_moi_nhat;
-CREATE VIEW v_xac_minh_loai_phieu_moi_nhat AS
-SELECT v.*
-FROM v_xac_minh_loai_phieu_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'ty_le_xac_minh_ty_le_xac_minh_dung_thoi_gian_quy_dinh_chi_tiet';
-
-DROP VIEW IF EXISTS v_cau_hinh_tu_dong_chi_tiet_lich_su;
-CREATE VIEW v_cau_hinh_tu_dong_chi_tiet_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM cau_hinh_tu_dong_chi_tiet t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_cau_hinh_tu_dong_chi_tiet_moi_nhat;
-CREATE VIEW v_cau_hinh_tu_dong_chi_tiet_moi_nhat AS
-SELECT *
-FROM v_cau_hinh_tu_dong_chi_tiet_lich_su
-WHERE ngay_du_lieu = (SELECT MAX(ngay_du_lieu) FROM bao_cao_ngay WHERE trang_thai_nap = 'thanh_cong');
-
-DROP VIEW IF EXISTS v_cau_hinh_tu_dong_tong_hop_lich_su;
-CREATE VIEW v_cau_hinh_tu_dong_tong_hop_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM cau_hinh_tu_dong_tong_hop t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_cau_hinh_tu_dong_tong_hop_moi_nhat;
-CREATE VIEW v_cau_hinh_tu_dong_tong_hop_moi_nhat AS
-SELECT *
-FROM v_cau_hinh_tu_dong_tong_hop_lich_su
-WHERE ngay_du_lieu = (SELECT MAX(ngay_du_lieu) FROM bao_cao_ngay WHERE trang_thai_nap = 'thanh_cong');
-
-DROP VIEW IF EXISTS v_tong_hop_loi_cau_hinh_tu_dong_lich_su;
-CREATE VIEW v_tong_hop_loi_cau_hinh_tu_dong_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM tong_hop_loi_cau_hinh_tu_dong t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_tong_hop_loi_cau_hinh_tu_dong_moi_nhat;
-CREATE VIEW v_tong_hop_loi_cau_hinh_tu_dong_moi_nhat AS
-SELECT *
-FROM v_tong_hop_loi_cau_hinh_tu_dong_lich_su
-WHERE ngay_du_lieu = (SELECT MAX(ngay_du_lieu) FROM bao_cao_ngay WHERE trang_thai_nap = 'thanh_cong');
-
-DROP VIEW IF EXISTS v_vat_tu_thu_hoi_lich_su;
-CREATE VIEW v_vat_tu_thu_hoi_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM vat_tu_thu_hoi t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_vat_tu_thu_hoi_moi_nhat;
-CREATE VIEW v_vat_tu_thu_hoi_moi_nhat AS
-SELECT v.*
-FROM v_vat_tu_thu_hoi_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'vat_tu_thu_hoi_bc_thu_hoi_vat_tu';
-
-DROP VIEW IF EXISTS v_chi_tiet_vat_tu_thu_hoi_lich_su;
-CREATE VIEW v_chi_tiet_vat_tu_thu_hoi_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM chi_tiet_vat_tu_thu_hoi t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_chi_tiet_vat_tu_thu_hoi_moi_nhat;
-CREATE VIEW v_chi_tiet_vat_tu_thu_hoi_moi_nhat AS
-SELECT v.*
-FROM v_chi_tiet_vat_tu_thu_hoi_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'vat_tu_thu_hoi_bc_thu_hoi_vat_tu';
-
-DROP VIEW IF EXISTS v_quyet_toan_vat_tu_lich_su;
-CREATE VIEW v_quyet_toan_vat_tu_lich_su AS
-SELECT b.ma_bao_cao, b.ngay_du_lieu, b.thang_bao_cao, b.nam_bao_cao, t.*
-FROM quyet_toan_vat_tu t
-JOIN bao_cao_ngay b ON b.id = t.bao_cao_ngay_id;
-
-DROP VIEW IF EXISTS v_quyet_toan_vat_tu_moi_nhat;
-CREATE VIEW v_quyet_toan_vat_tu_moi_nhat AS
-SELECT v.*
-FROM v_quyet_toan_vat_tu_lich_su v
-JOIN v_bao_cao_ngay_moi_nhat_theo_ma_bao_cao m ON v.bao_cao_ngay_id = m.id
-WHERE m.ma_bao_cao = 'vat_tu_thu_hoi_quyet_toan_vat_tu';
-
-DROP VIEW IF EXISTS v_dashboard_chat_luong_don_vi_moi_nhat;
-CREATE VIEW v_dashboard_chat_luong_don_vi_moi_nhat AS
+CREATE VIEW IF NOT EXISTS v_cau_hinh_tu_dong_chi_tiet_th_theo_nvkt AS
 SELECT
-    'c11' AS nhom_chi_tieu,
-    ngay_du_lieu,
-    don_vi,
-    chi_tieu_bsc,
-    'ty_le_sua_chua_chat_luong_chu_dong' AS ten_chi_so_1,
-    ty_le_sua_chua_chat_luong_chu_dong AS chi_so_1,
-    'ty_le_bao_hong_brcd_dung_quy_dinh' AS ten_chi_so_2,
-    ty_le_bao_hong_brcd_dung_quy_dinh AS chi_so_2,
-    'ty_le_sua_chua_trong_ngay_tai_ccco' AS ten_chi_so_3,
-    ty_le_sua_chua_trong_ngay_tai_ccco AS chi_so_3
-FROM v_c11_tong_hop_moi_nhat
-UNION ALL
-SELECT
-    'c12',
-    ngay_du_lieu,
-    don_vi,
-    chi_tieu_bsc,
-    'ty_le_hong_lap_lai',
-    ty_le_hong_lap_lai,
-    'ty_le_su_co_brcd',
-    ty_le_su_co_brcd,
-    NULL,
-    NULL
-FROM v_c12_tong_hop_moi_nhat
-UNION ALL
-SELECT
-    'c13',
-    ngay_du_lieu,
-    don_vi,
-    chi_tieu_bsc,
-    'ty_le_sua_chua_dung_han',
-    ty_le_sua_chua_dung_han,
-    'ty_le_hong_lap_lai_kenh_tsl',
-    ty_le_hong_lap_lai_kenh_tsl,
-    'ty_le_su_co_kenh_tsl',
-    ty_le_su_co_kenh_tsl
-FROM v_c13_tong_hop_moi_nhat
-UNION ALL
-SELECT
-    'c14',
-    ngay_du_lieu,
-    don_vi,
-    diem_bsc,
-    'ty_le_hai_long_ky_thuat_phuc_vu',
-    ty_le_hai_long_ky_thuat_phuc_vu,
-    'ty_le_hai_long_ky_thuat_dich_vu',
-    ty_le_hai_long_ky_thuat_dich_vu,
-    'ty_le_khach_hang_hai_long',
-    ty_le_khach_hang_hai_long
-FROM v_c14_tong_hop_moi_nhat;
+    "Trung tâm Viễn thông",
+    "Đội Viễn thông",
+    "NVKT",
+    "Tổng hợp đồng",
+    "Lắp mới",
+    "Thay thế",
+    "Cấu hình WAN",
+    "Cấu hình WiFi",
+    "Thành công",
+    "Thất bại",
+    "Chưa có trạng thái",
+    "Tỷ lệ thành công (%)",
+    "Tỷ lệ thất bại (%)"
+FROM "cau_hinh_tu_dong_cau_hinh_tu_dong_chi_tiet_th_theo_nvkt";
 
-DROP VIEW IF EXISTS v_dashboard_kpi_nvkt_moi_nhat;
-CREATE VIEW v_dashboard_kpi_nvkt_moi_nhat AS
-SELECT * FROM v_kpi_nvkt_tong_hop_moi_nhat;
+CREATE VIEW IF NOT EXISTS v_ghtt_hni_kq_hni AS
+SELECT
+    "Đơn vị",
+    "Hoàn thành T",
+    "Giao NVKT T",
+    "Tỷ lệ T",
+    "Hoàn thành T+1",
+    "Giao NVKT T+1",
+    "Tỷ lệ T+1",
+    "SL GHTT >=6T",
+    "Hoàn thành >=6T T+1",
+    "Tỷ lệ >=6T T+1",
+    "Tỷ lệ Tổng"
+FROM "ghtt_ghtt_hni_report_kq_hni";
 
-DROP VIEW IF EXISTS v_dashboard_dich_vu_theo_to_moi_nhat;
-CREATE VIEW v_dashboard_dich_vu_theo_to_moi_nhat AS
-SELECT ngay_du_lieu, 'Fiber' AS loai_dich_vu, 'hoan_cong' AS hanh_dong, ttvt, doi_vien_thong, nvkt, COUNT(*) AS so_luong
-FROM v_hoan_cong_fiber_moi_nhat
-GROUP BY ngay_du_lieu, ttvt, doi_vien_thong, nvkt
-UNION ALL
-SELECT ngay_du_lieu, 'Fiber', 'ngung_psc', ttvt, doi_vien_thong, nvkt, COUNT(*)
-FROM v_ngung_psc_fiber_moi_nhat
-GROUP BY ngay_du_lieu, ttvt, doi_vien_thong, nvkt
-UNION ALL
-SELECT ngay_du_lieu, 'Fiber', 'khoi_phuc', ttvt, doi_vien_thong, nvkt, COUNT(*)
-FROM v_khoi_phuc_fiber_moi_nhat
-GROUP BY ngay_du_lieu, ttvt, doi_vien_thong, nvkt
-UNION ALL
-SELECT ngay_du_lieu, 'MyTV', 'hoan_cong', ten_ttvt AS ttvt, doi_vien_thong, nhan_vien_ky_thuat AS nvkt, COUNT(*)
-FROM v_hoan_cong_mytv_moi_nhat
-GROUP BY ngay_du_lieu, ten_ttvt, doi_vien_thong, nhan_vien_ky_thuat
-UNION ALL
-SELECT ngay_du_lieu, 'MyTV', 'ngung_psc', ten_ttvt AS ttvt, ten_doi AS doi_vien_thong, '' AS nvkt, COUNT(*)
-FROM v_ngung_psc_mytv_moi_nhat
-GROUP BY ngay_du_lieu, ten_ttvt, ten_doi;
+CREATE VIEW IF NOT EXISTS v_ghtt_sontay_kq_sontay AS
+SELECT
+    "Đơn vị",
+    "Hoàn thành T",
+    "Giao NVKT T",
+    "Tỷ lệ T",
+    "Hoàn thành T+1",
+    "Giao NVKT T+1",
+    "Tỷ lệ T+1",
+    "SL GHTT >=6T",
+    "Hoàn thành >=6T T+1",
+    "Tỷ lệ >=6T T+1",
+    "Tỷ lệ Tổng"
+FROM "ghtt_ghtt_sontay_report_kq_sontay";
 
-DROP VIEW IF EXISTS v_dashboard_thuc_tang_moi_nhat;
-CREATE VIEW v_dashboard_thuc_tang_moi_nhat AS
-SELECT ngay_du_lieu, 'Fiber' AS loai_dich_vu, cap_tong_hop, ttvt, doi_vien_thong, nvkt, hoan_cong, ngung_phat_sinh_cuoc, thuc_tang, ty_le_ngung_psc
-FROM v_thuc_tang_fiber_moi_nhat
-UNION ALL
-SELECT ngay_du_lieu, 'MyTV', cap_tong_hop, ttvt, doi_vien_thong, nvkt, hoan_cong, ngung_phat_sinh_cuoc, thuc_tang, ty_le_ngung_psc
-FROM v_thuc_tang_mytv_moi_nhat;
+CREATE VIEW IF NOT EXISTS v_ghtt_nvktdb_kq_nvktdb AS
+SELECT
+    "NVKT",
+    "Đơn vị",
+    "TTVT",
+    "Hoàn thành T",
+    "Giao NVKT T",
+    "Tỷ lệ T",
+    "Hoàn thành T+1",
+    "Giao NVKT T+1",
+    "Tỷ lệ T+1",
+    "SL GHTT >=6T",
+    "Hoàn thành >=6T T+1",
+    "Tỷ lệ >=6T T+1",
+    "Tỷ lệ Tổng"
+FROM "ghtt_ghtt_nvktdb_report_kq_nvktdb";
 
-DROP VIEW IF EXISTS v_dashboard_xac_minh_moi_nhat;
-CREATE VIEW v_dashboard_xac_minh_moi_nhat AS
-SELECT ngay_du_lieu, ttvt, doi_vien_thong, nvkt, so_phieu_xac_minh
-FROM v_xac_minh_nvkt_moi_nhat;
+CREATE VIEW IF NOT EXISTS v_kq_tiep_thi_kq_th AS
+SELECT
+    "STT",
+    "Đơn vị",
+    "Dịch vụ BRCĐ",
+    "Dịch vụ MyTV",
+    "Tổng"
+FROM "kq_tiep_thi_kq_tiep_thi_report_kq_th";
 
-DROP VIEW IF EXISTS v_dashboard_cau_hinh_tu_dong_moi_nhat;
-CREATE VIEW v_dashboard_cau_hinh_tu_dong_moi_nhat AS
+CREATE VIEW IF NOT EXISTS v_kq_tiep_thi_kq_tiep_thi AS
 SELECT
-    ngay_du_lieu,
-    ttvt,
-    don_vi,
-    loai_dong,
-    tong_hop_dong,
-    khong_thuc_hien_cau_hinh_tu_dong,
-    da_day_cau_hinh_tu_dong,
-    khong_day_do_loi_he_thong,
-    khong_day_do_tbi_da_co_cau_hinh,
-    cau_hinh_thanh_cong,
-    ty_le_day_tu_dong,
-    ty_le_tbi_da_co_cau_hinh,
-    ty_le_cau_hinh_thanh_cong
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat;
+    "STT",
+    "Đơn vị",
+    "Mã NV",
+    "Tên NV",
+    "Dịch vụ BRCĐ",
+    "Dịch vụ MyTV",
+    "Tổng"
+FROM "kq_tiep_thi_kq_tiep_thi_report_kq_tiep_thi";
 
-DROP VIEW IF EXISTS v_dashboard_vat_tu_thu_hoi_moi_nhat;
-CREATE VIEW v_dashboard_vat_tu_thu_hoi_moi_nhat AS
+CREATE VIEW IF NOT EXISTS v_tam_dung_khoi_phuc_dich_vu_chi_tiet_combined_tong_hop_theo_nvkt AS
 SELECT
-    ngay_du_lieu,
-    nvkt_dia_ban_giao,
-    loai_vat_tu,
-    trang_thai_thu_hoi,
-    COUNT(*) AS so_luong
-FROM v_vat_tu_thu_hoi_moi_nhat
-GROUP BY ngay_du_lieu, nvkt_dia_ban_giao, loai_vat_tu, trang_thai_thu_hoi;
+    "TTVT",
+    "DOIVT",
+    "NVKT",
+    "Tạm dừng Fiber",
+    "Tạm dừng MyTV",
+    "Khôi phục Fiber",
+    "Khôi phục MyTV",
+    "Chưa khôi phục Fiber",
+    "Chưa khôi phục MyTV"
+FROM "tam_dung_khoi_phuc_dich_vu_tam_dung_khoi_phuc_dich_vu_chi_tiet_combined_tong_hop_theo_nvkt";
 
-DROP VIEW IF EXISTS v_dashboard_quyet_toan_vat_tu_moi_nhat;
-CREATE VIEW v_dashboard_quyet_toan_vat_tu_moi_nhat AS
+CREATE VIEW IF NOT EXISTS v_tam_dung_khoi_phuc_dich_vu_chi_tiet_combined_tong_hop_theo_to AS
 SELECT
-    ngay_du_lieu,
-    loai,
-    SUM(so_luong) AS tong_so_luong,
-    SUM(thanh_tien) AS tong_thanh_tien
-FROM v_quyet_toan_vat_tu_moi_nhat
-GROUP BY ngay_du_lieu, loai;
+    "TTVT",
+    "DOIVT",
+    "Tạm dừng Fiber",
+    "Tạm dừng MyTV",
+    "Khôi phục Fiber",
+    "Khôi phục MyTV",
+    "Chưa khôi phục Fiber",
+    "Chưa khôi phục MyTV"
+FROM "tam_dung_khoi_phuc_dich_vu_tam_dung_khoi_phuc_dich_vu_chi_tiet_combined_tong_hop_theo_to";
 
-DROP VIEW IF EXISTS v_dashboard_ttvt_son_tay_chi_so_don_vi_moi_nhat;
-CREATE VIEW v_dashboard_ttvt_son_tay_chi_so_don_vi_moi_nhat AS
+CREATE VIEW IF NOT EXISTS v_ngung_psc_fiber_thang_t_1_cap_ttvt AS
 SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây' AS ttvt,
-    'chat_luong' AS nhom_du_lieu,
-    nhom_chi_tieu,
-    CASE WHEN don_vi = 'Tổng' THEN 'tong' ELSE 'don_vi' END AS cap_du_lieu,
-    don_vi,
-    NULL AS loai_dich_vu,
-    NULL AS hanh_dong,
-    ten_chi_so_1 AS ten_chi_so,
-    chi_so_1 AS gia_tri_so,
-    chi_tieu_bsc,
-    'v_dashboard_chat_luong_don_vi_moi_nhat' AS nguon_view
-FROM v_dashboard_chat_luong_don_vi_moi_nhat
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'chat_luong',
-    nhom_chi_tieu,
-    CASE WHEN don_vi = 'Tổng' THEN 'tong' ELSE 'don_vi' END,
-    don_vi,
-    NULL,
-    NULL,
-    ten_chi_so_2,
-    chi_so_2,
-    chi_tieu_bsc,
-    'v_dashboard_chat_luong_don_vi_moi_nhat'
-FROM v_dashboard_chat_luong_don_vi_moi_nhat
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'chat_luong',
-    nhom_chi_tieu,
-    CASE WHEN don_vi = 'Tổng' THEN 'tong' ELSE 'don_vi' END,
-    don_vi,
-    NULL,
-    NULL,
-    ten_chi_so_3,
-    chi_so_3,
-    chi_tieu_bsc,
-    'v_dashboard_chat_luong_don_vi_moi_nhat'
-FROM v_dashboard_chat_luong_don_vi_moi_nhat
-WHERE ten_chi_so_3 IS NOT NULL
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'chat_luong',
-    nhom_chi_tieu,
-    CASE WHEN don_vi = 'Tổng' THEN 'tong' ELSE 'don_vi' END,
-    don_vi,
-    NULL,
-    NULL,
-    'chi_tieu_bsc',
-    chi_tieu_bsc,
-    chi_tieu_bsc,
-    'v_dashboard_chat_luong_don_vi_moi_nhat'
-FROM v_dashboard_chat_luong_don_vi_moi_nhat
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    ttvt,
-    'ghtt',
-    'ghtt',
-    CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-    don_vi,
-    NULL,
-    NULL,
-    'hoan_thanh_t',
-    hoan_thanh_t,
-    ty_le_tong,
-    'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'giao_nvkt_t', giao_nvkt_t, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'ty_le_t', ty_le_t, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'hoan_thanh_t_cong_1', hoan_thanh_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'giao_nvkt_t_cong_1', giao_nvkt_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'ty_le_t_cong_1', ty_le_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'so_luong_ghtt_lon_hon_6_thang', so_luong_ghtt_lon_hon_6_thang, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'hoan_thanh_lon_hon_6_thang_t_cong_1', hoan_thanh_lon_hon_6_thang_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'ty_le_lon_hon_6_thang_t_cong_1', ty_le_lon_hon_6_thang_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt',
-       CASE WHEN don_vi = ttvt OR don_vi = 'Tổng' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'ty_le_tong', ty_le_tong, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'ket_qua_tiep_thi',
-    'ket_qua_tiep_thi',
-    'don_vi',
-    don_vi,
-    NULL,
-    NULL,
-    'dich_vu_brcd',
-    dich_vu_brcd,
-    tong,
-    'v_ket_qua_tiep_thi_don_vi_moi_nhat'
-FROM v_ket_qua_tiep_thi_don_vi_moi_nhat
-UNION ALL
-SELECT ngay_du_lieu, 'TTVT Sơn Tây', 'ket_qua_tiep_thi', 'ket_qua_tiep_thi',
-       'don_vi', don_vi, NULL, NULL, 'dich_vu_mytv', dich_vu_mytv, tong, 'v_ket_qua_tiep_thi_don_vi_moi_nhat'
-FROM v_ket_qua_tiep_thi_don_vi_moi_nhat
-UNION ALL
-SELECT ngay_du_lieu, 'TTVT Sơn Tây', 'ket_qua_tiep_thi', 'ket_qua_tiep_thi',
-       'don_vi', don_vi, NULL, NULL, 'tong', tong, tong, 'v_ket_qua_tiep_thi_don_vi_moi_nhat'
-FROM v_ket_qua_tiep_thi_don_vi_moi_nhat
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    ttvt,
-    'dich_vu',
-    hanh_dong,
-    'don_vi',
-    doi_vien_thong,
-    loai_dich_vu,
-    hanh_dong,
-    loai_dich_vu || '_' || hanh_dong || '_so_luong',
-    so_luong,
-    so_luong,
-    'v_dashboard_dich_vu_theo_to_moi_nhat'
-FROM v_dashboard_dich_vu_theo_to_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    ttvt,
-    'thuc_tang',
-    loai_dich_vu,
-    CASE WHEN cap_tong_hop = 'to' THEN 'don_vi' ELSE cap_tong_hop END,
-    doi_vien_thong,
-    loai_dich_vu,
-    NULL,
-    'hoan_cong',
-    hoan_cong,
-    thuc_tang,
-    'v_dashboard_thuc_tang_moi_nhat'
-FROM v_dashboard_thuc_tang_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND cap_tong_hop = 'to'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'thuc_tang', loai_dich_vu,
-       CASE WHEN cap_tong_hop = 'to' THEN 'don_vi' ELSE cap_tong_hop END,
-       doi_vien_thong, loai_dich_vu, NULL, 'ngung_phat_sinh_cuoc', ngung_phat_sinh_cuoc, thuc_tang, 'v_dashboard_thuc_tang_moi_nhat'
-FROM v_dashboard_thuc_tang_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND cap_tong_hop = 'to'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'thuc_tang', loai_dich_vu,
-       CASE WHEN cap_tong_hop = 'to' THEN 'don_vi' ELSE cap_tong_hop END,
-       doi_vien_thong, loai_dich_vu, NULL, 'thuc_tang', thuc_tang, thuc_tang, 'v_dashboard_thuc_tang_moi_nhat'
-FROM v_dashboard_thuc_tang_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND cap_tong_hop = 'to'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'thuc_tang', loai_dich_vu,
-       CASE WHEN cap_tong_hop = 'to' THEN 'don_vi' ELSE cap_tong_hop END,
-       doi_vien_thong, loai_dich_vu, NULL, 'ty_le_ngung_psc', ty_le_ngung_psc, thuc_tang, 'v_dashboard_thuc_tang_moi_nhat'
-FROM v_dashboard_thuc_tang_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND cap_tong_hop = 'to'
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'xac_minh',
-    'xac_minh',
-    'don_vi',
-    doi_vien_thong,
-    NULL,
-    NULL,
-    'so_phieu_xac_minh',
-    SUM(so_phieu_xac_minh),
-    SUM(so_phieu_xac_minh),
-    'v_dashboard_xac_minh_moi_nhat'
-FROM v_dashboard_xac_minh_moi_nhat
-WHERE ttvt LIKE '%Sơn Tây%'
-GROUP BY ngay_du_lieu, doi_vien_thong
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    ttvt,
-    'cau_hinh_tu_dong',
-    CASE
-        WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-        WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-        ELSE loai_dong
-    END,
-    CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-    don_vi,
-    NULL,
-    NULL,
-    'tong_hop_dong',
-    tong_hop_dong,
-    cau_hinh_thanh_cong,
-    'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'khong_thuc_hien_cau_hinh_tu_dong', khong_thuc_hien_cau_hinh_tu_dong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'da_day_cau_hinh_tu_dong', da_day_cau_hinh_tu_dong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'khong_day_do_loi_he_thong', khong_day_do_loi_he_thong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'khong_day_do_tbi_da_co_cau_hinh', khong_day_do_tbi_da_co_cau_hinh, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'cau_hinh_thanh_cong', cau_hinh_thanh_cong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'ty_le_day_tu_dong', ty_le_day_tu_dong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'ty_le_tbi_da_co_cau_hinh', ty_le_tbi_da_co_cau_hinh, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       CASE WHEN loai_dong = 'TTVT' THEN 'ttvt' ELSE 'don_vi' END,
-       don_vi, NULL, NULL, 'ty_le_cau_hinh_thanh_cong', ty_le_cau_hinh_thanh_cong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây';
+    "Đơn vị/Nhân viên KT",
+    "Phát triển mới | Yêu cầu(*) | Lắp mới",
+    "Phát triển mới | Yêu cầu(*) | Phục hủy",
+    "Phát triển mới | Yêu cầu(*) | Lũy kế tháng",
+    "Phát triển mới | Yêu cầu(*) | Lũy kế năm",
+    "Phát triển mới | Hoàn công | Hoàn công(*) (1.5)",
+    "Phát triển mới | Hoàn công | Lũy kế tháng(1.6)",
+    "Phát triển mới | Hoàn công | Lũy kế năm(1.7)",
+    "Phát triển mới | Tồn(trong tháng)",
+    "Phát triển mới | Tồn(lũy kế)",
+    "Số liệu hủy | Số thuê bao(*)(2.1)",
+    "Số liệu hủy | Lũy kế tháng(2.2)",
+    "Số liệu hủy | Lũy kế năm(2.3)",
+    "Số liệu hủy | Số TB hủy trong tòa nhà(*)(2.4)",
+    "Số liệu Phát sinh cước | TB PSC tháng chọn(hoặc tháng T-1)(3.1)",
+    "Số liệu Phát sinh cước | TB PSC tháng lũy kế năm(3.2)",
+    "Số liệu Phát sinh cước | Hủy trong tháng PSC chọn(3.3)",
+    "Số liệu Phát sinh cước | Hủy lũy kế PSC(3.4)",
+    "Số liệu Phát sinh cước | TB PSC tháng trước(hoặc tháng T-2)(3.5)",
+    "Số liệu Phát sinh cước | PSC thực tăng LK tháng T-1(3.6)",
+    "Số liệu tạm dừng | Số thuê bao dừng trong ngày(*)",
+    "Số liệu tạm dừng | Tổng số thuê bao có trạng thái tạm dừng tính đến ngày (*)",
+    "Số liệu tạm dừng | Tạm dừng lũy kế tháng",
+    "Chỉ tiêu thuê bao ngưng PSC | TB PSC thực tăng tháng chọn(4.1)(Cột 3.1 - 3.5)",
+    "Chỉ tiêu thuê bao ngưng PSC | TB ngưng PSC tháng(4.2)(cột 1.6 - 4.1)",
+    "Chỉ tiêu thuê bao ngưng PSC | SL TB PSC năm trước(4.3)",
+    "Chỉ tiêu thuê bao ngưng PSC | SLTB thực tăng lũy kế năm(4.4)",
+    "Chỉ tiêu thuê bao ngưng PSC | TB Ngưng PSC lũy kế năm(4.6) (4.7-4.4)",
+    "Chỉ tiêu thuê bao ngưng PSC | PTM lũy kế năm đến tháng PSC(4.7)",
+    "Chỉ tiêu thuê bao ngưng PSC | Tỷ lệ % TB ngưng PSC/Thuê bao PTM(4.8) (cột 4.2/1.6)",
+    "Chỉ tiêu thuê bao ngưng PSC | Tỷ lệ % TB ngưng PSC/Thuê bao PSC(4.9)(cột 4.2/3.1)",
+    "Chỉ tiêu thuê bao ngưng PSC | Tỷ lệ % ngưng PSC/PTM Lũy kế Năm(4.9.1)(cột 4.6/4.7)",
+    "Chỉ tiêu thuê bao ngưng PSC | Tỷ lệ % ngưng PSC Lũy kế năm(4.9.2)(cột 4.6/3.2)",
+    "Chỉ tiêu tạm tính tháng T | Ngưng PSC tạm tính tháng T(5.1)",
+    "Chỉ tiêu tạm tính tháng T | Thuê bao PSC tạm tính đến ngày thứ N của tháng T",
+    "Chỉ tiêu tạm tính tháng T | Số tb tạm dừng các tháng T-2, T-3 đã khôi phục tính đến ngày N của tháng T",
+    "Chỉ tiêu tạm tính tháng T | Tỷ lệ Ngưng PSC/PTM tạm tính tháng T(5.2)",
+    "Chỉ tiêu tạm tính tháng T | Tỷ lệ Ngưng PSC/PTM tạm tính lũy kế tháng T(5.3)"
+FROM "tam_dung_khoi_phuc_dich_vu_ngung_psc_fiber_thang_t_1_cap_ttvt_th_ngung_psc_thang_t_1";
 
-DROP VIEW IF EXISTS v_dashboard_ttvt_son_tay_tong_hop_moi_nhat;
-CREATE VIEW v_dashboard_ttvt_son_tay_tong_hop_moi_nhat AS
+CREATE VIEW IF NOT EXISTS v_ngung_psc_mytv_thang_t_1_cap_ttvt AS
 SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây' AS ttvt,
-    'chat_luong' AS nhom_du_lieu,
-    nhom_chi_tieu,
-    'TTVT Sơn Tây' AS don_vi,
-    ten_chi_so_1 AS ten_chi_so,
-    chi_so_1 AS gia_tri_so,
-    chi_tieu_bsc,
-    'v_dashboard_chat_luong_don_vi_moi_nhat' AS nguon_view
-FROM v_dashboard_chat_luong_don_vi_moi_nhat
-WHERE don_vi = 'Tổng'
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'chat_luong',
-    nhom_chi_tieu,
-    'TTVT Sơn Tây',
-    ten_chi_so_2,
-    chi_so_2,
-    chi_tieu_bsc,
-    'v_dashboard_chat_luong_don_vi_moi_nhat'
-FROM v_dashboard_chat_luong_don_vi_moi_nhat
-WHERE don_vi = 'Tổng'
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'chat_luong',
-    nhom_chi_tieu,
-    'TTVT Sơn Tây',
-    ten_chi_so_3,
-    chi_so_3,
-    chi_tieu_bsc,
-    'v_dashboard_chat_luong_don_vi_moi_nhat'
-FROM v_dashboard_chat_luong_don_vi_moi_nhat
-WHERE don_vi = 'Tổng' AND ten_chi_so_3 IS NOT NULL
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'chat_luong',
-    nhom_chi_tieu,
-    'TTVT Sơn Tây',
-    'chi_tieu_bsc',
-    chi_tieu_bsc,
-    chi_tieu_bsc,
-    'v_dashboard_chat_luong_don_vi_moi_nhat'
-FROM v_dashboard_chat_luong_don_vi_moi_nhat
-WHERE don_vi = 'Tổng'
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    ttvt,
-    'ghtt',
-    'ghtt',
-    'TTVT Sơn Tây',
-    'hoan_thanh_t',
-    hoan_thanh_t,
-    ty_le_tong,
-    'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'giao_nvkt_t', giao_nvkt_t, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'ty_le_t', ty_le_t, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'hoan_thanh_t_cong_1', hoan_thanh_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'giao_nvkt_t_cong_1', giao_nvkt_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'ty_le_t_cong_1', ty_le_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'so_luong_ghtt_lon_hon_6_thang', so_luong_ghtt_lon_hon_6_thang, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'hoan_thanh_lon_hon_6_thang_t_cong_1', hoan_thanh_lon_hon_6_thang_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'ty_le_lon_hon_6_thang_t_cong_1', ty_le_lon_hon_6_thang_t_cong_1, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'ghtt', 'ghtt', 'TTVT Sơn Tây', 'ty_le_tong', ty_le_tong, ty_le_tong, 'v_ghtt_don_vi_moi_nhat'
-FROM v_ghtt_don_vi_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND don_vi = 'TTVT Sơn Tây'
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'ket_qua_tiep_thi',
-    'ket_qua_tiep_thi',
-    'TTVT Sơn Tây',
-    'dich_vu_brcd',
-    SUM(dich_vu_brcd),
-    SUM(tong),
-    'v_ket_qua_tiep_thi_don_vi_moi_nhat'
-FROM v_ket_qua_tiep_thi_don_vi_moi_nhat
-GROUP BY ngay_du_lieu
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'ket_qua_tiep_thi',
-    'ket_qua_tiep_thi',
-    'TTVT Sơn Tây',
-    'dich_vu_mytv',
-    SUM(dich_vu_mytv),
-    SUM(tong),
-    'v_ket_qua_tiep_thi_don_vi_moi_nhat'
-FROM v_ket_qua_tiep_thi_don_vi_moi_nhat
-GROUP BY ngay_du_lieu
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'ket_qua_tiep_thi',
-    'ket_qua_tiep_thi',
-    'TTVT Sơn Tây',
-    'tong',
-    SUM(tong),
-    SUM(tong),
-    'v_ket_qua_tiep_thi_don_vi_moi_nhat'
-FROM v_ket_qua_tiep_thi_don_vi_moi_nhat
-GROUP BY ngay_du_lieu
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'dich_vu',
-    loai_dich_vu,
-    'TTVT Sơn Tây',
-    loai_dich_vu || '_' || hanh_dong || '_so_luong',
-    SUM(so_luong),
-    SUM(so_luong),
-    'v_dashboard_dich_vu_theo_to_moi_nhat'
-FROM v_dashboard_dich_vu_theo_to_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây'
-GROUP BY ngay_du_lieu, loai_dich_vu, hanh_dong
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'thuc_tang',
-    loai_dich_vu,
-    'TTVT Sơn Tây',
-    'hoan_cong',
-    SUM(hoan_cong),
-    SUM(thuc_tang),
-    'v_dashboard_thuc_tang_moi_nhat'
-FROM v_dashboard_thuc_tang_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND cap_tong_hop = 'to'
-GROUP BY ngay_du_lieu, loai_dich_vu
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'thuc_tang',
-    loai_dich_vu,
-    'TTVT Sơn Tây',
-    'ngung_phat_sinh_cuoc',
-    SUM(ngung_phat_sinh_cuoc),
-    SUM(thuc_tang),
-    'v_dashboard_thuc_tang_moi_nhat'
-FROM v_dashboard_thuc_tang_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND cap_tong_hop = 'to'
-GROUP BY ngay_du_lieu, loai_dich_vu
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'thuc_tang',
-    loai_dich_vu,
-    'TTVT Sơn Tây',
-    'thuc_tang',
-    SUM(thuc_tang),
-    SUM(thuc_tang),
-    'v_dashboard_thuc_tang_moi_nhat'
-FROM v_dashboard_thuc_tang_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND cap_tong_hop = 'to'
-GROUP BY ngay_du_lieu, loai_dich_vu
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'thuc_tang',
-    loai_dich_vu,
-    'TTVT Sơn Tây',
-    'ty_le_ngung_psc',
-    CASE
-        WHEN SUM(COALESCE(hoan_cong, 0)) = 0 THEN NULL
-        ELSE ROUND(SUM(COALESCE(ngung_phat_sinh_cuoc, 0)) * 100.0 / SUM(COALESCE(hoan_cong, 0)), 2)
-    END,
-    SUM(thuc_tang),
-    'v_dashboard_thuc_tang_moi_nhat'
-FROM v_dashboard_thuc_tang_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND cap_tong_hop = 'to'
-GROUP BY ngay_du_lieu, loai_dich_vu
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    'TTVT Sơn Tây',
-    'xac_minh',
-    'xac_minh',
-    'TTVT Sơn Tây',
-    'so_phieu_xac_minh',
-    SUM(so_phieu_xac_minh),
-    SUM(so_phieu_xac_minh),
-    'v_dashboard_xac_minh_moi_nhat'
-FROM v_dashboard_xac_minh_moi_nhat
-WHERE ttvt LIKE '%Sơn Tây%'
-GROUP BY ngay_du_lieu
-UNION ALL
-SELECT
-    ngay_du_lieu,
-    ttvt,
-    'cau_hinh_tu_dong',
-    CASE
-        WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-        WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-        ELSE loai_dong
-    END,
-    'TTVT Sơn Tây',
-    'tong_hop_dong',
-    tong_hop_dong,
-    cau_hinh_thanh_cong,
-    'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       'TTVT Sơn Tây', 'khong_thuc_hien_cau_hinh_tu_dong', khong_thuc_hien_cau_hinh_tu_dong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       'TTVT Sơn Tây', 'da_day_cau_hinh_tu_dong', da_day_cau_hinh_tu_dong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       'TTVT Sơn Tây', 'khong_day_do_loi_he_thong', khong_day_do_loi_he_thong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       'TTVT Sơn Tây', 'khong_day_do_tbi_da_co_cau_hinh', khong_day_do_tbi_da_co_cau_hinh, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       'TTVT Sơn Tây', 'cau_hinh_thanh_cong', cau_hinh_thanh_cong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       'TTVT Sơn Tây', 'ty_le_day_tu_dong', ty_le_day_tu_dong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       'TTVT Sơn Tây', 'ty_le_tbi_da_co_cau_hinh', ty_le_tbi_da_co_cau_hinh, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT'
-UNION ALL
-SELECT ngay_du_lieu, ttvt, 'cau_hinh_tu_dong',
-       CASE
-           WHEN ma_bao_cao LIKE '%_ptm' THEN 'ptm'
-           WHEN ma_bao_cao LIKE '%_thay_the' THEN 'thay_the'
-           ELSE loai_dong
-       END,
-       'TTVT Sơn Tây', 'ty_le_cau_hinh_thanh_cong', ty_le_cau_hinh_thanh_cong, cau_hinh_thanh_cong, 'v_cau_hinh_tu_dong_tong_hop_moi_nhat'
-FROM v_cau_hinh_tu_dong_tong_hop_moi_nhat
-WHERE ttvt = 'TTVT Sơn Tây' AND loai_dong = 'TTVT';
+    "Đơn vị/Nhân viên KT",
+    "Phát triển mới | Yêu cầu(*) | Lắp mới",
+    "Phát triển mới | Yêu cầu(*) | Phục hủy",
+    "Phát triển mới | Yêu cầu(*) | Lũy kế tháng",
+    "Phát triển mới | Yêu cầu(*) | Lũy kế năm",
+    "Phát triển mới | Hoàn công | Hoàn công(*) (1.5)",
+    "Phát triển mới | Hoàn công | Lũy kế tháng(1.6)",
+    "Phát triển mới | Hoàn công | Lũy kế năm(1.7)",
+    "Phát triển mới | Tồn(trong tháng)",
+    "Phát triển mới | Tồn(lũy kế)",
+    "Số liệu hủy | Số thuê bao(*)(2.1)",
+    "Số liệu hủy | Lũy kế tháng(2.2)",
+    "Số liệu hủy | Lũy kế năm(2.3)",
+    "Số liệu hủy | Số TB hủy trong tòa nhà(*)(2.4)",
+    "Số liệu Phát sinh cước | TB PSC tháng chọn(hoặc tháng T-1)(3.1)",
+    "Số liệu Phát sinh cước | TB PSC tháng lũy kế năm(3.2)",
+    "Số liệu Phát sinh cước | Hủy trong tháng PSC chọn(3.3)",
+    "Số liệu Phát sinh cước | Hủy lũy kế PSC(3.4)",
+    "Số liệu Phát sinh cước | TB PSC tháng trước(hoặc tháng T-2)(3.5)",
+    "Số liệu Phát sinh cước | PSC thực tăng LK tháng T-1(3.6)",
+    "Số liệu tạm dừng | Số thuê bao dừng trong ngày(*)",
+    "Số liệu tạm dừng | Tổng số thuê bao có trạng thái tạm dừng tính đến ngày (*)",
+    "Số liệu tạm dừng | Tạm dừng lũy kế tháng",
+    "Chỉ tiêu thuê bao ngưng PSC | TB PSC thực tăng tháng chọn(4.1)(Cột 3.1 - 3.5)",
+    "Chỉ tiêu thuê bao ngưng PSC | TB ngưng PSC tháng(4.2)(cột 1.6 - 4.1)",
+    "Chỉ tiêu thuê bao ngưng PSC | SL TB PSC năm trước(4.3)",
+    "Chỉ tiêu thuê bao ngưng PSC | SLTB thực tăng lũy kế năm(4.4)",
+    "Chỉ tiêu thuê bao ngưng PSC | TB Ngưng PSC lũy kế năm(4.6) (4.7-4.4)",
+    "Chỉ tiêu thuê bao ngưng PSC | PTM lũy kế năm đến tháng PSC(4.7)",
+    "Chỉ tiêu thuê bao ngưng PSC | Tỷ lệ % TB ngưng PSC/Thuê bao PTM(4.8) (cột 4.2/1.6)",
+    "Chỉ tiêu thuê bao ngưng PSC | Tỷ lệ % TB ngưng PSC/Thuê bao PSC(4.9)(cột 4.2/3.1)",
+    "Chỉ tiêu thuê bao ngưng PSC | Tỷ lệ % ngưng PSC/PTM Lũy kế Năm(4.9.1)(cột 4.6/4.7)",
+    "Chỉ tiêu thuê bao ngưng PSC | Tỷ lệ % ngưng PSC Lũy kế năm(4.9.2)(cột 4.6/3.2)",
+    "Chỉ tiêu tạm tính tháng T | Ngưng PSC tạm tính tháng T(5.1)",
+    "Chỉ tiêu tạm tính tháng T | Thuê bao PSC tạm tính đến ngày thứ N của tháng T",
+    "Chỉ tiêu tạm tính tháng T | Số tb tạm dừng các tháng T-2, T-3 đã khôi phục tính đến ngày N của tháng T",
+    "Chỉ tiêu tạm tính tháng T | Tỷ lệ Ngưng PSC/PTM tạm tính tháng T(5.2)",
+    "Chỉ tiêu tạm tính tháng T | Tỷ lệ Ngưng PSC/PTM tạm tính lũy kế tháng T(5.3)"
+FROM "tam_dung_khoi_phuc_dich_vu_ngung_psc_mytv_thang_t_1_cap_ttvt_th_ngung_psc_thang_t_1";
 
-DROP VIEW IF EXISTS v_dashboard_chi_so_nvkt_moi_nhat;
-CREATE VIEW v_dashboard_chi_so_nvkt_moi_nhat AS
-SELECT *
-FROM (
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_1_chitiet_report_chi_tiet AS
+SELECT
+    "TEN_DOI",
+    "NVKT",
+    "Tổng phiếu",
+    "Số phiếu đạt",
+    "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn"
+FROM "chi_tieu_c_c1_1_chitiet_report_chi_tiet";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_1_chitiet_report_chi_tieu_ko_hen_18h AS
+SELECT
+    "TEN_DOI",
+    "NVKT",
+    "Tổng phiếu",
+    "Số phiếu đạt",
+    "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn"
+FROM "chi_tieu_c_c1_1_chitiet_report_chi_tieu_ko_hen_18h";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_1_report_th_c1_1 AS
+SELECT
+    "Đơn vị",
+    "SM1",
+    "SM2",
+    "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu",
+    "SM3",
+    "SM4",
+    "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn",
+    "SM5",
+    "SM6",
+    "Tỷ lệ phiếu sửa chữa trong ngày tại CCCO",
+    "Chỉ tiêu BSC"
+FROM "chi_tieu_c_c1_1_report_th_c1_1";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_2_chitiet_sm1_report_th_sm1c12_hll_thang AS
+SELECT
+    "TEN_DOI",
+    "NVKT",
+    "Số phiếu HLL",
+    "Số phiếu báo hỏng",
+    "Tỉ lệ HLL tháng (2.5%)"
+FROM "chi_tieu_c_c1_2_chitiet_sm1_report_th_sm1c12_hll_thang";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_2_report_th_c1_2 AS
+SELECT
+    "Đơn vị",
+    "SM1",
+    "SM2",
+    "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại",
+    "SM3",
+    "SM4",
+    "Tỷ lệ sự cố dịch vụ BRCĐ",
+    "Chỉ tiêu BSC"
+FROM "chi_tieu_c_c1_2_report_th_c1_2";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_3_report_th_c1_3 AS
+SELECT
+    "Đơn vị",
+    "SM1",
+    "SM2",
+    "Tỷ lệ sửa chữa dịch vụ kênh TSL hoàn thành đúng thời gian quy định",
+    "SM3",
+    "SM4",
+    "Tỷ lệ thuê bao báo hỏng dịch vụ kênh TSL lặp lại",
+    "SM5",
+    "SM6",
+    "Tỷ lệ sự cố dịch vụ kênh TSL",
+    "Chỉ tiêu BSC"
+FROM "chi_tieu_c_c1_3_report_th_c1_3";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_4_chitiet_report_th_hl_nvkt AS
+SELECT
+    "DOIVT",
+    "NVKT",
+    "Tổng phiếu KS thành công",
+    "Tổng phiếu KHL",
+    "Tỉ lệ HL NVKT (%)"
+FROM "chi_tieu_c_c1_4_chitiet_report_th_hl_nvkt";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_4_report_th_c1_4 AS
+SELECT
+    "Đơn vị",
+    "Tổng phiếu",
+    "SL đã KS",
+    "SL KS thành công",
+    "SL KH hài lòng",
+    "Không HL KT phục vụ",
+    "Tỷ lệ HL KT phục vụ",
+    "Không HL KT dịch vụ",
+    "Tỷ lệ HL KT dịch vụ",
+    "Tổng phiếu hài lòng KT",
+    "Tỷ lệ KH hài lòng",
+    "Điểm BSC"
+FROM "chi_tieu_c_c1_4_report_th_c1_4";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_c_c1_5_report_th_c1_5 AS
+SELECT
+    "Đơn vị",
+    "Tổng - SM1",
+    "Tổng - SM2",
+    "Tổng - KQ thực hiện chỉ tiêu",
+    "Tổng - Điểm BSC",
+    "CCCO - SM1",
+    "CCCO - SM2",
+    "CCCO - Tỷ lệ",
+    "CCCO - Điểm BSC",
+    "Không CCCO - SM1",
+    "Không CCCO - SM2",
+    "Không CCCO - Tỷ lệ",
+    "Không CCCO - Điểm BSC",
+    "CCCO xã hội hóa - SM1",
+    "CCCO xã hội hóa - SM2"
+FROM "chi_tieu_c_c1_5_report_th_c1_5";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_i_i1_5_k2_report_bien_dong_tong_hop AS
+SELECT
+    "TT",
+    "Đơn vị",
+    "NVKT_DB",
+    "Tổng số hiện tại",
+    "Tăng mới",
+    "Giảm/Hết",
+    "Vẫn còn",
+    "Số TB quản lý",
+    "Tỉ lệ SHC (%)"
+FROM "chi_tieu_i_i1_5_k2_report_bien_dong_tong_hop";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_i_i1_5_k2_report_shc_theo_sa AS
+SELECT
+    "TT",
+    "SA",
+    "Số lượng"
+FROM "chi_tieu_i_i1_5_k2_report_shc_theo_sa";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_i_i1_5_k2_report_th_shc_i15 AS
+SELECT
+    "TT",
+    "Đơn vị",
+    "NVKT_DB",
+    "Số TB Suy hao cao K2",
+    "Số TB quản lý",
+    "Tỉ lệ SHC (%)"
+FROM "chi_tieu_i_i1_5_k2_report_th_shc_i15";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_i_i1_5_k2_report_th_shc_theo_to AS
+SELECT
+    "TT",
+    "Đơn vị",
+    "Số TB Suy hao cao K2",
+    "Số TB quản lý",
+    "Tỉ lệ SHC (%)"
+FROM "chi_tieu_i_i1_5_k2_report_th_shc_theo_to";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_i_i1_5_report_bien_dong_tong_hop AS
+SELECT
+    "TT",
+    "Đơn vị",
+    "NVKT_DB",
+    "Tổng số hiện tại",
+    "Tăng mới",
+    "Giảm/Hết",
+    "Vẫn còn",
+    "Số TB quản lý",
+    "Tỉ lệ SHC (%)"
+FROM "chi_tieu_i_i1_5_report_bien_dong_tong_hop";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_i_i1_5_report_shc_theo_sa AS
+SELECT
+    "TT",
+    "SA",
+    "Số lượng"
+FROM "chi_tieu_i_i1_5_report_shc_theo_sa";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_i_i1_5_report_th_shc_i15 AS
+SELECT
+    "TT",
+    "Đơn vị",
+    "NVKT_DB",
+    "Số TB Suy hao cao K1",
+    "Số TB quản lý",
+    "Tỉ lệ SHC (%)"
+FROM "chi_tieu_i_i1_5_report_th_shc_i15";
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_i_i1_5_report_th_shc_theo_to AS
+SELECT
+    "TT",
+    "Đơn vị",
+    "Số TB Suy hao cao K1",
+    "Số TB quản lý",
+    "Tỉ lệ SHC (%)"
+FROM "chi_tieu_i_i1_5_report_th_shc_theo_to";
+
+CREATE VIEW IF NOT EXISTS v_nvkt_tong_hop_da_nguon AS
+WITH
+c11 AS (
     SELECT
-        ngay_du_lieu,
-        NULL AS ttvt,
-        don_vi,
-        nvkt,
-        'kpi_nvkt' AS nhom_du_lieu,
-        nhom_chi_tieu,
-        'sm1' AS ten_chi_so,
-        CAST(sm1 AS REAL) AS gia_tri_so,
-        chi_tieu_bsc,
-        NULL AS loai_dich_vu,
-        NULL AS hanh_dong,
-        'v_dashboard_kpi_nvkt_moi_nhat' AS nguon_view
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, 'sm2', CAST(sm2 AS REAL), chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, 'sm3', CAST(sm3 AS REAL), chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, 'sm4', CAST(sm4 AS REAL), chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, 'sm5', CAST(sm5 AS REAL), chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, 'sm6', CAST(sm6 AS REAL), chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, ten_chi_so_1, chi_so_1, chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, ten_chi_so_2, chi_so_2, chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, ten_chi_so_3, chi_so_3, chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'kpi_nvkt', nhom_chi_tieu, 'chi_tieu_bsc', chi_tieu_bsc, chi_tieu_bsc, NULL, NULL, 'v_dashboard_kpi_nvkt_moi_nhat'
-    FROM v_dashboard_kpi_nvkt_moi_nhat
-    UNION ALL
+        TRIM("NVKT") AS nhan_vien,
+        "TEN_DOI" AS to_doi,
+        "Tổng phiếu" AS c11_tong_phieu,
+        "Số phiếu đạt" AS c11_so_phieu_dat,
+        "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn" AS c11_ty_le
+    FROM "chi_tieu_c_c1_1_chitiet_report_chi_tiet"
+    WHERE TRIM(COALESCE("NVKT", '')) <> ''
+      AND TRIM("NVKT") <> 'Tổng'
+),
+c12_sm1 AS (
     SELECT
-        ngay_du_lieu,
-        NULL AS ttvt,
-        doi_vien_thong AS don_vi,
-        nvkt,
-        'hai_long_nvkt' AS nhom_du_lieu,
-        'c14' AS nhom_chi_tieu,
-        'tong_phieu_khao_sat_thanh_cong' AS ten_chi_so,
-        CAST(tong_phieu_khao_sat_thanh_cong AS REAL) AS gia_tri_so,
-        ty_le_hai_long_nvkt AS chi_tieu_bsc,
-        NULL AS loai_dich_vu,
-        NULL AS hanh_dong,
-        'v_c14_nvkt_moi_nhat' AS nguon_view
-    FROM v_c14_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, doi_vien_thong, nvkt, 'hai_long_nvkt', 'c14', 'tong_phieu_khong_hai_long', CAST(tong_phieu_khong_hai_long AS REAL), ty_le_hai_long_nvkt, NULL, NULL, 'v_c14_nvkt_moi_nhat'
-    FROM v_c14_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, doi_vien_thong, nvkt, 'hai_long_nvkt', 'c14', 'ty_le_hai_long_nvkt', ty_le_hai_long_nvkt, ty_le_hai_long_nvkt, NULL, NULL, 'v_c14_nvkt_moi_nhat'
-    FROM v_c14_nvkt_moi_nhat
-    UNION ALL
+        TRIM("NVKT") AS nhan_vien,
+        "TEN_DOI" AS to_doi,
+        "Số phiếu HLL" AS c12_sm1_so_phieu_hll,
+        "Số phiếu báo hỏng" AS c12_sm1_so_phieu_bao_hong,
+        "Tỉ lệ HLL tháng (2.5%)" AS c12_sm1_ty_le_hll
+    FROM "chi_tieu_c_c1_2_chitiet_sm1_report_th_sm1c12_hll_thang"
+    WHERE TRIM(COALESCE("NVKT", '')) <> ''
+      AND TRIM("NVKT") <> 'Tổng'
+),
+c14 AS (
     SELECT
-        ngay_du_lieu,
-        NULL AS ttvt,
-        don_vi,
-        nvkt,
-        'ghtt' AS nhom_du_lieu,
-        'ghtt' AS nhom_chi_tieu,
-        'hoan_thanh_t' AS ten_chi_so,
-        CAST(hoan_thanh_t AS REAL) AS gia_tri_so,
-        ty_le_tong AS chi_tieu_bsc,
-        NULL AS loai_dich_vu,
-        NULL AS hanh_dong,
-        'v_ghtt_nvkt_moi_nhat' AS nguon_view
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'giao_nvkt_t', CAST(giao_nvkt_t AS REAL), ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'ty_le_t', ty_le_t, ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'hoan_thanh_t_cong_1', CAST(hoan_thanh_t_cong_1 AS REAL), ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'giao_nvkt_t_cong_1', CAST(giao_nvkt_t_cong_1 AS REAL), ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'ty_le_t_cong_1', ty_le_t_cong_1, ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'so_luong_ghtt_lon_hon_6_thang', CAST(so_luong_ghtt_lon_hon_6_thang AS REAL), ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'hoan_thanh_lon_hon_6_thang_t_cong_1', CAST(hoan_thanh_lon_hon_6_thang_t_cong_1 AS REAL), ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'ty_le_lon_hon_6_thang_t_cong_1', ty_le_lon_hon_6_thang_t_cong_1, ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, nvkt, 'ghtt', 'ghtt', 'ty_le_tong', ty_le_tong, ty_le_tong, NULL, NULL, 'v_ghtt_nvkt_moi_nhat'
-    FROM v_ghtt_nvkt_moi_nhat
-    UNION ALL
+        TRIM("NVKT") AS nhan_vien,
+        "DOIVT" AS to_doi,
+        "Tổng phiếu KS thành công" AS c14_tong_phieu_ks_thanh_cong,
+        "Tổng phiếu KHL" AS c14_tong_phieu_khl,
+        "Tỉ lệ HL NVKT (%)" AS c14_ty_le_hl
+    FROM "chi_tieu_c_c1_4_chitiet_report_th_hl_nvkt"
+    WHERE TRIM(COALESCE("NVKT", '')) <> ''
+      AND TRIM("NVKT") <> 'Tổng'
+),
+i15_k1 AS (
     SELECT
-        ngay_du_lieu,
-        NULL AS ttvt,
-        don_vi,
-        ten_nv AS nvkt,
-        'ket_qua_tiep_thi' AS nhom_du_lieu,
-        'ket_qua_tiep_thi' AS nhom_chi_tieu,
-        'dich_vu_brcd' AS ten_chi_so,
-        CAST(dich_vu_brcd AS REAL) AS gia_tri_so,
-        tong AS chi_tieu_bsc,
-        NULL AS loai_dich_vu,
-        NULL AS hanh_dong,
-        'v_ket_qua_tiep_thi_nv_moi_nhat' AS nguon_view
-    FROM v_ket_qua_tiep_thi_nv_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, ten_nv, 'ket_qua_tiep_thi', 'ket_qua_tiep_thi', 'dich_vu_mytv', CAST(dich_vu_mytv AS REAL), tong, NULL, NULL, 'v_ket_qua_tiep_thi_nv_moi_nhat'
-    FROM v_ket_qua_tiep_thi_nv_moi_nhat
-    UNION ALL
-    SELECT ngay_du_lieu, NULL, don_vi, ten_nv, 'ket_qua_tiep_thi', 'ket_qua_tiep_thi', 'tong', CAST(tong AS REAL), tong, NULL, NULL, 'v_ket_qua_tiep_thi_nv_moi_nhat'
-    FROM v_ket_qua_tiep_thi_nv_moi_nhat
-    UNION ALL
+        TRIM("NVKT_DB") AS nhan_vien,
+        "Đơn vị" AS to_doi,
+        "Số TB Suy hao cao K1" AS i15_k1_so_tb_shc,
+        "Số TB quản lý" AS i15_k1_so_tb_quan_ly,
+        "Tỉ lệ SHC (%)" AS i15_k1_ty_le_shc
+    FROM "chi_tieu_i_i1_5_report_th_shc_i15"
+    WHERE TRIM(COALESCE("NVKT_DB", '')) <> ''
+      AND TRIM("NVKT_DB") <> 'Tổng'
+),
+i15_k2 AS (
     SELECT
-        ngay_du_lieu,
-        ttvt,
-        doi_vien_thong AS don_vi,
-        nvkt,
-        'dich_vu' AS nhom_du_lieu,
-        loai_dich_vu AS nhom_chi_tieu,
-        loai_dich_vu || '_' || hanh_dong || '_so_luong' AS ten_chi_so,
-        CAST(so_luong AS REAL) AS gia_tri_so,
-        so_luong AS chi_tieu_bsc,
-        loai_dich_vu,
-        hanh_dong,
-        'v_dashboard_dich_vu_theo_to_moi_nhat' AS nguon_view
-    FROM v_dashboard_dich_vu_theo_to_moi_nhat
-    WHERE TRIM(COALESCE(nvkt, '')) <> ''
-    UNION ALL
+        TRIM("NVKT_DB") AS nhan_vien,
+        "Đơn vị" AS to_doi,
+        "Số TB Suy hao cao K2" AS i15_k2_so_tb_shc,
+        "Số TB quản lý" AS i15_k2_so_tb_quan_ly,
+        "Tỉ lệ SHC (%)" AS i15_k2_ty_le_shc
+    FROM "chi_tieu_i_i1_5_k2_report_th_shc_i15"
+    WHERE TRIM(COALESCE("NVKT_DB", '')) <> ''
+      AND TRIM("NVKT_DB") <> 'Tổng'
+),
+ghtt AS (
     SELECT
-        ngay_du_lieu,
-        ttvt,
-        doi_vien_thong AS don_vi,
-        nvkt,
-        'thuc_tang' AS nhom_du_lieu,
-        loai_dich_vu AS nhom_chi_tieu,
-        'hoan_cong' AS ten_chi_so,
-        hoan_cong AS gia_tri_so,
-        thuc_tang AS chi_tieu_bsc,
-        loai_dich_vu,
-        NULL AS hanh_dong,
-        'v_dashboard_thuc_tang_moi_nhat' AS nguon_view
-    FROM v_dashboard_thuc_tang_moi_nhat
-    WHERE cap_tong_hop = 'nvkt' AND TRIM(COALESCE(nvkt, '')) <> ''
-    UNION ALL
-    SELECT ngay_du_lieu, ttvt, doi_vien_thong, nvkt, 'thuc_tang', loai_dich_vu, 'ngung_phat_sinh_cuoc', ngung_phat_sinh_cuoc, thuc_tang, loai_dich_vu, NULL, 'v_dashboard_thuc_tang_moi_nhat'
-    FROM v_dashboard_thuc_tang_moi_nhat
-    WHERE cap_tong_hop = 'nvkt' AND TRIM(COALESCE(nvkt, '')) <> ''
-    UNION ALL
-    SELECT ngay_du_lieu, ttvt, doi_vien_thong, nvkt, 'thuc_tang', loai_dich_vu, 'thuc_tang', thuc_tang, thuc_tang, loai_dich_vu, NULL, 'v_dashboard_thuc_tang_moi_nhat'
-    FROM v_dashboard_thuc_tang_moi_nhat
-    WHERE cap_tong_hop = 'nvkt' AND TRIM(COALESCE(nvkt, '')) <> ''
-    UNION ALL
-    SELECT ngay_du_lieu, ttvt, doi_vien_thong, nvkt, 'thuc_tang', loai_dich_vu, 'ty_le_ngung_psc', ty_le_ngung_psc, thuc_tang, loai_dich_vu, NULL, 'v_dashboard_thuc_tang_moi_nhat'
-    FROM v_dashboard_thuc_tang_moi_nhat
-    WHERE cap_tong_hop = 'nvkt' AND TRIM(COALESCE(nvkt, '')) <> ''
-    UNION ALL
+        TRIM("NVKT") AS nhan_vien,
+        "Đơn vị" AS to_doi,
+        "TTVT" AS ttvt,
+        "Hoàn thành T" AS ghtt_hoan_thanh_t,
+        "Giao NVKT T" AS ghtt_giao_nvkt_t,
+        "Tỷ lệ T" AS ghtt_ty_le_t,
+        "Hoàn thành T+1" AS ghtt_hoan_thanh_t1,
+        "Giao NVKT T+1" AS ghtt_giao_nvkt_t1,
+        "Tỷ lệ T+1" AS ghtt_ty_le_t1,
+        "SL GHTT >=6T" AS ghtt_sl_6t,
+        "Hoàn thành >=6T T+1" AS ghtt_hoan_thanh_6t_t1,
+        "Tỷ lệ >=6T T+1" AS ghtt_ty_le_6t_t1,
+        "Tỷ lệ Tổng" AS ghtt_ty_le_tong
+    FROM "ghtt_ghtt_nvktdb_report_kq_nvktdb"
+    WHERE TRIM(COALESCE("NVKT", '')) <> ''
+      AND TRIM("NVKT") <> 'Tổng'
+),
+kpi_c11 AS (
     SELECT
-        ngay_du_lieu,
-        ttvt,
-        doi_vien_thong AS don_vi,
-        nvkt,
-        'xac_minh' AS nhom_du_lieu,
-        'xac_minh' AS nhom_chi_tieu,
-        'so_phieu_xac_minh' AS ten_chi_so,
-        CAST(so_phieu_xac_minh AS REAL) AS gia_tri_so,
-        so_phieu_xac_minh AS chi_tieu_bsc,
-        NULL AS loai_dich_vu,
-        NULL AS hanh_dong,
-        'v_dashboard_xac_minh_moi_nhat' AS nguon_view
-    FROM v_dashboard_xac_minh_moi_nhat
-    UNION ALL
+        TRIM("NVKT") AS nhan_vien,
+        "đơn vị" AS to_doi,
+        "SM1" AS kpi_c11_sm1,
+        "SM2" AS kpi_c11_sm2,
+        "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu" AS kpi_c11_ty_le_dat_yeu_cau,
+        "SM3" AS kpi_c11_sm3,
+        "SM4" AS kpi_c11_sm4,
+        "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn" AS kpi_c11_ty_le_dung_hen,
+        "Chỉ tiêu BSC" AS kpi_c11_chi_tieu_bsc
+    FROM "kpi_nvkt_c11_nvktdb_report_c11_kpi_nvkt"
+    WHERE TRIM(COALESCE("NVKT", '')) <> ''
+      AND TRIM("NVKT") <> 'Tổng'
+),
+kpi_c12 AS (
     SELECT
-        ngay_du_lieu,
-        ttvt,
-        doi_vien_thong AS don_vi,
-        nvkt,
-        'cau_hinh_tu_dong' AS nhom_du_lieu,
-        CASE
-            WHEN TRIM(COALESCE(loai_cau_hinh, '')) = '' THEN 'khong_xac_dinh'
-            ELSE loai_cau_hinh
-        END AS nhom_chi_tieu,
-        CASE
-            WHEN TRIM(COALESCE(trang_thai_chuan_hoa, '')) = '' THEN 'khong_co_trang_thai'
-            ELSE trang_thai_chuan_hoa
-        END AS ten_chi_so,
-        CAST(COUNT(*) AS REAL) AS gia_tri_so,
-        CAST(COUNT(*) AS REAL) AS chi_tieu_bsc,
-        NULL AS loai_dich_vu,
-        NULL AS hanh_dong,
-        'v_cau_hinh_tu_dong_chi_tiet_moi_nhat' AS nguon_view
-    FROM v_cau_hinh_tu_dong_chi_tiet_moi_nhat
-    WHERE TRIM(COALESCE(nvkt, '')) <> ''
-    GROUP BY ngay_du_lieu, ttvt, doi_vien_thong, nvkt, loai_cau_hinh, trang_thai_chuan_hoa
-    UNION ALL
+        TRIM("NVKT") AS nhan_vien,
+        "đơn vị" AS to_doi,
+        "SM1" AS kpi_c12_sm1,
+        "SM2" AS kpi_c12_sm2,
+        "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại" AS kpi_c12_ty_le_lap_lai,
+        "SM3" AS kpi_c12_sm3,
+        "SM4" AS kpi_c12_sm4,
+        "Tỷ lệ sự cố dịch vụ BRCĐ" AS kpi_c12_ty_le_su_co,
+        "Chỉ tiêu BSC" AS kpi_c12_chi_tieu_bsc
+    FROM "kpi_nvkt_c12_nvktdb_report_c12_kpi_nvkt"
+    WHERE TRIM(COALESCE("NVKT", '')) <> ''
+      AND TRIM("NVKT") <> 'Tổng'
+),
+kq_tiep_thi AS (
     SELECT
-        ngay_du_lieu,
-        NULL AS ttvt,
-        NULL AS don_vi,
-        nvkt_dia_ban_giao AS nvkt,
-        'vat_tu_thu_hoi' AS nhom_du_lieu,
-        CASE
-            WHEN TRIM(COALESCE(loai_vat_tu, '')) = '' THEN 'khong_xac_dinh'
-            ELSE loai_vat_tu
-        END AS nhom_chi_tieu,
-        CASE
-            WHEN TRIM(COALESCE(trang_thai_thu_hoi, '')) = '' THEN 'so_luong'
-            ELSE trang_thai_thu_hoi
-        END AS ten_chi_so,
-        CAST(so_luong AS REAL) AS gia_tri_so,
-        so_luong AS chi_tieu_bsc,
-        NULL AS loai_dich_vu,
-        NULL AS hanh_dong,
-        'v_dashboard_vat_tu_thu_hoi_moi_nhat' AS nguon_view
-    FROM v_dashboard_vat_tu_thu_hoi_moi_nhat
-    WHERE TRIM(COALESCE(nvkt_dia_ban_giao, '')) <> ''
+        TRIM("Tên NV") AS nhan_vien,
+        "Đơn vị" AS to_doi,
+        "Mã NV" AS ma_nv,
+        "Dịch vụ BRCĐ" AS kqtt_brcd,
+        "Dịch vụ MyTV" AS kqtt_mytv,
+        "Tổng" AS kqtt_tong
+    FROM "kq_tiep_thi_kq_tiep_thi_report_kq_tiep_thi"
+    WHERE TRIM(COALESCE("Tên NV", '')) <> ''
+      AND TRIM("Tên NV") <> 'Tổng'
+),
+keys AS (
+    SELECT nhan_vien FROM c11
+    UNION
+    SELECT nhan_vien FROM c12_sm1
+    UNION
+    SELECT nhan_vien FROM c14
+    UNION
+    SELECT nhan_vien FROM i15_k1
+    UNION
+    SELECT nhan_vien FROM i15_k2
+    UNION
+    SELECT nhan_vien FROM ghtt
+    UNION
+    SELECT nhan_vien FROM kpi_c11
+    UNION
+    SELECT nhan_vien FROM kpi_c12
+    UNION
+    SELECT nhan_vien FROM kq_tiep_thi
 )
-WHERE TRIM(COALESCE(nvkt, '')) <> ''
-  AND gia_tri_so IS NOT NULL;
+SELECT
+    keys.nhan_vien AS nvkt_hoac_ten_nv,
+    COALESCE(
+        c11.to_doi,
+        c12_sm1.to_doi,
+        c14.to_doi,
+        i15_k1.to_doi,
+        i15_k2.to_doi,
+        ghtt.to_doi,
+        kpi_c11.to_doi,
+        kpi_c12.to_doi,
+        kq_tiep_thi.to_doi
+    ) AS to_doi_hoac_don_vi,
+    ghtt.ttvt,
+    kq_tiep_thi.ma_nv,
+    c11.c11_tong_phieu,
+    c11.c11_so_phieu_dat,
+    c11.c11_ty_le,
+    c12_sm1.c12_sm1_so_phieu_hll,
+    c12_sm1.c12_sm1_so_phieu_bao_hong,
+    c12_sm1.c12_sm1_ty_le_hll,
+    c14.c14_tong_phieu_ks_thanh_cong,
+    c14.c14_tong_phieu_khl,
+    c14.c14_ty_le_hl,
+    i15_k1.i15_k1_so_tb_shc,
+    i15_k1.i15_k1_so_tb_quan_ly,
+    i15_k1.i15_k1_ty_le_shc,
+    i15_k2.i15_k2_so_tb_shc,
+    i15_k2.i15_k2_so_tb_quan_ly,
+    i15_k2.i15_k2_ty_le_shc,
+    ghtt.ghtt_hoan_thanh_t,
+    ghtt.ghtt_giao_nvkt_t,
+    ghtt.ghtt_ty_le_t,
+    ghtt.ghtt_hoan_thanh_t1,
+    ghtt.ghtt_giao_nvkt_t1,
+    ghtt.ghtt_ty_le_t1,
+    ghtt.ghtt_sl_6t,
+    ghtt.ghtt_hoan_thanh_6t_t1,
+    ghtt.ghtt_ty_le_6t_t1,
+    ghtt.ghtt_ty_le_tong,
+    kpi_c11.kpi_c11_sm1,
+    kpi_c11.kpi_c11_sm2,
+    kpi_c11.kpi_c11_ty_le_dat_yeu_cau,
+    kpi_c11.kpi_c11_sm3,
+    kpi_c11.kpi_c11_sm4,
+    kpi_c11.kpi_c11_ty_le_dung_hen,
+    kpi_c11.kpi_c11_chi_tieu_bsc,
+    kpi_c12.kpi_c12_sm1,
+    kpi_c12.kpi_c12_sm2,
+    kpi_c12.kpi_c12_ty_le_lap_lai,
+    kpi_c12.kpi_c12_sm3,
+    kpi_c12.kpi_c12_sm4,
+    kpi_c12.kpi_c12_ty_le_su_co,
+    kpi_c12.kpi_c12_chi_tieu_bsc,
+    kq_tiep_thi.kqtt_brcd,
+    kq_tiep_thi.kqtt_mytv,
+    kq_tiep_thi.kqtt_tong
+FROM keys
+LEFT JOIN c11 ON c11.nhan_vien = keys.nhan_vien
+LEFT JOIN c12_sm1 ON c12_sm1.nhan_vien = keys.nhan_vien
+LEFT JOIN c14 ON c14.nhan_vien = keys.nhan_vien
+LEFT JOIN i15_k1 ON i15_k1.nhan_vien = keys.nhan_vien
+LEFT JOIN i15_k2 ON i15_k2.nhan_vien = keys.nhan_vien
+LEFT JOIN ghtt ON ghtt.nhan_vien = keys.nhan_vien
+LEFT JOIN kpi_c11 ON kpi_c11.nhan_vien = keys.nhan_vien
+LEFT JOIN kpi_c12 ON kpi_c12.nhan_vien = keys.nhan_vien
+LEFT JOIN kq_tiep_thi ON kq_tiep_thi.nhan_vien = keys.nhan_vien
+ORDER BY keys.nhan_vien;
+
+CREATE VIEW IF NOT EXISTS v_don_vi_tong_hop_da_nguon AS
+WITH
+c11 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "SM1" AS c11_sm1,
+        "SM2" AS c11_sm2,
+        "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu" AS c11_ty_le_dat_yeu_cau,
+        "SM3" AS c11_sm3,
+        "SM4" AS c11_sm4,
+        "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn" AS c11_ty_le_dung_hen,
+        "SM5" AS c11_sm5,
+        "SM6" AS c11_sm6,
+        "Tỷ lệ phiếu sửa chữa trong ngày tại CCCO" AS c11_ty_le_ccco,
+        "Chỉ tiêu BSC" AS c11_chi_tieu_bsc
+    FROM "chi_tieu_c_c1_1_report_th_c1_1"
+),
+c12 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "SM1" AS c12_sm1,
+        "SM2" AS c12_sm2,
+        "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại" AS c12_ty_le_lap_lai,
+        "SM3" AS c12_sm3,
+        "SM4" AS c12_sm4,
+        "Tỷ lệ sự cố dịch vụ BRCĐ" AS c12_ty_le_su_co,
+        "Chỉ tiêu BSC" AS c12_chi_tieu_bsc
+    FROM "chi_tieu_c_c1_2_report_th_c1_2"
+),
+c13 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "SM1" AS c13_sm1,
+        "SM2" AS c13_sm2,
+        "Tỷ lệ sửa chữa dịch vụ kênh TSL hoàn thành đúng thời gian quy định" AS c13_ty_le_dung_hen,
+        "SM3" AS c13_sm3,
+        "SM4" AS c13_sm4,
+        "Tỷ lệ thuê bao báo hỏng dịch vụ kênh TSL lặp lại" AS c13_ty_le_lap_lai,
+        "SM5" AS c13_sm5,
+        "SM6" AS c13_sm6,
+        "Tỷ lệ sự cố dịch vụ kênh TSL" AS c13_ty_le_su_co,
+        "Chỉ tiêu BSC" AS c13_chi_tieu_bsc
+    FROM "chi_tieu_c_c1_3_report_th_c1_3"
+),
+c14 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Tổng phiếu" AS c14_tong_phieu,
+        "SL đã KS" AS c14_sl_da_ks,
+        "SL KS thành công" AS c14_sl_ks_thanh_cong,
+        "SL KH hài lòng" AS c14_sl_kh_hai_long,
+        "Không HL KT phục vụ" AS c14_khong_hl_kt_phuc_vu,
+        "Tỷ lệ HL KT phục vụ" AS c14_ty_le_hl_kt_phuc_vu,
+        "Không HL KT dịch vụ" AS c14_khong_hl_kt_dich_vu,
+        "Tỷ lệ HL KT dịch vụ" AS c14_ty_le_hl_kt_dich_vu,
+        "Tổng phiếu hài lòng KT" AS c14_tong_phieu_hai_long_kt,
+        "Tỷ lệ KH hài lòng" AS c14_ty_le_kh_hai_long,
+        "Điểm BSC" AS c14_diem_bsc
+    FROM "chi_tieu_c_c1_4_report_th_c1_4"
+),
+c15 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Tổng - SM1" AS c15_tong_sm1,
+        "Tổng - SM2" AS c15_tong_sm2,
+        "Tổng - KQ thực hiện chỉ tiêu" AS c15_tong_kq_thuc_hien,
+        "Tổng - Điểm BSC" AS c15_tong_diem_bsc,
+        "CCCO - SM1" AS c15_ccco_sm1,
+        "CCCO - SM2" AS c15_ccco_sm2,
+        "CCCO - Tỷ lệ" AS c15_ccco_ty_le,
+        "CCCO - Điểm BSC" AS c15_ccco_diem_bsc,
+        "Không CCCO - SM1" AS c15_khong_ccco_sm1,
+        "Không CCCO - SM2" AS c15_khong_ccco_sm2,
+        "Không CCCO - Tỷ lệ" AS c15_khong_ccco_ty_le,
+        "Không CCCO - Điểm BSC" AS c15_khong_ccco_diem_bsc,
+        "CCCO xã hội hóa - SM1" AS c15_ccco_xhh_sm1,
+        "CCCO xã hội hóa - SM2" AS c15_ccco_xhh_sm2
+    FROM "chi_tieu_c_c1_5_report_th_c1_5"
+),
+ghtt AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Hoàn thành T" AS ghtt_hoan_thanh_t,
+        "Giao NVKT T" AS ghtt_giao_nvkt_t,
+        "Tỷ lệ T" AS ghtt_ty_le_t,
+        "Hoàn thành T+1" AS ghtt_hoan_thanh_t1,
+        "Giao NVKT T+1" AS ghtt_giao_nvkt_t1,
+        "Tỷ lệ T+1" AS ghtt_ty_le_t1,
+        "SL GHTT >=6T" AS ghtt_sl_6t,
+        "Hoàn thành >=6T T+1" AS ghtt_hoan_thanh_6t_t1,
+        "Tỷ lệ >=6T T+1" AS ghtt_ty_le_6t_t1,
+        "Tỷ lệ Tổng" AS ghtt_ty_le_tong
+    FROM "ghtt_ghtt_sontay_report_kq_sontay"
+),
+cau_hinh AS (
+    SELECT
+        "Đội Viễn thông" AS don_vi,
+        "Trung tâm Viễn thông" AS cau_hinh_ttvt,
+        "Tổng hợp đồng" AS cau_hinh_tong_hop_dong,
+        "Lắp mới" AS cau_hinh_lap_moi,
+        "Thay thế" AS cau_hinh_thay_the,
+        "Cấu hình WAN" AS cau_hinh_wan,
+        "Cấu hình WiFi" AS cau_hinh_wifi,
+        "Thành công" AS cau_hinh_thanh_cong,
+        "Thất bại" AS cau_hinh_that_bai,
+        "Chưa có trạng thái" AS cau_hinh_chua_co_trang_thai,
+        "Tỷ lệ thành công (%)" AS cau_hinh_ty_le_thanh_cong,
+        "Tỷ lệ thất bại (%)" AS cau_hinh_ty_le_that_bai
+    FROM "cau_hinh_tu_dong_cau_hinh_tu_dong_chi_tiet_th_theo_to"
+),
+kq_tiep_thi AS (
+    SELECT
+        CASE TRIM("Đơn vị")
+            WHEN 'Tổ Phúc Thọ' THEN 'Tổ Kỹ thuật Địa bàn Phúc Thọ'
+            WHEN 'Tổ Quảng oai' THEN 'Tổ Kỹ thuật Địa bàn Quảng Oai'
+            WHEN 'Tổ Sơn Tây' THEN 'Tổ Kỹ thuật Địa bàn Sơn Tây'
+            WHEN 'Tổ Suối Hai' THEN 'Tổ Kỹ thuật Địa bàn Suối hai'
+            ELSE TRIM("Đơn vị")
+        END AS don_vi,
+        "Dịch vụ BRCĐ" AS kqtt_brcd,
+        "Dịch vụ MyTV" AS kqtt_mytv,
+        "Tổng" AS kqtt_tong
+    FROM "kq_tiep_thi_kq_tiep_thi_report_kq_th"
+),
+keys AS (
+    SELECT don_vi FROM c11
+    UNION
+    SELECT don_vi FROM c12
+    UNION
+    SELECT don_vi FROM c13
+    UNION
+    SELECT don_vi FROM c14
+    UNION
+    SELECT don_vi FROM c15
+    UNION
+    SELECT don_vi FROM ghtt
+    UNION
+    SELECT don_vi FROM cau_hinh
+    UNION
+    SELECT don_vi FROM kq_tiep_thi
+)
+SELECT
+    keys.don_vi AS don_vi,
+    cau_hinh.cau_hinh_ttvt,
+    c11.c11_sm1,
+    c11.c11_sm2,
+    c11.c11_ty_le_dat_yeu_cau,
+    c11.c11_sm3,
+    c11.c11_sm4,
+    c11.c11_ty_le_dung_hen,
+    c11.c11_sm5,
+    c11.c11_sm6,
+    c11.c11_ty_le_ccco,
+    c11.c11_chi_tieu_bsc,
+    c12.c12_sm1,
+    c12.c12_sm2,
+    c12.c12_ty_le_lap_lai,
+    c12.c12_sm3,
+    c12.c12_sm4,
+    c12.c12_ty_le_su_co,
+    c12.c12_chi_tieu_bsc,
+    c13.c13_sm1,
+    c13.c13_sm2,
+    c13.c13_ty_le_dung_hen,
+    c13.c13_sm3,
+    c13.c13_sm4,
+    c13.c13_ty_le_lap_lai,
+    c13.c13_sm5,
+    c13.c13_sm6,
+    c13.c13_ty_le_su_co,
+    c13.c13_chi_tieu_bsc,
+    c14.c14_tong_phieu,
+    c14.c14_sl_da_ks,
+    c14.c14_sl_ks_thanh_cong,
+    c14.c14_sl_kh_hai_long,
+    c14.c14_khong_hl_kt_phuc_vu,
+    c14.c14_ty_le_hl_kt_phuc_vu,
+    c14.c14_khong_hl_kt_dich_vu,
+    c14.c14_ty_le_hl_kt_dich_vu,
+    c14.c14_tong_phieu_hai_long_kt,
+    c14.c14_ty_le_kh_hai_long,
+    c14.c14_diem_bsc,
+    c15.c15_tong_sm1,
+    c15.c15_tong_sm2,
+    c15.c15_tong_kq_thuc_hien,
+    c15.c15_tong_diem_bsc,
+    c15.c15_ccco_sm1,
+    c15.c15_ccco_sm2,
+    c15.c15_ccco_ty_le,
+    c15.c15_ccco_diem_bsc,
+    c15.c15_khong_ccco_sm1,
+    c15.c15_khong_ccco_sm2,
+    c15.c15_khong_ccco_ty_le,
+    c15.c15_khong_ccco_diem_bsc,
+    c15.c15_ccco_xhh_sm1,
+    c15.c15_ccco_xhh_sm2,
+    ghtt.ghtt_hoan_thanh_t,
+    ghtt.ghtt_giao_nvkt_t,
+    ghtt.ghtt_ty_le_t,
+    ghtt.ghtt_hoan_thanh_t1,
+    ghtt.ghtt_giao_nvkt_t1,
+    ghtt.ghtt_ty_le_t1,
+    ghtt.ghtt_sl_6t,
+    ghtt.ghtt_hoan_thanh_6t_t1,
+    ghtt.ghtt_ty_le_6t_t1,
+    ghtt.ghtt_ty_le_tong,
+    cau_hinh.cau_hinh_tong_hop_dong,
+    cau_hinh.cau_hinh_lap_moi,
+    cau_hinh.cau_hinh_thay_the,
+    cau_hinh.cau_hinh_wan,
+    cau_hinh.cau_hinh_wifi,
+    cau_hinh.cau_hinh_thanh_cong,
+    cau_hinh.cau_hinh_that_bai,
+    cau_hinh.cau_hinh_chua_co_trang_thai,
+    cau_hinh.cau_hinh_ty_le_thanh_cong,
+    cau_hinh.cau_hinh_ty_le_that_bai,
+    kq_tiep_thi.kqtt_brcd,
+    kq_tiep_thi.kqtt_mytv,
+    kq_tiep_thi.kqtt_tong
+FROM keys
+LEFT JOIN c11 ON c11.don_vi = keys.don_vi
+LEFT JOIN c12 ON c12.don_vi = keys.don_vi
+LEFT JOIN c13 ON c13.don_vi = keys.don_vi
+LEFT JOIN c14 ON c14.don_vi = keys.don_vi
+LEFT JOIN c15 ON c15.don_vi = keys.don_vi
+LEFT JOIN ghtt ON ghtt.don_vi = keys.don_vi
+LEFT JOIN cau_hinh ON cau_hinh.don_vi = keys.don_vi
+LEFT JOIN kq_tiep_thi ON kq_tiep_thi.don_vi = keys.don_vi
+WHERE keys.don_vi IN (
+    'Tổ Kỹ thuật Địa bàn Phúc Thọ',
+    'Tổ Kỹ thuật Địa bàn Quảng Oai',
+    'Tổ Kỹ thuật Địa bàn Sơn Tây',
+    'Tổ Kỹ thuật Địa bàn Suối hai'
+)
+ORDER BY keys.don_vi;
+
+DROP VIEW IF EXISTS "chi tieu BSC-KPI cac to";
+
+CREATE VIEW IF NOT EXISTS "chi tieu BSC-KPI cac to" AS
+WITH
+c11 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu" AS c11_ty_le_sua_chua_chu_dong,
+        "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn" AS c11_ty_le_brcd_dung_quy_dinh,
+        "Tỷ lệ phiếu sửa chữa trong ngày tại CCCO" AS c11_ty_le_ccco,
+        "Chỉ tiêu BSC" AS c11_chi_tieu_bsc
+    FROM "chi_tieu_c_c1_1_report_th_c1_1"
+),
+c12 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại" AS c12_ty_le_lap_lai,
+        "Tỷ lệ sự cố dịch vụ BRCĐ" AS c12_ty_le_su_co,
+        "Chỉ tiêu BSC" AS c12_chi_tieu_bsc
+    FROM "chi_tieu_c_c1_2_report_th_c1_2"
+),
+c13 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Tỷ lệ sửa chữa dịch vụ kênh TSL hoàn thành đúng thời gian quy định" AS c13_ty_le_tsl_dung_thoi_gian
+    FROM "chi_tieu_c_c1_3_report_th_c1_3"
+),
+c14 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Tỷ lệ KH hài lòng" AS c14_ty_le_kh_hai_long,
+        "Điểm BSC" AS c14_diem_bsc
+    FROM "chi_tieu_c_c1_4_report_th_c1_4"
+),
+c15 AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Tổng - KQ thực hiện chỉ tiêu" AS c15_tong_kq_thuc_hien_chi_tieu,
+        "Tổng - Điểm BSC" AS c15_tong_diem_bsc
+    FROM "chi_tieu_c_c1_5_report_th_c1_5"
+),
+ghtt AS (
+    SELECT
+        "Đơn vị" AS don_vi,
+        "Hoàn thành T" AS ghtt_hoan_thanh_t,
+        "Giao NVKT T" AS ghtt_giao_nvkt_t,
+        "Tỷ lệ T" AS ghtt_ty_le_t,
+        "Hoàn thành T+1" AS ghtt_hoan_thanh_t1,
+        "Giao NVKT T+1" AS ghtt_giao_nvkt_t1,
+        "Tỷ lệ T+1" AS ghtt_ty_le_t1,
+        "SL GHTT >=6T" AS ghtt_sl_ghtt_6t,
+        "Hoàn thành >=6T T+1" AS ghtt_hoan_thanh_6t_t1,
+        "Tỷ lệ >=6T T+1" AS ghtt_ty_le_6t_t1,
+        "Tỷ lệ Tổng" AS ghtt_ty_le_tong
+    FROM "ghtt_ghtt_sontay_report_kq_sontay"
+),
+kq_tiep_thi AS (
+    SELECT
+        CASE TRIM("Đơn vị")
+            WHEN 'Tổ Phúc Thọ' THEN 'Tổ Kỹ thuật Địa bàn Phúc Thọ'
+            WHEN 'Tổ Quảng oai' THEN 'Tổ Kỹ thuật Địa bàn Quảng Oai'
+            WHEN 'Tổ Sơn Tây' THEN 'Tổ Kỹ thuật Địa bàn Sơn Tây'
+            WHEN 'Tổ Suối hai' THEN 'Tổ Kỹ thuật Địa bàn Suối hai'
+            WHEN 'Tổ Suối Hai' THEN 'Tổ Kỹ thuật Địa bàn Suối hai'
+            ELSE TRIM("Đơn vị")
+        END AS don_vi,
+        "Dịch vụ BRCĐ" AS kqtt_dich_vu_brcd,
+        "Dịch vụ MyTV" AS kqtt_dich_vu_mytv,
+        "Tổng" AS kqtt_tong
+    FROM "kq_tiep_thi_kq_tiep_thi_report_kq_th"
+),
+keys AS (
+    SELECT don_vi FROM c11
+    UNION
+    SELECT don_vi FROM c12
+    UNION
+    SELECT don_vi FROM c13
+    UNION
+    SELECT don_vi FROM c14
+    UNION
+    SELECT don_vi FROM c15
+    UNION
+    SELECT don_vi FROM ghtt
+    UNION
+    SELECT don_vi FROM kq_tiep_thi
+)
+SELECT
+    keys.don_vi AS "Đơn vị",
+    c11.c11_ty_le_sua_chua_chu_dong AS "C1.1 - Tỷ lệ sửa chữa phiếu chất lượng chủ động dịch vụ FiberVNN, MyTV đạt yêu cầu",
+    c11.c11_ty_le_brcd_dung_quy_dinh AS "C1.1 - Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCD đúng quy định không tính hẹn",
+    c11.c11_ty_le_ccco AS "C1.1 - Tỷ lệ phiếu sửa chữa trong ngày tại CCCO",
+    c11.c11_chi_tieu_bsc AS "C1.1 - Chỉ tiêu BSC",
+    c12.c12_ty_le_lap_lai AS "C1.2 - Tỷ lệ thuê bao báo hỏng dịch vụ BRCĐ lặp lại",
+    c12.c12_ty_le_su_co AS "C1.2 - Tỷ lệ sự cố dịch vụ BRCĐ",
+    c12.c12_chi_tieu_bsc AS "C1.2 - Chỉ tiêu BSC",
+    c13.c13_ty_le_tsl_dung_thoi_gian AS "C1.3 - Tỷ lệ sửa chữa dịch vụ kênh TSL hoàn thành đúng thời gian quy định",
+    c14.c14_ty_le_kh_hai_long AS "C1.4 - Tỷ lệ KH hài lòng",
+    c14.c14_diem_bsc AS "C1.4 - Điểm BSC",
+    c15.c15_tong_kq_thuc_hien_chi_tieu AS "C1.5 - Tổng - KQ thực hiện chỉ tiêu",
+    c15.c15_tong_diem_bsc AS "C1.5 - Tổng - Điểm BSC",
+    ghtt.ghtt_hoan_thanh_t AS "GHTT - Hoàn thành T",
+    ghtt.ghtt_giao_nvkt_t AS "GHTT - Giao NVKT T",
+    ghtt.ghtt_ty_le_t AS "GHTT - Tỷ lệ T",
+    ghtt.ghtt_hoan_thanh_t1 AS "GHTT - Hoàn thành T+1",
+    ghtt.ghtt_giao_nvkt_t1 AS "GHTT - Giao NVKT T+1",
+    ghtt.ghtt_ty_le_t1 AS "GHTT - Tỷ lệ T+1",
+    ghtt.ghtt_sl_ghtt_6t AS "GHTT - SL GHTT >=6T",
+    ghtt.ghtt_hoan_thanh_6t_t1 AS "GHTT - Hoàn thành >=6T T+1",
+    ghtt.ghtt_ty_le_6t_t1 AS "GHTT - Tỷ lệ >=6T T+1",
+    ghtt.ghtt_ty_le_tong AS "GHTT - Tỷ lệ Tổng",
+    kq_tiep_thi.kqtt_dich_vu_brcd AS "KQTT - Dịch vụ BRCĐ",
+    kq_tiep_thi.kqtt_dich_vu_mytv AS "KQTT - Dịch vụ MyTV",
+    kq_tiep_thi.kqtt_tong AS "KQTT - Tổng"
+FROM keys
+LEFT JOIN c11 ON c11.don_vi = keys.don_vi
+LEFT JOIN c12 ON c12.don_vi = keys.don_vi
+LEFT JOIN c13 ON c13.don_vi = keys.don_vi
+LEFT JOIN c14 ON c14.don_vi = keys.don_vi
+LEFT JOIN c15 ON c15.don_vi = keys.don_vi
+LEFT JOIN ghtt ON ghtt.don_vi = keys.don_vi
+LEFT JOIN kq_tiep_thi ON kq_tiep_thi.don_vi = keys.don_vi
+WHERE keys.don_vi IN (
+    'Tổ Kỹ thuật Địa bàn Phúc Thọ',
+    'Tổ Kỹ thuật Địa bàn Quảng Oai',
+    'Tổ Kỹ thuật Địa bàn Sơn Tây',
+    'Tổ Kỹ thuật Địa bàn Suối hai'
+)
+ORDER BY keys.don_vi;
+
+DROP VIEW IF EXISTS v_chi_tieu_bsc_kpi_cac_to;
+
+CREATE VIEW IF NOT EXISTS v_chi_tieu_bsc_kpi_cac_to AS
+SELECT *
+FROM "chi tieu BSC-KPI cac to";
 
 COMMIT;

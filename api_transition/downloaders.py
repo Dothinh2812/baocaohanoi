@@ -215,6 +215,57 @@ def download_report_c14_chitiet_api(month_id="", month_label="", unit_id="284656
     )
 
 
+def download_report_c15_api(
+    month_id="",
+    month_label="",
+    unit_id="284656",
+    headed=False,
+    output_dir=group_output_dir("chi_tieu_c"),
+    session=None,
+):
+    overrides = {
+        "vdv": str(unit_id),
+        "vloai": "1",
+        "vloaihd": "-1",
+    }
+    return download_with_recipe(
+        "c15_q2_2026",
+        headed=headed,
+        output_dir=output_dir,
+        output_name="c1.5 report.xlsx",
+        overrides=overrides,
+        month_id=month_id,
+        month_label=month_label,
+        month_override_key="vthoigian",
+        session=session,
+    )
+
+
+def download_report_c15_chitiet_api(
+    month_id="",
+    month_label="",
+    unit_id="284656",
+    headed=False,
+    output_dir=group_output_dir("chi_tieu_c"),
+    session=None,
+):
+    overrides = {
+        "ploaibc": "1",
+        "pdonvi_id": str(unit_id),
+    }
+    return download_with_recipe(
+        "c15_chitiet_q2_2026",
+        headed=headed,
+        output_dir=output_dir,
+        output_name="c1.5_chitiet_report.xlsx",
+        overrides=overrides,
+        month_id=month_id,
+        month_label=month_label,
+        month_override_key="pthoigianid",
+        session=session,
+    )
+
+
 def download_report_c11_chitiet_api(
     start_date="26/03/2026",
     end_date="25/04/2026",
@@ -855,25 +906,3 @@ def download_cau_hinh_tu_dong_chi_tiet_api(
         session=session,
     )
 
-
-def download_quyet_toan_vattu_api(
-    start_date="01/04/2026",
-    end_date="16/04/2026",
-    unit_id="284656",
-    headed=False,
-    output_dir=group_output_dir("vat_tu_thu_hoi"),
-    session=None,
-):
-    overrides = {
-        "vttvt": str(unit_id),
-        "vtungay": str(start_date),
-        "vdenngay": str(end_date),
-    }
-    return download_with_recipe(
-        "quyet_toan_vattu_q2_2026",
-        headed=headed,
-        output_dir=output_dir,
-        output_name="quyet_toan_vat_tu.xlsx",
-        overrides=overrides,
-        session=session,
-    )

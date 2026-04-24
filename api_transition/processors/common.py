@@ -8,8 +8,46 @@ import pandas as pd
 
 
 API_TRANSITION_DIR = Path(__file__).resolve().parent.parent
-DOWNLOADS_DIR = API_TRANSITION_DIR / "downloads"
-PROCESSED_DIR = API_TRANSITION_DIR / "Processed"
+DEFAULT_DOWNLOADS_DIR = API_TRANSITION_DIR / "downloads"
+DEFAULT_PROCESSED_DIR = API_TRANSITION_DIR / "Processed"
+DOWNLOADS_DIR = DEFAULT_DOWNLOADS_DIR
+PROCESSED_DIR = DEFAULT_PROCESSED_DIR
+
+
+def get_downloads_dir():
+    """Tra ve downloads root dang duoc cau hinh cho processor runtime."""
+    return DOWNLOADS_DIR
+
+
+def get_processed_dir():
+    """Tra ve Processed root dang duoc cau hinh cho processor runtime."""
+    return PROCESSED_DIR
+
+
+def processed_group_dir(group_name):
+    """Tra ve thu muc Processed/<group> theo runtime hien tai."""
+    return get_processed_dir() / group_name
+
+
+def configure_runtime_roots(*, downloads_root=None, processed_root=None):
+    """Cap nhat root downloads/Processed cho 1 instance runtime cu the."""
+    global DOWNLOADS_DIR, PROCESSED_DIR
+
+    DOWNLOADS_DIR = (
+        Path(downloads_root).expanduser().resolve()
+        if downloads_root is not None
+        else DEFAULT_DOWNLOADS_DIR
+    )
+    PROCESSED_DIR = (
+        Path(processed_root).expanduser().resolve()
+        if processed_root is not None
+        else DEFAULT_PROCESSED_DIR
+    )
+
+
+def reset_runtime_roots():
+    """Tra lai root downloads/Processed mac dinh cua codebase."""
+    configure_runtime_roots()
 
 
 def _normalize_input_path(input_path):
@@ -35,13 +73,13 @@ def build_processed_path(input_path):
     source_path = _normalize_input_path(input_path)
 
     try:
-        relative_path = source_path.relative_to(DOWNLOADS_DIR.resolve())
+        relative_path = source_path.relative_to(get_downloads_dir().resolve())
     except ValueError as exc:
         raise ValueError(
             f"Input phai nam trong thu muc downloads: {source_path}"
         ) from exc
 
-    target_dir = PROCESSED_DIR / relative_path.parent
+    target_dir = get_processed_dir() / relative_path.parent
     return target_dir / _processed_filename_for(relative_path)
 
 

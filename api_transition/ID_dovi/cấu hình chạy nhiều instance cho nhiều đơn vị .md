@@ -33,6 +33,74 @@ Các điểm vướng chính:
 - SQLite hiện ghi đè theo `ma_bao_cao + ngay_du_lieu`, nên nếu nhiều đơn vị cùng import vào một DB thì dữ liệu có thể đè nhau.
 - Một số processor vẫn còn mang tính đặc thù Sơn Tây hoặc path cố định.
 
+## Trạng thái triển khai hiện tại
+
+### Đã xong
+
+- Đã có bộ config draft cho `18` đơn vị trong `configs/units/`
+- Đã có mapping `report -> ID family`
+- Đã có validation cho bộ config draft
+- Đã triển khai [runtime_config.py](/home/vtst/baocaohanoi/api_transition/runtime_config.py)
+- Đã load thử thành công `18/18` file config
+- Đã xác nhận mỗi config có thể tự tạo `instance_root` với đầy đủ:
+  - `downloads`
+  - `Processed`
+  - `ProcessedDaily`
+  - `sqlite_history`
+- Đã nối [batch_download.py](/home/vtst/baocaohanoi/api_transition/batch_download.py) với config đơn vị
+- Đã thêm `--config`
+- Đã cho batch:
+  - resolve `unit_id` theo `ID family`
+  - resolve `output_dir` theo `instance_root`
+  - skip report theo `enabled: false`
+- Đã verify thật full batch cho `son_tay`:
+  - `28` report thành công
+  - `0` report thất bại
+  - `5` report skip theo config
+  - dữ liệu raw ghi đúng về `runtime/son_tay/downloads/...`
+- Đã cho [processors/runner.py](/home/vtst/baocaohanoi/api_transition/processors/runner.py) chạy theo config đơn vị
+- Đã cho processor:
+  - đọc raw từ `runtime/<unit>/downloads/...`
+  - ghi processed vào `runtime/<unit>/Processed/...`
+  - skip processor theo `reports.<report_key>.enabled`
+- Đã verify thật full processor runner cho `son_tay`:
+  - `25` processor thành công
+  - `0` processor thất bại
+  - `5` processor skip theo config
+  - dữ liệu processed ghi đúng về `runtime/son_tay/Processed/...`
+- Đã nối [full_pipeline.py](/home/vtst/baocaohanoi/api_transition/full_pipeline.py) với config đơn vị
+- Đã cho full pipeline:
+  - archive sang `runtime/<unit>/ProcessedDaily/<snapshot_date>/...`
+  - import vào `runtime/<unit>/sqlite_history/report_history.db`
+- Đã verify thật Phase 4 cho `son_tay` bằng cách reuse raw đã có:
+  - `25` processor thành công
+  - `28` file archive trong `ProcessedDaily`
+  - `28` workbook import thành công vào SQLite
+  - `0` import thất bại
+  - DB tạo đúng tại `runtime/son_tay/sqlite_history/report_history.db`
+- Đã verify thật full end-to-end có network cho `son_tay`:
+  - chạy `python3 -u -m api_transition.full_pipeline --config api_transition/configs/units/son_tay.yaml --reset-db`
+  - `28` report download thành công
+  - `0` report download thất bại
+  - `25` processor thành công
+  - `0` processor thất bại
+  - `28` workbook archive thành công
+  - `28` workbook import thành công vào SQLite
+  - `0` import thất bại
+- Đã đối soát DB `son_tay` với toàn bộ file processed:
+  - `28` workbook processed khớp `28` dòng trong `bao_cao_ngay`
+  - `99` sheet khớp `99` dòng trong `sheet_bao_cao`
+  - `31,495` dòng raw trong workbook khớp `31,495` dòng trong `dong_bao_cao_goc`
+  - kiểm tra `ma_hash_dong` cho toàn bộ `28` report cho kết quả `0` mismatch
+- Đã query view dashboard thực tế:
+  - `v_dashboard_chat_luong_don_vi_moi_nhat`
+  - view hiện có `20` dòng dữ liệu cho `c11`, `c12`, `c13`, `c14`
+  - dữ liệu đọc ra đúng ngày `2026-04-20` và đúng các đơn vị/tổ của Sơn Tây
+
+### Chưa xong
+
+- Chưa xử lý hardening/report đặc biệt của Phase 5
+
 ## Nguyên tắc thiết kế
 
 - Chỉ có một codebase dùng chung cho tất cả instance.

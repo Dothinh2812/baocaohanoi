@@ -41,8 +41,8 @@ Báo cáo này cung cấp cái nhìn toàn diện về cấu hình của từng 
 
 | Hàm Download | Report ID | Key Đơn vị / Thời gian | Folder Download / Tên file | Folder Processed / Tên file | URL Gốc |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `download_report_i15_api` | `283632` | `vdv` / `vngay_bd`-`kt` | `chi_tieu_i` / `i1.5 report.xlsx` | (Chưa implement processor riêng) | [Link](https://baocao.hanoi.vnpt.vn/report/report-info?id=283632&menu_id=283669) |
-| `download_report_i15_k2_api` | `290125` | `vdv` / `vngay_bd`-`kt` | `chi_tieu_i` / `i1.5_k2 report.xlsx` | (Chưa implement processor riêng) | [Link](https://baocao.hanoi.vnpt.vn/report/report-info?id=290125&menu_id=290161) |
+| `download_report_i15_api` | `283632` | `vdv` / `vngay_bd`-`kt` | `chi_tieu_i` / `i1.5 report.xlsx` | `process_i15_report_api_output()` | [Link](https://baocao.hanoi.vnpt.vn/report/report-info?id=283632&menu_id=283669) |
+| `download_report_i15_k2_api` | `290125` | `vdv` / `vngay_bd`-`kt` | `chi_tieu_i` / `i1.5_k2 report.xlsx` | `process_i15_k2_report_api_output()` | [Link](https://baocao.hanoi.vnpt.vn/report/report-info?id=290125&menu_id=290161) |
 
 ### Nhóm Giao hưởng tận tâm (GHTT)
 
@@ -60,7 +60,6 @@ Báo cáo này cung cấp cái nhìn toàn diện về cấu hình của từng 
 | `download_phieu_hoan_cong_dich_vu_chi_tiet_api` | `283737` | `vdv` / `vngay_bd`-`kt` | `phieu_hoan_cong_dich_vu` / `phieu_hoan_cong_dich_vu_chi_tiet.xlsx` | `phieu_hoan_cong_dich_vu` / `phieu_hoan_cong_dich_vu_chi_tiet_processed.xlsx` | [Link](https://baocao.hanoi.vnpt.vn/report/report-info?id=283737&menu_id=283774) |
 | `download_kq_tiep_thi_api` | `257495` | `vdonvi_id` / `vngay_bd`-`kt` | `kq_tiep_thi` / `kq_tiep_thi report.xlsx` | `kq_tiep_thi` / `kq_tiep_thi report_processed.xlsx` | [Link](https://baocao.hanoi.vnpt.vn/report/report-info?id=257495&menu_id=276101) |
 | `download_report_vattu_thuhoi_api` | `270922` | `vttvt` / `vtungay`-`vdenngay` | `vat_tu_thu_hoi` / `bc_thu_hoi_vat_tu.xlsx` | `vat_tu_thu_hoi` / `bc_thu_hoi_vat_tu_processed.xlsx` | [Link](https://baocao.hanoi.vnpt.vn/report/report-info?id=270922&menu_id=276242) |
-| `download_quyet_toan_vattu_api` | `532729` | `vttvt` / `vtungay`-`vdenngay` | `vat_tu_thu_hoi` / `quyet_toan_vat_tu.xlsx` | `vat_tu_thu_hoi` / `quyet_toan_vat_tu_processed.xlsx` | [Link](https://baocao.hanoi.vnpt.vn/report/report-info?id=532729) |
 
 ### Nhóm OneBSS (BI Report)
 

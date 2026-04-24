@@ -75,3 +75,14 @@ gsshc/ggsheet-key.json
 api_transition/Processed/
 api_transition/ProcessedDaily/
 api_transition/sqlite_history/__pycache__/
+api_transition/.codex/
+api_transition/.codex
+api_transition/runtime/
+api_transition/chua_dung_den/
+api_transition/chua_dung_den/Processed/
+api_transition/chua_dung_den/ProcessedDaily/
+api_transition/tmp_fixture/
+api_transition/sqlite_history/table_catalog_export.xlsx
+api_transition/sqlite_history/v_nvkt_tong_hop_da_nguon_son_tay.csv
+api_trasition/
+qr.png

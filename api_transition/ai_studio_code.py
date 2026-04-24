@@ -1,13 +1,18 @@
+import sys
 import pandas as pd
 from datetime import datetime
 from pathlib import Path
-from api_transition.onebss_auth import create_session, close_session
-from api_transition.onebss_report_client import (
+
+if __package__ in (None, ""):
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from api_transition.chua_dung_den.onebss_auth import create_session, close_session
+from api_transition.chua_dung_den.onebss_report_client import (
     http_json_request, 
     build_onebss_headers,
     sanitize_filename
 )
-from api_transition.onebss_downloaders import group_output_dir
+from api_transition.chua_dung_den.onebss_downloaders import group_output_dir
 
 def download_ds_phieu_nghiem_thu_bao_hong(
     loaidvvt_id=1,

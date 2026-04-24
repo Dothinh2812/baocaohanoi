@@ -14,25 +14,35 @@ Nguyên tắc:
 - `report_api_client.py`: helper gọi `report-api`
 - `catalog.py`: danh mục hàm download cũ và trạng thái migration
 - `MIGRATION_STATUS.md`: nhật ký tổng hợp các hàm đã chuyển đổi thành công và các hàm đang lỗi/tạm hoãn
-- `capture_report_api.py`: capture request/response và sinh recipe JSON
-- `capture_with_legacy_flow.py`: chạy hàm download cũ ở chế độ headless và tự bắt recipe
+- `chua_dung_den/`: công cụ capture/OneBSS/PoC không đi vào full pipeline
+- `chua_dung_den/capture_report_api.py`: capture request/response và sinh recipe JSON
+- `chua_dung_den/capture_with_legacy_flow.py`: chạy hàm download cũ ở chế độ headless và tự bắt recipe
 - `downloaders.py`: các hàm downloader API mới
-- `ONEBSS.md`: tài liệu chi tiết cho nhóm downloader OneBSS (`onebss_auth.py`, `onebss_report_client.py`, `onebss_downloaders.py`)
+- `ONEBSS.md`: tài liệu chi tiết cho nhóm downloader OneBSS (`chua_dung_den/onebss_auth.py`, `chua_dung_den/onebss_report_client.py`, `chua_dung_den/onebss_downloaders.py`)
 - `cts_api.py`: module API riêng cho CTS, dùng login trong `cts.py` và tải file binary trực tiếp
 - `batch_download.py`: runner batch login 1 lần, tái sử dụng session và tải tuần tự các report đã wired
+- `runtime_config.py`: nạp YAML config đơn vị và dựng `RuntimeContext` cho multi-instance
+- `configs/units/`: bộ config YAML cho từng đơn vị và template chung
 - `processors/`: các hàm xử lý workbook raw -> workbook processed
 - `full_pipeline.py`: entrypoint chạy full pipeline từ download đến import SQLite
 - `PROCESSING_REFACTOR_PLAN.md`: trạng thái refactor processor và orchestrator
-- `export_from_recipe.py`: CLI generic chạy bằng recipe
+- `chua_dung_den/export_from_recipe.py`: CLI generic chạy bằng recipe
 - `recipes/`: recipe đã capture và xác nhận
 - `downloads/`: thư mục tải file mặc định theo nhóm nghiệp vụ
 - `Processed/`: workbook processed chuẩn hóa để import vào SQLite
 - `ProcessedDaily/`: snapshot processed theo ngày dữ liệu
-- `export_c11_api.py`: PoC export C1.1 qua API
+- `runtime/`: workspace vận hành multi-instance theo từng đơn vị
+- `sqlite_history/sync_all_instance_dbs.py`: admin utility đồng bộ SQLite cho mọi instance
+- `chua_dung_den/export_c11_api.py`: PoC export C1.1 qua API
 
 ## Cấu trúc thư mục tải file
 
-Mặc định các downloader mới sẽ lưu vào `api_transition/downloads/` và tách theo nhóm:
+Có 2 chế độ chạy:
+
+- `standalone`: giữ hành vi cũ, mặc định lưu vào `api_transition/downloads/`
+- `multi-instance`: khuyến nghị cho vận hành thật, mỗi đơn vị có workspace riêng dưới `api_transition/runtime/<unit>/`
+
+Ở chế độ `standalone`, các downloader mới sẽ lưu vào `api_transition/downloads/` và tách theo nhóm:
 
 - `api_transition/downloads/chi_tieu_c/`: nhóm chỉ tiêu C
 - `api_transition/downloads/chi_tieu_i/`: nhóm chỉ tiêu I
@@ -45,6 +55,15 @@ Mặc định các downloader mới sẽ lưu vào `api_transition/downloads/` v
 - `api_transition/downloads/misc/`: nơi rơi mặc định khi chạy generic bằng `--recipe`
 
 Nếu cần, vẫn có thể override bằng `--output-dir`.
+
+Ở chế độ `multi-instance`, toàn bộ dữ liệu của 1 đơn vị sẽ nằm trong:
+
+- `api_transition/runtime/<unit>/downloads/`
+- `api_transition/runtime/<unit>/Processed/`
+- `api_transition/runtime/<unit>/ProcessedDaily/`
+- `api_transition/runtime/<unit>/sqlite_history/report_history.db`
+
+`RuntimeContext` sẽ dựng các đường dẫn này từ file YAML trong `configs/units/`.
 
 ## Kiến trúc downloader mới
 
@@ -59,10 +78,8 @@ Nếu cần, vẫn có thể override bằng `--output-dir`.
 Các downloader hiện đã được nối dây trong file này gồm:
 - nhóm Chỉ tiêu C, Chỉ tiêu I, GHTT, xác minh tạm dừng, kết quả tiếp thị, vật tư thu hồi
 - cấu hình tự động tổng hợp, thay thế, chi tiết
-- `download_quyet_toan_vattu_api()` dùng recipe `quyet_toan_vattu_q2_2026.json`
 
 Lưu ý:
-- `quyet_toan_vattu` đã được wired trong `downloaders.py` và `batch_download.py`
 - hiện chưa có shortcut CLI riêng trong `export_from_recipe.py`, nên cách chạy trực tiếp thuận tiện nhất là import Python hoặc dùng batch
 - `cts_api.py` là module độc lập, không dùng `report-api` của `baocao.hanoi` và không đi qua `download_with_recipe()`
 
@@ -77,43 +94,43 @@ Lưu ý:
 Linux/macOS:
 
 ```bash
-python3 api_transition/export_c11_api.py --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_c11_api.py --headed --month-id 98944548
 ```
 
 Windows:
 
 ```powershell
-python api_transition/export_c11_api.py --headed --month-id 98944548
+python api_transition/chua_dung_den/export_c11_api.py --headed --month-id 98944548
 ```
 
 Nếu muốn để script tự map kỳ báo cáo theo nhãn:
 
 ```bash
-python3 api_transition/export_c11_api.py --headed --month-label "Tháng 04/2026"
+python3 api_transition/chua_dung_den/export_c11_api.py --headed --month-label "Tháng 04/2026"
 ```
 
 Hoặc dùng downloader generic:
 
 ```bash
-python3 api_transition/export_from_recipe.py --c11 --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --c12 --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --c13 --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --c14 --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --c14-chi-tiet --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --c11-chi-tiet --headed --start-date "26/03/2026" --end-date "25/04/2026"
-python3 api_transition/export_from_recipe.py --c12-chi-tiet-sm1 --headed --start-date "26/03/2026" --end-date "25/04/2026"
-python3 api_transition/export_from_recipe.py --c12-chi-tiet-sm2 --headed --start-date "26/03/2026" --end-date "25/04/2026"
-python3 api_transition/export_from_recipe.py --i15 --headed --start-date "14/04/2026" --end-date "14/04/2026"
-python3 api_transition/export_from_recipe.py --i15-k2 --headed --start-date "14/04/2026" --end-date "14/04/2026"
-python3 api_transition/export_from_recipe.py --ghtt-hni --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --ghtt-sontay --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --ghtt-nvktdb --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --xac-minh-tam-dung --headed --start-date "01/04/2026" --end-date "16/04/2026"
-python3 api_transition/export_from_recipe.py --kq-tiep-thi --headed --start-date "16/04/2026" --end-date "16/04/2026"
-python3 api_transition/export_from_recipe.py --vattu-thuhoi --headed --start-date "24/11/2025" --end-date "16/04/2026"
-python3 api_transition/export_from_recipe.py --cau-hinh-tu-dong-ptm --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --cau-hinh-tu-dong-thay-the --headed --month-id 98944548
-python3 api_transition/export_from_recipe.py --cau-hinh-tu-dong-chi-tiet --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --c11 --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --c12 --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --c13 --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --c14 --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --c14-chi-tiet --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --c11-chi-tiet --headed --start-date "26/03/2026" --end-date "25/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm1 --headed --start-date "26/03/2026" --end-date "25/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm2 --headed --start-date "26/03/2026" --end-date "25/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --i15 --headed --start-date "14/04/2026" --end-date "14/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --i15-k2 --headed --start-date "14/04/2026" --end-date "14/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --ghtt-hni --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --ghtt-sontay --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --ghtt-nvktdb --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --xac-minh-tam-dung --headed --start-date "01/04/2026" --end-date "16/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --kq-tiep-thi --headed --start-date "16/04/2026" --end-date "16/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --vattu-thuhoi --headed --start-date "24/11/2025" --end-date "16/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --cau-hinh-tu-dong-ptm --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --cau-hinh-tu-dong-thay-the --headed --month-id 98944548
+python3 api_transition/chua_dung_den/export_from_recipe.py --cau-hinh-tu-dong-chi-tiet --headed --month-id 98944548
 ```
 
 Các lệnh trên nếu không truyền `--output-dir` sẽ tự lưu vào thư mục nhóm tương ứng dưới `api_transition/downloads/`.
@@ -129,11 +146,13 @@ Hành vi chính:
 - các report độc lập như `CTS SHC ngày` sẽ tự login session riêng, không dùng shared session ở trên
 - retry các lỗi timeout theo `RETRY_TIMEOUTS = [120, 180, 300]`
 - hỗ trợ `--only`, `--skip`, `--list`
+- hỗ trợ `--config` để resolve `unit_id`, bật/tắt report, và ghi file vào `runtime/<unit>/downloads`
 
 Ví dụ:
 
 ```bash
 python3 api_transition/batch_download.py
+python3 -m api_transition.batch_download --config api_transition/configs/units/son_tay.yaml
 python3 api_transition/batch_download.py --month 5 --year 2026 --month-id 99001234
 python3 api_transition/batch_download.py --only "C1.1" "C1.2"
 python3 api_transition/batch_download.py --skip "Vật tư thu hồi"
@@ -154,17 +173,19 @@ results = run_batch_download(
 
 Danh sách report hiện được batch gọi:
 - `C1.1`, `C1.2`, `C1.3`, `C1.4`, `C1.4 Chi tiết`
+- `C1.5`, `C1.5 Chi tiết`
 - `C1.1 Chi tiết`, `C1.2 Chi tiết SM1`, `C1.2 Chi tiết SM2`
 - `I1.5`, `I1.5 K2`
 - `GHTT HNI`, `GHTT Sơn Tây`, `GHTT NVKT DB`
 - `Xác minh tạm dừng`, `Kết quả tiếp thị`, `CTS SHC ngày`
 - `Tạm dừng, khôi phục DV chi tiết`, `Tạm dừng, khôi phục DV chi tiết - khôi phục`, `Tạm dừng, khôi phục DV tổng hợp`
-- `Vật tư thu hồi`, `Quyết toán vật tư`
+- `Vật tư thu hồi`
 - `Cấu hình tự động PTM`, `Cấu hình tự động Thay thế`, `Cấu hình tự động Chi tiết`
 
 `CTS SHC ngày` hiện được batch gọi với tham số ngày `T-1` dưới dạng `report_date`, tức mặc định lấy ngày hôm qua theo định dạng `dd/mm/yyyy`.
 
 `I1.5` và `I1.5 K2` đã được xác nhận tải thành công bằng downloader API mới trên môi trường thực.
+Bộ xử lý của `I1.5` / `I1.5 K2` cũng đã được port sang `api_transition.processors.i15_processors`, và lịch sử được ghi trực tiếp vào `report_history.db` của từng instance qua nhóm bảng `i15_*`.
 Ba recipe `GHTT` đã được capture, đã có downloader API riêng trong `api_transition/`, và đã được xác nhận tải thành công trên môi trường thực.
 `xac_minh_tam_dung_download` cũng đã được xác nhận tải thành công bằng downloader API mới trên môi trường thực.
 `kq_tiep_thi_download` cũng đã được xác nhận tải thành công bằng downloader API mới trên môi trường thực.
@@ -177,21 +198,20 @@ Ngoài ra đã có thêm `download_cau_hinh_tu_dong_chi_tiet_api()` lưu file `c
 
 Các mục còn lại chưa hoàn tất trong vòng chuyển đổi hiện tại là:
 - `download_report_c11_chitiet_SM2`
-- `download_report_c15`
-- `download_report_c15_chitiet`
 
 ## Processors
 
-`api_transition/processors/` là tầng chuẩn hóa dữ liệu sau download. Mỗi processor đọc workbook raw trong `api_transition/downloads/`, chuẩn hóa lại sheet/cột, rồi ghi workbook kết quả vào `api_transition/Processed/`.
+`api_transition/processors/` là tầng chuẩn hóa dữ liệu sau download. Ở chế độ `standalone`, processor đọc workbook raw trong `api_transition/downloads/` và ghi vào `api_transition/Processed/`. Ở chế độ `multi-instance`, runner sẽ tự map sang `runtime/<unit>/downloads/` và `runtime/<unit>/Processed/`.
 
-Runner tổng hiện tại là `processors/runner.py`, quản lý 30 processor đã được port vào package.
+Runner tổng hiện tại là `processors/runner.py`, quản lý 33 processor đã được port vào package.
 
 Ví dụ:
 
 ```bash
 python3 -m api_transition.processors.runner
+python3 -m api_transition.processors.runner --config api_transition/configs/units/son_tay.yaml
 python3 -m api_transition.processors.runner --overwrite-processed
-python3 -m api_transition.processors.runner --group mytv_dich_vu
+python3 -m api_transition.processors.runner --group tam_dung_khoi_phuc_dich_vu
 python3 -m api_transition.processors.runner --only mytv_ngung_psc --only mytv_hoan_cong
 python3 -m api_transition.processors.runner --list
 ```
@@ -203,14 +223,17 @@ from api_transition.processors import run_all_processors
 
 results = run_all_processors(
     overwrite_processed=True,
-    groups=["mytv_dich_vu"],
+    groups=["tam_dung_khoi_phuc_dich_vu"],
 )
 ```
 
 Một số lưu ý hiện tại:
 
+- `c15_chitiet` đã có processor riêng, tạo các sheet `KQ_C15_chitiet`, `TH_TTVTST`, `Chi_tiet_TG`, `TH_KIEULD`, `TH_DVVT`, `TH_DVVT_DOI`, `TH_DVVT_TTVT`
+- downloader `C1.5 Chi tiết` đã verify tải thật ngày `2026-04-21`, nhưng raw workbook trả về cho `Tháng 04/2026` đang rỗng; processor vẫn sinh được workbook processed chuẩn với các sheet canonical rỗng để pipeline không vỡ
 - nhóm MyTV đã được port sang raw schema mới thay cho file legacy
-- `mytv_ngung_psc` đọc từ `downloads/tam_dung_khoi_phuc_dich_vu/ngung_psc_mytv_thang_t-1_cap_to.xlsx` và `downloads/mytv_dich_vu/ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx`
+- `xac_minh_tam_dung` đã có processor riêng, tạo workbook processed chuẩn từ `downloads/xac_minh_tam_dung/xac_minh_tam_dung report.xlsx`
+- `mytv_ngung_psc` đọc từ `downloads/tam_dung_khoi_phuc_dich_vu/ngung_psc_mytv_thang_t-1_cap_to.xlsx` và `downloads/tam_dung_khoi_phuc_dich_vu/ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx`
 - `mytv_hoan_cong` và `mytv_thuc_tang` hiện lấy dữ liệu MyTV trực tiếp từ `phieu_hoan_cong_dich_vu_chi_tiet.xlsx`
 - `mytv_thuc_tang` hiện mới sinh được sheet theo tổ/TTVT; raw API hiện chưa có đủ chi tiết NVKT cho nhánh ngưng PSC MyTV
 
@@ -229,6 +252,7 @@ Ví dụ:
 
 ```bash
 python3 -m api_transition.full_pipeline
+python3 -u -m api_transition.full_pipeline --config api_transition/configs/units/son_tay.yaml --reset-db
 python3 -m api_transition.full_pipeline --snapshot-date 2026-04-19
 python3 -m api_transition.full_pipeline --snapshot-date 2026-04-19 --overwrite-processed
 python3 -m api_transition.full_pipeline --snapshot-date 2026-04-19 --strict
@@ -249,19 +273,26 @@ Hành vi chính:
 - dùng `--strict` nếu muốn dừng trước bước import khi download/process có lỗi
 - `ProcessedDaily` hiện được tạo ngay sau bước process, không còn phụ thuộc vào việc import SQLite thành công hay không
 - bước import trong pipeline chỉ nạp các workbook processed thành công của lượt chạy hiện tại, tránh quét lại toàn bộ `Processed/`
+- khi truyền `--config`, pipeline sẽ tự dùng `RuntimeContext` để chạy toàn bộ vào `runtime/<unit>/...`
+
+Xác nhận vận hành:
+
+- ngày `2026-04-20`, full pipeline theo config `son_tay` đã được verify end-to-end với kết quả `28` download thành công, `25` processor thành công, `28` workbook archive, `28` workbook import SQLite, `0` lỗi import
 
 ## SQLite history
 
-Đã bổ sung khung SQLite local để lưu lịch sử workbook processed theo từng ngày ngay trong `api_transition`:
+Đã bổ sung khung SQLite local để lưu lịch sử workbook processed theo từng ngày.
 
 - schema SQL: `api_transition/sqlite_history/report_history_schema.sql`
 - view SQL: `api_transition/sqlite_history/report_history_views.sql`
 - script khởi tạo DB: `api_transition/sqlite_history/init_report_history_db.py`
 - script import DB: `api_transition/sqlite_history/import_processed_to_sqlite.py`
 - script apply view: `api_transition/sqlite_history/apply_report_history_views.py`
+- script đồng bộ toàn bộ DB instance: `api_transition/sqlite_history/sync_all_instance_dbs.py`
 - tài liệu bảo trì module: `api_transition/sqlite_history/README.md`
 - tài liệu cho app đọc dữ liệu: `api_transition/sqlite_history/CONSUMER_GUIDE.md`
-- file DB mặc định: `api_transition/report_history.db`
+- file DB mặc định standalone: `api_transition/report_history.db`
+- file DB khuyến nghị khi chạy multi-instance: `api_transition/runtime/<unit>/sqlite_history/report_history.db`
 
 Nguyên tắc hiện tại:
 
@@ -300,7 +331,7 @@ Một số lệnh hay dùng:
 ```bash
 python3 api_transition/sqlite_history/import_processed_to_sqlite.py --snapshot-date 2026-04-19
 python3 api_transition/sqlite_history/import_processed_to_sqlite.py --snapshot-date 2026-04-19 --dry-run --json
-python3 api_transition/sqlite_history/import_processed_to_sqlite.py --snapshot-date 2026-04-19 --path-contains "mytv_dich_vu"
+python3 api_transition/sqlite_history/import_processed_to_sqlite.py --snapshot-date 2026-04-19 --path-contains "tam_dung_khoi_phuc_dich_vu"
 python3 api_transition/sqlite_history/import_processed_to_sqlite.py --db-path /tmp/report_history_test.db --snapshot-date 2026-04-19 --skip-archive
 ```
 
@@ -308,6 +339,17 @@ Lưu ý:
 
 - khi chạy script import trực tiếp và không dùng `--skip-archive`, workbook sẽ được copy sang `ProcessedDaily/<snapshot-date>/...`
 - khi chạy qua `full_pipeline.py`, archive này thường đã được tạo sẵn ngay sau bước process và importer sẽ tái sử dụng lại bản archive đó
+- khi vận hành multi-instance, nên để `full_pipeline.py --config ...` điều phối `db_path`, `processed_root`, `archive_root`
+- `sync_all_instance_dbs.py` là admin utility nằm ngoài pipeline hằng ngày; dùng khi cần tạo DB mới, apply lại views, hoặc reset/re-init hàng loạt
+
+Ví dụ admin utility:
+
+```bash
+python3 -m api_transition.sqlite_history.sync_all_instance_dbs --mode status
+python3 -m api_transition.sqlite_history.sync_all_instance_dbs --mode apply-views
+python3 -m api_transition.sqlite_history.sync_all_instance_dbs --mode init-if-missing
+python3 -m api_transition.sqlite_history.sync_all_instance_dbs --mode reset-and-init
+```
 
 Các bảng nền:
 
@@ -333,15 +375,16 @@ Các bảng nghiệp vụ chính:
 - `hoan_cong_mytv`, `ngung_psc_mytv`
 - `thuc_tang_fiber`, `thuc_tang_mytv`
 - `xac_minh_chi_tiet`, `xac_minh_tong_hop_nvkt`, `xac_minh_tong_hop_loai_phieu`
+- `xac_minh_tam_dung_chi_tiet`, `xac_minh_tam_dung_tong_hop_nvkt`, `xac_minh_tam_dung_tong_hop_dich_vu`, `xac_minh_tam_dung_tong_hop_ly_do_huy`
 - `cau_hinh_tu_dong_chi_tiet`, `cau_hinh_tu_dong_tong_hop`, `tong_hop_loi_cau_hinh_tu_dong`
-- `vat_tu_thu_hoi`, `chi_tiet_vat_tu_thu_hoi`, `quyet_toan_vat_tu`
+- `vat_tu_thu_hoi`, `chi_tiet_vat_tu_thu_hoi`
 
 ## Capture report mới và sinh recipe
 
 Ví dụ capture C1.2:
 
 ```bash
-python3 api_transition/capture_report_api.py \
+python3 api_transition/chua_dung_den/capture_report_api.py \
   --headed \
   --name c12_q2_2026 \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=522513&menu_id=535021"
@@ -363,7 +406,7 @@ Script sẽ lưu:
 Nếu server không có X server, không dùng `--headed`. Thay vào đó chạy chính hàm download cũ để nó tự thao tác UI, còn script sẽ capture `report-api` ở nền:
 
 ```bash
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name c12_q2_2026 \
   --legacy-func download_report_c12 \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=522513&menu_id=535021" \
@@ -373,7 +416,7 @@ python3 api_transition/capture_with_legacy_flow.py \
 Ví dụ C1.1:
 
 ```bash
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name c11_q2_2026_auto \
   --legacy-func download_report_c11 \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=534964&menu_id=535020" \
@@ -383,28 +426,28 @@ python3 api_transition/capture_with_legacy_flow.py \
 Nhóm tiếp theo nên capture sau khi tạm bỏ qua C1.5 là 4 báo cáo chi tiết C1.1/C1.2:
 
 ```bash
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name c11_chitiet_q2_2026 \
   --legacy-func download_report_c11_chitiet \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194" \
   --start-date "26/03/2026" \
   --end-date "25/04/2026"
 
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name c11_chitiet_sm2_q2_2026 \
   --legacy-func download_report_c11_chitiet_SM2 \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194" \
   --start-date "26/03/2026" \
   --end-date "25/04/2026"
 
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name c12_chitiet_sm1_q2_2026 \
   --legacy-func download_report_c12_chitiet_SM1 \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194" \
   --start-date "26/03/2026" \
   --end-date "25/04/2026"
 
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name c12_chitiet_sm2_q2_2026 \
   --legacy-func download_report_c12_chitiet_SM2 \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194" \
@@ -415,7 +458,7 @@ python3 api_transition/capture_with_legacy_flow.py \
 Sau đó export lại bằng recipe:
 
 ```bash
-python3 api_transition/export_from_recipe.py \
+python3 api_transition/chua_dung_den/export_from_recipe.py \
   --headed \
   --recipe c12_q2_2026 \
   --month-id <pthang>
@@ -426,7 +469,7 @@ python3 api_transition/export_from_recipe.py \
 Để capture `xac_minh_tam_dung_download`:
 
 ```bash
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name xac_minh_tam_dung_q2_2026 \
   --legacy-func xac_minh_tam_dung_download \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=267844&menu_id=276199"
@@ -435,7 +478,7 @@ python3 api_transition/capture_with_legacy_flow.py \
 Nhóm tiếp theo nên capture là `kq_tiep_thi_download`:
 
 ```bash
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name kq_tiep_thi_q2_2026 \
   --legacy-func kq_tiep_thi_download \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=257495&menu_id=276101"
@@ -444,7 +487,7 @@ python3 api_transition/capture_with_legacy_flow.py \
 Sau khi capture xong, chạy bản API mới:
 
 ```bash
-python3 api_transition/export_from_recipe.py \
+python3 api_transition/chua_dung_den/export_from_recipe.py \
   --kq-tiep-thi \
   --start-date "16/04/2026" \
   --end-date "16/04/2026"
@@ -461,7 +504,7 @@ https://baocao.hanoi.vnpt.vn/report/report-info?id=270922&menu_id=276242
 Để capture `download_report_vattu_thuhoi`:
 
 ```bash
-python3 api_transition/capture_with_legacy_flow.py \
+python3 api_transition/chua_dung_den/capture_with_legacy_flow.py \
   --name vattu_thuhoi_q2_2026 \
   --legacy-func download_report_vattu_thuhoi \
   --report-url "https://baocao.hanoi.vnpt.vn/report/report-info?id=270922&menu_id=276242"
@@ -470,7 +513,7 @@ python3 api_transition/capture_with_legacy_flow.py \
 Sau khi capture xong, chạy bản API mới:
 
 ```bash
-python3 api_transition/export_from_recipe.py \
+python3 api_transition/chua_dung_den/export_from_recipe.py \
   --vattu-thuhoi \
   --start-date "24/11/2025" \
   --end-date "16/04/2026"
@@ -481,7 +524,7 @@ python3 api_transition/export_from_recipe.py \
 PTM:
 
 ```bash
-python3 api_transition/export_from_recipe.py \
+python3 api_transition/chua_dung_den/export_from_recipe.py \
   --cau-hinh-tu-dong-ptm \
   --month-id 98944548
 ```
@@ -489,7 +532,7 @@ python3 api_transition/export_from_recipe.py \
 Thay Thế:
 
 ```bash
-python3 api_transition/export_from_recipe.py \
+python3 api_transition/chua_dung_den/export_from_recipe.py \
   --cau-hinh-tu-dong-thay-the \
   --month-id 98944548
 ```
@@ -501,7 +544,7 @@ python3 api_transition/export_from_recipe.py \
 Đối với báo cáo `cấu hình tự động chi tiết`:
 
 ```bash
-python3 api_transition/export_from_recipe.py \
+python3 api_transition/chua_dung_den/export_from_recipe.py \
   --cau-hinh-tu-dong-chi-tiet \
   --month-id 98944548
 ```
@@ -512,7 +555,7 @@ python3 api_transition/export_from_recipe.py \
 Có thể thay tham số trong payload đã capture:
 
 ```bash
-python3 api_transition/export_from_recipe.py \
+python3 api_transition/chua_dung_den/export_from_recipe.py \
   --headed \
   --recipe c11_q2_2026 \
   --set ptrungtamid=14324 \

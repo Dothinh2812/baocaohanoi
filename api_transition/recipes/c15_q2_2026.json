@@ -1,14 +1,41 @@
 {
-  "name": "c15_q2_2026",
+  "name": "ty_le_thiet_lap_dv_brcd_q2_2026",
   "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=258310&menu_id=305918",
   "report_id": "258310",
   "menu_id": "305918",
   "export_payload": {
-    "reportId": "",
-    "lstInputParams": [],
-    "lstOutputParams": []
+    "reportId": "258310",
+    "lstInputParams": [
+      {
+        "name": "vdv",
+        "dataType": "NUMBER",
+        "value": "284412"
+      },
+      {
+        "name": "vthoigian",
+        "dataType": "VARCHAR2",
+        "value": "98944548"
+      },
+      {
+        "name": "vloai",
+        "dataType": "NUMBER",
+        "value": "1"
+      },
+      {
+        "name": "vloaihd",
+        "dataType": "NUMBER",
+        "value": "-1"
+      }
+    ],
+    "lstOutputParams": [
+      {
+        "name": "returnds",
+        "dataType": "CURSOR",
+        "value": ""
+      }
+    ]
   },
-  "default_output_name": "",
-  "captured_at": "2026-04-15T21:31:21.277629",
-  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+  "default_output_name": "BC-Tỷ lệ thiết lập dịch vụ BRCĐ đạt thời gian quy định-21.4.2026-35.30.8.xlsx",
+  "captured_at": "2026-04-21T08:31:03.633296",
+  "notes": "Trích xuất từ thao tác xuất báo cáo thực tế trên hệ thống baocao.hanoi.vnpt.vn"
 }

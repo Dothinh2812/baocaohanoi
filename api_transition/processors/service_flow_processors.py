@@ -12,6 +12,7 @@ from api_transition.processors.common import (
     append_or_replace_sheet,
     copy_raw_to_processed,
     ensure_processed_workbook,
+    processed_group_dir,
 )
 
 
@@ -50,6 +51,12 @@ DEFAULT_FIBER_T_MINUS_1_CAP_TO_INPUT = (
     / "tam_dung_khoi_phuc_dich_vu"
     / "ngung_psc_fiber_thang_t-1_cap_to.xlsx"
 )
+DEFAULT_FIBER_T_MINUS_1_CAP_TTVT_INPUT = (
+    Path(__file__).resolve().parent.parent
+    / "downloads"
+    / "tam_dung_khoi_phuc_dich_vu"
+    / "ngung_psc_fiber_thang_t-1_cap_ttvt.xlsx"
+)
 DEFAULT_MYTV_NGUNG_PSC_INPUT = (
     Path(__file__).resolve().parent.parent
     / "downloads"
@@ -59,28 +66,33 @@ DEFAULT_MYTV_NGUNG_PSC_INPUT = (
 DEFAULT_MYTV_NGUNG_PSC_TTVT_INPUT = (
     Path(__file__).resolve().parent.parent
     / "downloads"
-    / "mytv_dich_vu"
+    / "tam_dung_khoi_phuc_dich_vu"
     / "ngung_psc_mytv_thang_t-1_cap_ttvt.xlsx"
 )
 DEFAULT_MYTV_HOAN_CONG_INPUT = DEFAULT_PHIEU_HOAN_CONG_INPUT
 DEFAULT_MYTV_NGUNG_PSC_OUTPUT = (
     PROCESSED_DIR
-    / "mytv_dich_vu"
-    / "mytv_ngung_psc_processed.xlsx"
+    / "tam_dung_khoi_phuc_dich_vu"
+    / "ngung_psc_mytv_thang_t-1_cap_to_processed.xlsx"
 )
 DEFAULT_MYTV_HOAN_CONG_OUTPUT = (
     PROCESSED_DIR
-    / "mytv_dich_vu"
-    / "mytv_hoan_cong_processed.xlsx"
+    / "phieu_hoan_cong_dich_vu"
+    / "phieu_hoan_cong_dich_vu_chi_tiet_processed.xlsx"
 )
 DEFAULT_MYTV_THUC_TANG_OUTPUT = (
     PROCESSED_DIR
-    / "mytv_dich_vu"
+    / "tam_dung_khoi_phuc_dich_vu"
     / "mytv_thuc_tang_processed.xlsx"
+)
+DEFAULT_MYTV_NGUNG_PSC_TTVT_OUTPUT = (
+    PROCESSED_DIR
+    / "tam_dung_khoi_phuc_dich_vu"
+    / "ngung_psc_mytv_thang_t-1_cap_ttvt_processed.xlsx"
 )
 DEFAULT_FIBER_THUC_TANG_OUTPUT = (
     PROCESSED_DIR
-    / "thuc_tang_ngung_psc"
+    / "tam_dung_khoi_phuc_dich_vu"
     / "fiber_thuc_tang_processed.xlsx"
 )
 DEFAULT_SON_TAY_MYTV_NGUNG_T_MINUS_1_INPUT = (
@@ -201,7 +213,7 @@ def _append_total_row(df, total_col, fixed_values):
 
 def _processed_target_for_group(raw_path, group_name):
     raw_path = _resolve_path(raw_path)
-    return PROCESSED_DIR / group_name / f"{raw_path.stem}_processed{raw_path.suffix}"
+    return processed_group_dir(group_name) / f"{raw_path.stem}_processed{raw_path.suffix}"
 
 
 def _ensure_processed_workbook_for_group(raw_path, group_name, overwrite=False):
@@ -535,6 +547,23 @@ def _extract_son_tay_ngung_psc_subset(df_raw):
     df_subset = df_raw.iloc[data_row_indices, selected_col_indices].copy()
     df_subset.columns = list(required_columns.values())
     return df_subset
+
+
+def _flatten_header_rows(df_raw, header_rows=3):
+    flat_headers = []
+    for col_idx in range(df_raw.shape[1]):
+        parts = []
+        for row_idx in range(min(header_rows, len(df_raw))):
+            value = df_raw.iat[row_idx, col_idx]
+            if pd.notna(value):
+                text = str(value).strip()
+                if text and text not in parts:
+                    parts.append(text)
+        if parts:
+            flat_headers.append(" | ".join(parts))
+        else:
+            flat_headers.append(f"COL_{col_idx + 1}")
+    return flat_headers
 
 
 def process_phieu_hoan_cong_dich_vu_chi_tiet_api_output(
@@ -947,6 +976,30 @@ def process_mytv_ngung_psc_api_output(
     return processed_path
 
 
+def process_mytv_ngung_psc_ttvt_api_output(
+    input_path=DEFAULT_MYTV_NGUNG_PSC_TTVT_INPUT,
+    output_path=DEFAULT_MYTV_NGUNG_PSC_TTVT_OUTPUT,
+    overwrite_processed=False,
+):
+    """Xu ly rieng bao cao MyTV ngung PSC cap TTVT."""
+    raw_path = _resolve_path(input_path)
+    df_raw = pd.read_excel(raw_path, header=None).copy()
+    if len(df_raw) <= 3:
+        raise ValueError(
+            f"File MyTV TTVT khong du dong du lieu. Can it nhat 4 dong, nhung chi co {len(df_raw)} dong."
+        )
+
+    df_data = df_raw.iloc[3:].reset_index(drop=True).copy()
+    df_data.columns = _flatten_header_rows(df_raw, header_rows=3)
+    first_col = df_data.columns[0]
+    df_data = df_data[df_data[first_col].notna() & (df_data[first_col].astype(str).str.strip() != "")].reset_index(drop=True)
+
+    processed_path = _ensure_generated_workbook(output_path, overwrite=overwrite_processed)
+    append_or_replace_sheet(processed_path, "TH_ngung_PSC-Thang T-1", df_data)
+    _remove_empty_default_sheet(processed_path)
+    return processed_path
+
+
 def process_mytv_hoan_cong_api_output(
     input_path=DEFAULT_MYTV_HOAN_CONG_INPUT,
     output_path=DEFAULT_MYTV_HOAN_CONG_OUTPUT,
@@ -1060,7 +1113,7 @@ def process_son_tay_mytv_ngung_psc_t_minus_1_api_output(
     )
     df_final = pd.concat([df_subset, total_row], ignore_index=True)
 
-    processed_path = _ensure_processed_workbook_for_group(raw_path, "mytv_dich_vu", overwrite=overwrite_processed)
+    processed_path = _ensure_processed_workbook_for_group(raw_path, "tam_dung_khoi_phuc_dich_vu", overwrite=overwrite_processed)
     append_or_replace_sheet(processed_path, "TH_ngung_PSC-Thang T-1", df_final)
     return processed_path
 
@@ -1092,8 +1145,34 @@ def process_son_tay_fiber_ngung_psc_t_minus_1_api_output(
 
     processed_path = _ensure_processed_workbook_for_group(
         raw_path,
-        "thuc_tang_ngung_psc",
+        "tam_dung_khoi_phuc_dich_vu",
         overwrite=overwrite_processed,
     )
     append_or_replace_sheet(processed_path, "TH_ngung_PSC-Thang T-1", df_final)
+    return processed_path
+
+
+def process_son_tay_fiber_ngung_psc_t_minus_1_ttvt_api_output(
+    input_path=DEFAULT_FIBER_T_MINUS_1_CAP_TTVT_INPUT,
+    overwrite_processed=False,
+):
+    """Xu ly bao cao Fiber Son Tay ngung PSC thang T-1 cap TTVT."""
+    raw_path = _resolve_path(input_path)
+    df_raw = pd.read_excel(raw_path, header=None).copy()
+    if len(df_raw) <= 3:
+        raise ValueError(
+            f"File Fiber TTVT khong du dong du lieu. Can it nhat 4 dong, nhung chi co {len(df_raw)} dong."
+        )
+
+    df_data = df_raw.iloc[3:].reset_index(drop=True).copy()
+    df_data.columns = _flatten_header_rows(df_raw, header_rows=3)
+    first_col = df_data.columns[0]
+    df_data = df_data[df_data[first_col].notna() & (df_data[first_col].astype(str).str.strip() != "")].reset_index(drop=True)
+
+    processed_path = _ensure_processed_workbook_for_group(
+        raw_path,
+        "tam_dung_khoi_phuc_dich_vu",
+        overwrite=overwrite_processed,
+    )
+    append_or_replace_sheet(processed_path, "TH_ngung_PSC-Thang T-1", df_data)
     return processed_path

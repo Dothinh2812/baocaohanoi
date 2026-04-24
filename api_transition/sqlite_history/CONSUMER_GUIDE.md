@@ -1,6 +1,13 @@
 # Consumer Guide Cho App Doc SQLite
 
-Tai lieu nay danh cho ung dung khac muon doc du lieu tu [report_history.db](/home/vtst/baocaohanoi/api_transition/report_history.db).
+Tai lieu nay danh cho ung dung khac muon doc du lieu tu SQLite history.
+
+Path can uu tien:
+
+- che do `standalone`: [report_history.db](/home/vtst/baocaohanoi/api_transition/report_history.db)
+- che do `multi-instance`: `api_transition/runtime/<unit>/sqlite_history/report_history.db`
+
+Neu app hien thi du lieu cho tung don vi rieng, moi don vi phai doc DB trong workspace runtime cua chinh don vi do. Khong dung chung 1 DB cho nhieu instance.
 
 Muc tieu:
 
@@ -16,6 +23,7 @@ App khac nen tuan thu 4 nguyen tac sau:
 2. Uu tien cac `view` co hau to `moi_nhat` neu dashboard hien thi snapshot gan nhat.
 3. Xem `ngay_du_lieu` la ngay nghiep vu cua snapshot, khong phai thoi diem app query.
 4. Chap nhan rang trong cung 1 ngay, du lieu co the bi ghi de khi batch import chay lai.
+5. Trong mo hinh multi-instance, chon dung DB theo `unit` truoc khi query `view`.
 
 ## 2. App duoc phep doc gi
 
@@ -27,9 +35,9 @@ Danh sach `view` uu tien cho app:
 - `v_dashboard_dich_vu_theo_to_moi_nhat`
 - `v_dashboard_thuc_tang_moi_nhat`
 - `v_dashboard_xac_minh_moi_nhat`
+- `v_dashboard_xac_minh_tam_dung_moi_nhat`
 - `v_dashboard_cau_hinh_tu_dong_moi_nhat`
 - `v_dashboard_vat_tu_thu_hoi_moi_nhat`
-- `v_dashboard_quyet_toan_vat_tu_moi_nhat`
 - `v_dashboard_chi_so_nvkt_moi_nhat`
 - `v_dashboard_ttvt_son_tay_chi_so_don_vi_moi_nhat`
 - `v_dashboard_ttvt_son_tay_tong_hop_moi_nhat`
@@ -37,6 +45,15 @@ Danh sach `view` uu tien cho app:
 Neu can chi tiet hon nua:
 
 - `v_c11_tong_hop_moi_nhat`
+- `v_c15_tong_hop_moi_nhat`
+- `v_c15_chi_tiet_nvkt_moi_nhat`
+- `v_c15_tong_hop_doi_moi_nhat`
+- `v_dashboard_i15_moi_nhat`
+- `v_dashboard_i15_tong_hop_moi_nhat`
+- `v_dashboard_i15_tracking_hien_tai`
+- `v_i15_daily_summary_moi_nhat`
+- `v_i15_snapshots_moi_nhat`
+- `v_i15_tracking_hien_tai`
 - `v_ghtt_don_vi_moi_nhat`
 - `v_hoan_cong_fiber_moi_nhat`
 - `v_ngung_psc_fiber_moi_nhat`
@@ -259,7 +276,29 @@ Goi y UI:
 - bang theo doi xac minh
 - bar chart theo to hoac NVKT
 
-### 6.7. `v_dashboard_cau_hinh_tu_dong_moi_nhat`
+### 6.7. `v_dashboard_xac_minh_tam_dung_moi_nhat`
+
+Muc dich:
+
+- tong hop xac minh tam dung theo NVKT/to
+
+Do hat:
+
+- 1 dong = 1 `ttvt + doi_vien_thong + nvkt`
+
+Cot quan trong:
+
+- `ttvt`
+- `doi_vien_thong`
+- `nvkt`
+- `so_phieu_xac_minh`
+
+Goi y UI:
+
+- bang tong hop xac minh tam dung
+- bar chart theo to hoac NVKT
+
+### 6.8. `v_dashboard_cau_hinh_tu_dong_moi_nhat`
 
 Muc dich:
 
@@ -302,22 +341,6 @@ Cot quan trong:
 - `loai_vat_tu`
 - `trang_thai_thu_hoi`
 - `so_luong`
-
-### 6.9. `v_dashboard_quyet_toan_vat_tu_moi_nhat`
-
-Muc dich:
-
-- tong hop quyet toan vat tu theo loai
-
-Do hat:
-
-- 1 dong = 1 `loai`
-
-Cot quan trong:
-
-- `loai`
-- `tong_so_luong`
-- `tong_thanh_tien`
 
 ### 6.10. `v_dashboard_ttvt_son_tay_chi_so_don_vi_moi_nhat`
 

@@ -90,7 +90,7 @@
 
 Đặc điểm:
 - cần `danhba.db`
-- cần DB history riêng (`suy_hao_history.db`, `suy_hao_history_k2.db`)
+- cần DB history theo instance (`report_history.db`) với bảng `i15_*` phân biệt bằng `k_suffix`
 - so sánh với ngày trước để sinh:
   - `Tang_moi`
   - `Giam_het`
@@ -131,6 +131,7 @@ Lưu ý thêm:
 | C1.2 | `process_c12_report` | `downloads/baocao_hanoi/c1.2 report.xlsx` | `api_transition/downloads/chi_tieu_c/c1.2 report.xlsx` | Port trực tiếp |
 | C1.3 | `process_c13_report` | `downloads/baocao_hanoi/c1.3 report.xlsx` | `api_transition/downloads/chi_tieu_c/c1.3 report.xlsx` | Port trực tiếp |
 | C1.4 | `process_c14_report` | `downloads/baocao_hanoi/c1.4 report.xlsx` | `api_transition/downloads/chi_tieu_c/c1.4 report.xlsx` | Port trực tiếp |
+| C1.5 | chưa có hàm cũ riêng tách module | `downloads/baocao_hanoi/c1.5 report.xlsx` | `api_transition/downloads/chi_tieu_c/c1.5 report.xlsx` | Đã triển khai processor mới theo raw multi-header API |
 | C1.4 chi tiết | `process_c14_chitiet_report` | `downloads/baocao_hanoi/c1.4_chitiet_report.xlsx` | `api_transition/downloads/chi_tieu_c/c1.4_chitiet_report.xlsx` | Port trực tiếp |
 | I1.5 | `process_I15_report_with_tracking` | `downloads/baocao_hanoi/I1.5 report.xlsx` | `api_transition/downloads/chi_tieu_i/i1.5 report.xlsx` | Khác chữ hoa/thường, phải xử lý path cẩn thận |
 | I1.5 K2 | `process_I15_k2_report_with_tracking` | `downloads/baocao_hanoi/I1.5_k2 report.xlsx` | `api_transition/downloads/chi_tieu_i/i1.5_k2 report.xlsx` | Tương tự |
@@ -142,7 +143,6 @@ Lưu ý thêm:
 | GHTT Sơn Tây | chưa có hàm cũ riêng 1-1 | `GHTT/tong_hop_ghtt_sontay.xlsx` | `api_transition/downloads/ghtt/ghtt_sontay report.xlsx` | Chuẩn hóa summary cấp tổ |
 | GHTT NVKTDB | `process_GHTT_report_NVKT` | `GHTT/tong_hop_ghtt_nvktdb.xlsx` | `api_transition/downloads/ghtt/ghtt_nvktdb report.xlsx` | Port trực tiếp, có map `đơn vị` |
 | Vật tư thu hồi | `vat_tu_thu_hoi_process` | `downloads/baocao_hanoi/bc_thu_hoi_vat_tu.xlsx` | `api_transition/downloads/vat_tu_thu_hoi/bc_thu_hoi_vat_tu.xlsx` | Port trực tiếp |
-| Quyết toán vật tư | chưa có hàm cũ riêng | chưa có | `api_transition/downloads/vat_tu_thu_hoi/quyet_toan_vat_tu.xlsx` | Thiết kế mới, tham chiếu pattern vật tư |
 
 ## 3.2. Nhóm mới, chưa có processor cũ 1-1
 
@@ -171,12 +171,12 @@ Các module bên trong:
   - helper resolve path trong `api_transition/downloads`
 
 - `c_processors.py`
-  - port các hàm tổng hợp C1.1/C1.2/C1.3/C1.4
+  - port các hàm tổng hợp C1.1/C1.2/C1.3/C1.4/C1.5
   - port C1.4 chi tiết
   - giữ nguyên tên sheet nghiệp vụ đang dùng nếu không có lý do đổi
 
-- `i15_processors.py`
-  - port toàn bộ logic `i15_process.py`
+  - `i15_processors.py`
+  - port logic `i15_process.py` sang pipeline multi-instance
   - đưa path `danhba.db`, history DB và thư mục output thành tham số/config
   - tách phần tracking DB khỏi phần transform DataFrame nếu có thể
 
@@ -234,7 +234,6 @@ Các module bên trong:
 
 - `vattu_processors.py`
   - `process_vat_tu_thu_hoi`
-  - `process_quyet_toan_vat_tu`
   - chia phần normalize và phần group summary
 
 - `registry.py`
@@ -284,8 +283,7 @@ Các dependency ngoài report raw cần gom về config:
 
 - `dsnv.xlsx`
 - `danhba.db`
-- `suy_hao_history.db`
-- `suy_hao_history_k2.db`
+- `report_history.db` theo từng instance
 
 Không hard-code trực tiếp trong processor; nên để:
 - tham số hàm
@@ -358,8 +356,8 @@ Không hard-code trực tiếp trong processor; nên để:
 - `process_c13_report_api_output`
 - `process_c14_report_api_output`
 - `process_c14_chitiet_report_api_output`
-- `process_i15_report_with_tracking_api_output`
-- `process_i15_k2_report_with_tracking_api_output`
+- `process_i15_report_api_output`
+- `process_i15_k2_report_api_output`
 - `process_kpi_nvkt_c11_api_output`
 - `process_kpi_nvkt_c12_api_output`
 - `process_kq_tiep_thi_api_output`
@@ -424,10 +422,6 @@ Không hard-code trực tiếp trong processor; nên để:
     - tổng hợp theo tổ
     - chi tiết raw chuẩn hóa
 
-- `process_quyet_toan_vat_tu_api_output`
-  - chưa có hàm cũ 1-1
-  - định hướng:
-    - giữ `Data`
     - tạo `Tổng hợp theo loại/SPDV`
     - tạo `Tổng hợp theo mã vật tư`
     - nếu có cột đơn vị hoặc NVKT thì thêm sheet group tương ứng
@@ -504,6 +498,7 @@ Các hàm đã có:
 - `process_c12_report_api_output`
 - `process_c13_report_api_output`
 - `process_c14_report_api_output`
+- `process_c15_report_api_output`
 - `process_c14_chitiet_report_api_output`
 - `process_c11_chitiet_report_api_output`
 - `process_c12_chitiet_sm1_report_api_output`
@@ -515,6 +510,7 @@ Các file processed đã tạo và kiểm tra:
 - `api_transition/Processed/chi_tieu_c/c1.2 report_processed.xlsx`
 - `api_transition/Processed/chi_tieu_c/c1.3 report_processed.xlsx`
 - `api_transition/Processed/chi_tieu_c/c1.4 report_processed.xlsx`
+- `api_transition/Processed/chi_tieu_c/c1.5 report_processed.xlsx`
 - `api_transition/Processed/chi_tieu_c/c1.4_chitiet_report_processed.xlsx`
 - `api_transition/Processed/chi_tieu_c/c1.1_chitiet_report_processed.xlsx`
 - `api_transition/Processed/chi_tieu_c/c1.2_chitiet_sm1_report_processed.xlsx`
@@ -635,11 +631,9 @@ Các file processed đã tạo và kiểm tra:
 
 Các hàm đã có:
 - `process_vat_tu_thu_hoi_api_output`
-- `process_quyet_toan_vat_tu_api_output`
 
 Các file processed đã tạo và kiểm tra:
 - `api_transition/Processed/vat_tu_thu_hoi/bc_thu_hoi_vat_tu_processed.xlsx`
-- `api_transition/Processed/vat_tu_thu_hoi/quyet_toan_vat_tu_processed.xlsx`
 
 ### 8.10. Sheet đầu ra đã chốt
 
@@ -651,6 +645,16 @@ Các file processed đã tạo và kiểm tra:
   - sheet `TH_C1.3`
 - `C1.4`:
   - sheet `TH_C1.4`
+- `C1.5`:
+  - sheet `TH_C1.5`
+- `C1.5 chi tiết`:
+  - sheet `KQ_C15_chitiet`
+  - sheet `TH_TTVTST`
+  - sheet `Chi_tiet_TG`
+  - sheet `TH_KIEULD`
+  - sheet `TH_DVVT`
+  - sheet `TH_DVVT_DOI`
+  - sheet `TH_DVVT_TTVT`
 - `C1.4 chi tiết`:
   - sheet `TH_HL_NVKT`
 - `C1.1 chi tiết`:
@@ -734,11 +738,6 @@ Các file processed đã tạo và kiểm tra:
   - sheet `Chi tiết`
   - sheet `Chi tiết vật tư`
   - sheet `Tổng hợp`
-- `Quyết toán vật tư`:
-  - sheet `Data`
-  - sheet `Tong_hop_theo_loai`
-  - sheet `Tong_hop_theo_SPDV`
-  - sheet `Tong_hop_theo_vat_tu`
 
 ## 9. Các lưu ý thực tế đã rút ra khi triển khai
 
@@ -876,15 +875,6 @@ Các file processed đã tạo và kiểm tra:
   - port logic xử lý đã sẵn sàng
   - chưa khóa luồng đầu vào chính thức
 
-### 9.12. `Quyết toán vật tư` là summary thuần, không ép group theo NVKT
-
-- File `quyet_toan_vat_tu.xlsx` hiện không có cột tổ/NVKT.
-- Vì vậy processor chỉ tạo các summary đúng semantic của raw:
-  - theo `LOAI`
-  - theo `MA_SPDV`
-  - theo `MA_VT/TEN_VT`
-- Không nên cố bịa thêm sheet theo cá nhân hoặc đơn vị nếu nguồn không có thông tin đó.
-
 ### 9.7. `KQ tiếp thị` cần giữ cách ghi header riêng
 
 - File `KQ tiếp thị` sử dụng `MultiIndex` header nhưng output mong muốn là một dòng header phẳng, dễ đọc.
@@ -921,7 +911,6 @@ Mục tiêu:
   - Tỷ lệ xác minh TTVTKV
   - Tỷ lệ xác minh chi tiết
   - Vật tư thu hồi
-  - Quyết toán vật tư
 
 Mục tiêu:
   - đã bao phủ phần lớn raw file mới trong `api_transition`

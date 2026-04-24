@@ -53,7 +53,6 @@ Thoi diem kiem tra: 2026-04-20
 - `ty_le_xac_minh_chi_tiet`
 - `kq_tiep_thi`
 - `vattu_thu_hoi`
-- `quyet_toan_vat_tu`
 
 ### Khong dung ID don vi
 

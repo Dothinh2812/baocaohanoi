@@ -2,9 +2,9 @@
 
 Tài liệu này mô tả chi tiết các module OneBSS trong `api_transition/`, bao gồm:
 
-- [onebss_auth.py](./onebss_auth.py)
-- [onebss_report_client.py](./onebss_report_client.py)
-- [onebss_downloaders.py](./onebss_downloaders.py)
+- [onebss_auth.py](./chua_dung_den/onebss_auth.py)
+- [onebss_report_client.py](./chua_dung_den/onebss_report_client.py)
+- [onebss_downloaders.py](./chua_dung_den/onebss_downloaders.py)
 
 Mục tiêu của nhóm module này là tự động hóa tải báo cáo từ hệ OneBSS theo 2 luồng khác nhau:
 
@@ -664,8 +664,8 @@ download_onebss_report(
 ### 7.1 Tạo session 1 lần và tái sử dụng
 
 ```python
-from api_transition.onebss_auth import create_session, close_session
-from api_transition.onebss_downloaders import (
+from api_transition.chua_dung_den.onebss_auth import create_session, close_session
+from api_transition.chua_dung_den.onebss_downloaders import (
     download_bc_phieu_ton_dv_chi_tiet_hni,
     download_bc_ton_sua_chua_sontay_2026,
 )
@@ -685,19 +685,19 @@ finally:
 ### 7.2 Chạy một downloader BI đơn lẻ
 
 ```bash
-cd /home/vtst/baocaohanoi && python3 -c 'from api_transition.onebss_downloaders import download_bc_ton_sua_chua_sontay_2026; print(download_bc_ton_sua_chua_sontay_2026())'
+cd /home/vtst/baocaohanoi && python3 -c 'from api_transition.chua_dung_den.onebss_downloaders import download_bc_ton_sua_chua_sontay_2026; print(download_bc_ton_sua_chua_sontay_2026())'
 ```
 
 ### 7.3 Chạy downloader `ReportViewer`
 
 ```bash
-cd /home/vtst/baocaohanoi && python3 -c 'from api_transition.onebss_downloaders import download_bc_chi_tiet_ket_qua_cskh_uc3_sontay; print(download_bc_chi_tiet_ket_qua_cskh_uc3_sontay(output_dir="/home/vtst/baocaohanoi/api_transition/downloads/onebss"))'
+cd /home/vtst/baocaohanoi && python3 -c 'from api_transition.chua_dung_den.onebss_downloaders import download_bc_chi_tiet_ket_qua_cskh_uc3_sontay; print(download_bc_chi_tiet_ket_qua_cskh_uc3_sontay(output_dir="/home/vtst/baocaohanoi/api_transition/downloads/onebss"))'
 ```
 
 ### 7.4 Xem trước payload BI
 
 ```python
-from api_transition.onebss_downloaders import dump_payload_preview, payload_to_pretty_json
+from api_transition.chua_dung_den.onebss_downloaders import dump_payload_preview, payload_to_pretty_json
 
 payload = dump_payload_preview(
     report_path="TINH/HANOI/HNI_PTTB_001/RP_HNI_PTTB_001",
@@ -796,4 +796,3 @@ Hiện tại, với số lượng báo cáo chưa quá lớn, kiến trúc hiệ
 - auth tập trung
 - client tập trung
 - downloader wrappers mỏng
-

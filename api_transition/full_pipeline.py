@@ -20,6 +20,7 @@ from api_transition.batch_download import (
     run_batch_download,
 )
 from api_transition.processors import run_all_processors
+from api_transition.runtime_config import RuntimeContext, load_runtime_context
 from api_transition.sqlite_history.apply_report_history_views import (
     DEFAULT_VIEWS_PATH,
     apply_views,
@@ -69,15 +70,14 @@ def _ensure_database(
     reset_db: bool,
     verbose: bool,
 ) -> None:
-    if reset_db or not db_path.exists():
-        if verbose:
-            action = "Recreating" if reset_db else "Initializing"
-            print(f"[db] {action} SQLite at {db_path}")
-        init_database(db_path, schema_path, views_path, reset=reset_db)
-    else:
-        if verbose:
-            print(f"[db] Reusing existing SQLite at {db_path}")
-        apply_views(db_path, views_path)
+    if verbose:
+        if reset_db:
+            print(f"[db] Recreating SQLite at {db_path}")
+        elif db_path.exists():
+            print(f"[db] Ensuring summary schema at {db_path}")
+        else:
+            print(f"[db] Initializing SQLite at {db_path}")
+    init_database(db_path, schema_path, views_path, reset=reset_db)
 
 
 def _iter_xlsx_paths(value: Any) -> Iterable[Path]:
@@ -235,6 +235,8 @@ def import_processed_to_report_history(
 
 def run_full_pipeline(
     *,
+    config_path: Optional[str] = None,
+    runtime_context: Optional[RuntimeContext] = None,
     report_month: Optional[int] = None,
     report_year: Optional[int] = None,
     month_id: Optional[str] = None,
@@ -248,9 +250,9 @@ def run_full_pipeline(
     processor_skip: Optional[Sequence[str]] = None,
     processor_groups: Optional[Sequence[str]] = None,
     processor_stop_on_error: bool = False,
-    db_path: Path = DEFAULT_DB_PATH,
-    processed_root: Path = DEFAULT_PROCESSED_ROOT,
-    archive_root: Path = DEFAULT_ARCHIVE_ROOT,
+    db_path: Optional[Path] = None,
+    processed_root: Optional[Path] = None,
+    archive_root: Optional[Path] = None,
     snapshot_date: Optional[date] = None,
     period_start: Optional[date] = None,
     period_end: Optional[date] = None,
@@ -267,18 +269,52 @@ def run_full_pipeline(
     co loi de tranh nap du lieu cu/stale vao DB.
     """
 
+    active_runtime_context = runtime_context
+    if active_runtime_context is None and config_path:
+        active_runtime_context = load_runtime_context(config_path)
+
+    if active_runtime_context is not None:
+        if report_month is None:
+            report_month = active_runtime_context.period.report_month
+        if report_year is None:
+            report_year = active_runtime_context.period.report_year
+        if month_id is None:
+            month_id = active_runtime_context.period.month_id or None
+        if month_label is None:
+            month_label = active_runtime_context.period.month_label or None
+        if vattu_start_date is None:
+            vattu_start_date = active_runtime_context.period.vattu_start_date or None
+        if headed is None:
+            headed = active_runtime_context.download.headed
+        if db_path is None:
+            db_path = active_runtime_context.paths.sqlite_db_path
+        if processed_root is None:
+            processed_root = active_runtime_context.paths.processed_root
+        if archive_root is None:
+            archive_root = active_runtime_context.paths.archive_root
+
     snapshot_date = snapshot_date or date.today()
     eff_report_month = _effective_report_month(report_month)
     eff_report_year = _effective_report_year(report_year)
-    db_path = Path(db_path).expanduser().resolve()
-    processed_root = Path(processed_root).expanduser().resolve()
-    archive_root = Path(archive_root).expanduser().resolve()
+    db_path = Path(db_path or DEFAULT_DB_PATH).expanduser().resolve()
+    processed_root = Path(processed_root or DEFAULT_PROCESSED_ROOT).expanduser().resolve()
+    archive_root = Path(archive_root or DEFAULT_ARCHIVE_ROOT).expanduser().resolve()
 
     if verbose:
         print("[pipeline] Starting full pipeline")
         print(f"[pipeline] snapshot_date={snapshot_date.isoformat()} report_month={eff_report_month} report_year={eff_report_year}")
+        if active_runtime_context is not None:
+            print(
+                f"[pipeline] unit={active_runtime_context.unit.code}"
+                f" downloads_root={active_runtime_context.paths.downloads_root}"
+                f" processed_root={processed_root}"
+                f" archive_root={archive_root}"
+                f" db_path={db_path}"
+            )
 
     download_results = run_batch_download(
+        config_path=config_path if active_runtime_context is None else None,
+        runtime_context=active_runtime_context,
         report_month=report_month,
         report_year=report_year,
         month_id=month_id,
@@ -296,6 +332,7 @@ def run_full_pipeline(
         only=processor_only,
         skip=processor_skip,
         groups=processor_groups,
+        runtime_context=active_runtime_context,
         stop_on_error=processor_stop_on_error,
         verbose=verbose,
     )
@@ -388,6 +425,7 @@ def run_full_pipeline(
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run full api_transition pipeline.")
+    parser.add_argument("--config", default=None, help="Duong dan file config runtime theo don vi.")
     parser.add_argument("--month", type=int, default=None, help=f"Thang bao cao (mac dinh: {REPORT_MONTH})")
     parser.add_argument("--year", type=int, default=None, help=f"Nam bao cao (mac dinh: {REPORT_YEAR})")
     parser.add_argument("--month-id", default=None, help="Month ID dung cho batch download.")
@@ -401,9 +439,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--processor-group", action="append", default=[], help="Chi chay processor group nay. Co the lap lai.")
     parser.add_argument("--overwrite-processed", action="store_true", help="Ghi de workbook processed neu processor ho tro.")
     parser.add_argument("--processor-stop-on-error", action="store_true", help="Dung processor stage ngay khi gap loi.")
-    parser.add_argument("--db-path", default=str(DEFAULT_DB_PATH), help="Duong dan SQLite DB.")
-    parser.add_argument("--processed-root", default=str(DEFAULT_PROCESSED_ROOT), help="Thu muc Processed.")
-    parser.add_argument("--archive-root", default=str(DEFAULT_ARCHIVE_ROOT), help="Thu muc ProcessedDaily.")
+    parser.add_argument("--db-path", default=None, help=f"Duong dan SQLite DB. Mac dinh: {DEFAULT_DB_PATH}")
+    parser.add_argument("--processed-root", default=None, help=f"Thu muc Processed. Mac dinh: {DEFAULT_PROCESSED_ROOT}")
+    parser.add_argument("--archive-root", default=None, help=f"Thu muc ProcessedDaily. Mac dinh: {DEFAULT_ARCHIVE_ROOT}")
     parser.add_argument("--snapshot-date", default=None, help="Ngay du lieu YYYY-MM-DD. Mac dinh: hom nay.")
     parser.add_argument("--period-start", default=None, help="Ky du lieu bat dau YYYY-MM-DD.")
     parser.add_argument("--period-end", default=None, help="Ky du lieu ket thuc YYYY-MM-DD.")
@@ -420,8 +458,11 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    runtime_context = load_runtime_context(args.config) if args.config else None
 
     result = run_full_pipeline(
+        config_path=args.config,
+        runtime_context=runtime_context,
         report_month=args.month,
         report_year=args.year,
         month_id=args.month_id,
@@ -435,9 +476,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         processor_skip=args.processor_skip,
         processor_groups=args.processor_group,
         processor_stop_on_error=args.processor_stop_on_error,
-        db_path=Path(args.db_path),
-        processed_root=Path(args.processed_root),
-        archive_root=Path(args.archive_root),
+        db_path=Path(args.db_path) if args.db_path else None,
+        processed_root=Path(args.processed_root) if args.processed_root else None,
+        archive_root=Path(args.archive_root) if args.archive_root else None,
         snapshot_date=parse_optional_date(args.snapshot_date),
         period_start=parse_optional_date(args.period_start),
         period_end=parse_optional_date(args.period_end),

@@ -15,6 +15,12 @@ DEFAULT_XM_TTVTKV_INPUT = (
     / "ty_le_xac_minh"
     / "ty_le_xac_minh_dung_thoi_gian_quy_dinh_ttvtkv.xlsx"
 )
+DEFAULT_XM_TAM_DUNG_INPUT = (
+    Path(__file__).resolve().parent.parent
+    / "downloads"
+    / "xac_minh_tam_dung"
+    / "xac_minh_tam_dung report.xlsx"
+)
 DEFAULT_XM_CHI_TIET_INPUT = (
     Path(__file__).resolve().parent.parent
     / "downloads"
@@ -71,6 +77,86 @@ def _append_total_row(df, total_col, fixed_values):
     for key, value in fixed_values.items():
         total_row[key] = value
     return pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
+
+
+def _prepare_xac_minh_tam_dung_df(input_path):
+    raw_path = _resolve_path(input_path)
+    df = pd.read_excel(raw_path).copy()
+    df.columns = [str(col).strip() for col in df.columns]
+
+    for col in ("TEN_DVVT_HNI", "PHAN_LOAI_KH", "TEN_KV", "DOIVT", "TTVT", "LYDOHUY", "TRANGTHAI_TB", "TRANGTHAI_HD"):
+        if col in df.columns:
+            df[col] = df[col].fillna("(Chưa xác định)").astype(str).str.strip()
+
+    if "TEN_NVKT_DB" in df.columns:
+        df["NVKT"] = df["TEN_NVKT_DB"].apply(_normalize_person_name).fillna("(Chưa phân công)")
+    else:
+        df["NVKT"] = "(Chưa phân công)"
+
+    return raw_path, df
+
+
+def _build_xac_minh_tam_dung_nvkt_summary(df):
+    grouped = (
+        df.groupby(["TTVT", "DOIVT", "NVKT"], dropna=False)
+        .size()
+        .reset_index(name="SỐ PHIẾU XÁC MINH")
+        .sort_values(["TTVT", "DOIVT", "SỐ PHIẾU XÁC MINH", "NVKT"], ascending=[True, True, False, True])
+        .reset_index(drop=True)
+    )
+    return _append_total_row(
+        grouped,
+        "SỐ PHIẾU XÁC MINH",
+        {"TTVT": "TỔNG CỘNG", "DOIVT": "", "NVKT": ""},
+    )
+
+
+def _build_xac_minh_tam_dung_dich_vu_summary(df):
+    grouped = (
+        df.groupby(["TEN_DVVT_HNI", "PHAN_LOAI_KH"], dropna=False)
+        .size()
+        .reset_index(name="SỐ PHIẾU XÁC MINH")
+        .sort_values(["SỐ PHIẾU XÁC MINH", "TEN_DVVT_HNI", "PHAN_LOAI_KH"], ascending=[False, True, True])
+        .reset_index(drop=True)
+    )
+    return _append_total_row(
+        grouped,
+        "SỐ PHIẾU XÁC MINH",
+        {"TEN_DVVT_HNI": "TỔNG CỘNG", "PHAN_LOAI_KH": ""},
+    )
+
+
+def _build_xac_minh_tam_dung_ly_do_huy_summary(df):
+    grouped = (
+        df.groupby(["LYDOHUY"], dropna=False)
+        .size()
+        .reset_index(name="SỐ PHIẾU XÁC MINH")
+        .sort_values(["SỐ PHIẾU XÁC MINH", "LYDOHUY"], ascending=[False, True])
+        .reset_index(drop=True)
+    )
+    return _append_total_row(
+        grouped,
+        "SỐ PHIẾU XÁC MINH",
+        {"LYDOHUY": "TỔNG CỘNG"},
+    )
+
+
+def process_xac_minh_tam_dung_api_output(
+    input_path=DEFAULT_XM_TAM_DUNG_INPUT,
+    overwrite_processed=False,
+):
+    """Xu ly bao cao xac minh tam dung."""
+    raw_path, df = _prepare_xac_minh_tam_dung_df(input_path)
+    df_nvkt = _build_xac_minh_tam_dung_nvkt_summary(df)
+    df_dich_vu = _build_xac_minh_tam_dung_dich_vu_summary(df)
+    df_ly_do = _build_xac_minh_tam_dung_ly_do_huy_summary(df)
+
+    processed_path = ensure_processed_workbook(raw_path, overwrite=overwrite_processed)
+    append_or_replace_sheet(processed_path, "Data", df)
+    append_or_replace_sheet(processed_path, "tong_hop_theo_nvkt", df_nvkt)
+    append_or_replace_sheet(processed_path, "tong_hop_theo_dich_vu", df_dich_vu)
+    append_or_replace_sheet(processed_path, "tong_hop_theo_ly_do_huy", df_ly_do)
+    return processed_path
 
 
 def process_ty_le_xac_minh_dung_thoi_gian_quy_dinh_ttvtkv_api_output(

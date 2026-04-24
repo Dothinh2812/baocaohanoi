@@ -52,15 +52,16 @@ MIGRATION_CATALOG = [
     MigrationItem(
         old_function="download_report_c15",
         report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=258310&menu_id=305918",
-        status="capture_required",
+        status="implemented",
         recipe_name="c15_q2_2026",
-        note="Đã có recipe bước đầu nhưng luồng export hiện đang lỗi, tạm hoãn xử lý tiếp.",
+        note="Đã có recipe đầy đủ, đã tạo downloader API, đã nối vào batch_download và đã tải thật thành công theo config son_tay.",
     ),
     MigrationItem(
         old_function="download_report_c15_chitiet",
-        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info-data?id=522920&ploaibc=1&pdonvi_id=284656&pthoigianid=98944630",
-        status="capture_optional",
-        note="Đang có luồng gần API sẵn nhưng hiện chạy lỗi, tạm hoãn cùng C1.5 tổng hợp.",
+        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=522920",
+        status="implemented",
+        recipe_name="c15_chitiet_q2_2026",
+        note="Đã có recipe thật, đã tạo downloader API, đã nối vào batch_download và đã tải thật thành công theo config son_tay; riêng kỳ Tháng 04/2026 hiện trả workbook rỗng.",
     ),
     MigrationItem(
         old_function="download_report_c11_chitiet",

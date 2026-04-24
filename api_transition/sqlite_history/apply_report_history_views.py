@@ -32,6 +32,12 @@ def apply_views(db_path: Path, views_path: Path) -> int:
     conn = sqlite3.connect(db_path)
     try:
         conn.execute("PRAGMA foreign_keys = ON")
+        existing_views = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'view' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+        for (view_name,) in existing_views:
+            quoted_name = '"' + str(view_name).replace('"', '""') + '"'
+            conn.execute(f"DROP VIEW IF EXISTS {quoted_name}")
         conn.executescript(sql)
         conn.commit()
         view_count = conn.execute(

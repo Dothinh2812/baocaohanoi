@@ -15,14 +15,6 @@ DEFAULT_VATTU_THU_HOI_INPUT = (
     / "vat_tu_thu_hoi"
     / "bc_thu_hoi_vat_tu.xlsx"
 )
-DEFAULT_QUYET_TOAN_VATTU_INPUT = (
-    Path(__file__).resolve().parent.parent
-    / "downloads"
-    / "vat_tu_thu_hoi"
-    / "quyet_toan_vat_tu.xlsx"
-)
-
-
 def _resolve_path(input_path):
     path = Path(input_path).expanduser()
     if not path.is_absolute():
@@ -133,63 +125,4 @@ def process_vat_tu_thu_hoi_api_output(
         append_or_replace_sheet(processed_path, "Chi tiết vật tư", df_detail)
     if not df_summary.empty:
         append_or_replace_sheet(processed_path, "Tổng hợp", df_summary)
-    return processed_path
-
-
-def _append_total_row(df, numeric_cols, label_col, total_label="TỔNG CỘNG"):
-    total_row = {col: "" for col in df.columns}
-    total_row[label_col] = total_label
-    for col in numeric_cols:
-        total_row[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).sum()
-    return pd.concat([df, pd.DataFrame([total_row])], ignore_index=True)
-
-
-def _prepare_quyet_toan_vattu_df(input_path):
-    raw_path = _resolve_path(input_path)
-    df = pd.read_excel(raw_path).copy()
-    df.columns = [str(col).strip() for col in df.columns]
-    for col in ["SOLUONG", "DONGIA", "THANHTIEN"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
-    return raw_path, df
-
-
-def _build_quyet_toan_group(df, group_cols):
-    grouped = (
-        df.groupby(group_cols, dropna=False)
-        .agg(
-            SOLUONG=("SOLUONG", "sum"),
-            THANHTIEN=("THANHTIEN", "sum"),
-        )
-        .reset_index()
-    )
-    if "DONGIA" in df.columns:
-        dongia = df.groupby(group_cols, dropna=False)["DONGIA"].max().reset_index()
-        grouped = grouped.merge(dongia, on=group_cols, how="left")
-    ordered = group_cols + [col for col in ["SOLUONG", "DONGIA", "THANHTIEN"] if col in grouped.columns]
-    grouped = grouped[ordered]
-    grouped = grouped.sort_values(group_cols, ascending=True).reset_index(drop=True)
-    grouped = _append_total_row(
-        grouped,
-        [col for col in ["SOLUONG", "THANHTIEN"] if col in grouped.columns],
-        group_cols[0],
-    )
-    return grouped
-
-
-def process_quyet_toan_vat_tu_api_output(
-    input_path=DEFAULT_QUYET_TOAN_VATTU_INPUT,
-    overwrite_processed=False,
-):
-    """Xu ly bao cao quyet toan vat tu."""
-    raw_path, df = _prepare_quyet_toan_vattu_df(input_path)
-    df_loai = _build_quyet_toan_group(df, ["LOAI"])
-    df_spdv = _build_quyet_toan_group(df, ["MA_SPDV", "LOAI"])
-    df_vattu = _build_quyet_toan_group(df, ["MA_VT", "TEN_VT", "DVI_TINH"])
-
-    processed_path = ensure_processed_workbook(raw_path, overwrite=overwrite_processed)
-    append_or_replace_sheet(processed_path, "Data", df)
-    append_or_replace_sheet(processed_path, "Tong_hop_theo_loai", df_loai)
-    append_or_replace_sheet(processed_path, "Tong_hop_theo_SPDV", df_spdv)
-    append_or_replace_sheet(processed_path, "Tong_hop_theo_vat_tu", df_vattu)
     return processed_path

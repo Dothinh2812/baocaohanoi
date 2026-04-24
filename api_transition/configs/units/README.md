@@ -42,7 +42,6 @@ Nhung report dung `ids.unit_id_28`:
 - `ty_le_xac_minh_chi_tiet`
 - `kq_tiep_thi`
 - `vattu_thu_hoi`
-- `quyet_toan_vat_tu`
 
 Nhung report khong dung ID don vi:
 

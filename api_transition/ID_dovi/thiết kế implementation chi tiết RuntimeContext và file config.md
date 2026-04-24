@@ -20,6 +20,128 @@ Không nằm trong phạm vi của bản thiết kế này:
 - Refactor toàn bộ processor đặc thù Sơn Tây thành generic ngay trong vòng đầu.
 - Thay đổi schema SQLite hiện tại.
 
+## 1.1. Trạng thái implementation hiện tại
+
+### Đã triển khai
+
+- Đã tạo [runtime_config.py](/home/vtst/baocaohanoi/api_transition/runtime_config.py)
+- Đã có các dataclass:
+  - `RuntimePaths`
+  - `UnitProfile`
+  - `PeriodConfig`
+  - `DownloadConfig`
+  - `RuntimeContext`
+- Đã có các hàm:
+  - `build_runtime_paths(...)`
+  - `ensure_runtime_dirs(...)`
+  - `validate_runtime_config(...)`
+  - `load_runtime_context(...)`
+- Đã export:
+  - `RuntimeContext`
+  - `load_runtime_context`
+  từ [__init__.py](/home/vtst/baocaohanoi/api_transition/__init__.py)
+- Đã load thử thành công `18/18` file config trong `configs/units/`
+- Đã xác nhận loader tự tạo cây:
+  - `downloads`
+  - `Processed`
+  - `ProcessedDaily`
+  - `sqlite_history`
+  dưới `instance_root` của từng đơn vị
+- Đã nối [batch_download.py](/home/vtst/baocaohanoi/api_transition/batch_download.py) với `RuntimeContext`
+- Đã thêm CLI:
+  - `--config <path>`
+- Đã bổ sung vào `ReportTask`:
+  - `report_key`
+  - `id_family`
+- Đã cho batch:
+  - resolve `unit_id` theo `id_family`
+  - resolve `output_dir` theo `runtime/<unit>/downloads/<group>`
+  - skip report theo `reports.<report_key>.enabled`
+- Đã verify không cần mạng:
+  - list report theo config
+  - build kwargs đúng theo config
+  - skip sớm report đang disable
+- Đã verify thật qua network cho:
+  - `python3 -m api_transition.batch_download --config api_transition/configs/units/son_tay.yaml`
+- Kết quả verify thật:
+  - `28` report thành công
+  - `0` report thất bại
+  - `5` report skip theo config
+  - raw outputs được ghi đúng dưới `runtime/son_tay/downloads/...`
+- Đã xác nhận retry hoạt động trên report chậm:
+  - `C1.2 Chi tiết SM2`
+  - `Vật tư thu hồi`
+- Đã nối [processors/runner.py](/home/vtst/baocaohanoi/api_transition/processors/runner.py) với `RuntimeContext`
+- Đã thêm CLI:
+  - `python3 -m api_transition.processors.runner --config <path>`
+- Đã cập nhật [processors/common.py](/home/vtst/baocaohanoi/api_transition/processors/common.py) để cấu hình được `downloads_root` và `processed_root` theo instance
+- Đã vá [service_flow_processors.py](/home/vtst/baocaohanoi/api_transition/processors/service_flow_processors.py) ở chỗ sinh processed output theo runtime root
+- Đã cho processor:
+  - đọc raw từ `runtime/<unit>/downloads/...`
+  - ghi processed vào `runtime/<unit>/Processed/...`
+  - skip processor theo `reports.<report_key>.enabled`
+- Đã verify thật:
+  - `python3 -m api_transition.processors.runner --config api_transition/configs/units/son_tay.yaml`
+- Kết quả verify thật cho processor:
+  - `25` processor thành công
+  - `0` processor thất bại
+  - `5` processor skip theo config
+  - outputs được ghi đúng dưới `runtime/son_tay/Processed/...`
+- Đã nối [full_pipeline.py](/home/vtst/baocaohanoi/api_transition/full_pipeline.py) với `RuntimeContext`
+- Đã thêm CLI:
+  - `python3 -m api_transition.full_pipeline --config <path>`
+- Đã cho full pipeline:
+  - kế thừa `period` và `download` defaults từ config đơn vị
+  - dùng `runtime/<unit>/Processed` làm `processed_root`
+  - dùng `runtime/<unit>/ProcessedDaily` làm `archive_root`
+  - dùng `runtime/<unit>/sqlite_history/report_history.db` làm `db_path`
+  - truyền chung `RuntimeContext` vào download và processor stage
+- Đã verify thật phần archive + SQLite import cho `son_tay` bằng full pipeline:
+  - skip toàn bộ download stage để reuse raw đã có
+  - `25` processor thành công
+  - `28` workbook được archive
+  - `28` workbook được import vào SQLite
+  - `0` import thất bại
+- Kết quả kiểm tra sau verify:
+  - `runtime/son_tay/ProcessedDaily` có `28` file
+  - DB tạo tại `runtime/son_tay/sqlite_history/report_history.db`
+  - DB có `28` dòng `bao_cao_ngay`
+- Đã verify thật end-to-end có network trong cùng một lệnh:
+  - `python3 -u -m api_transition.full_pipeline --config api_transition/configs/units/son_tay.yaml --reset-db`
+- Kết quả verify end-to-end:
+  - `28` download thành công
+  - `0` download thất bại
+  - `25` processor thành công
+  - `0` processor thất bại
+  - `28` workbook được archive
+  - `28` workbook được import vào SQLite
+  - `0` import thất bại
+- Đã đối soát DB với processed của `son_tay`:
+  - `28` workbook processed khớp `28` dòng `bao_cao_ngay`
+  - `99` sheet khớp `99` dòng `sheet_bao_cao`
+  - `31,495` dòng raw khớp `31,495` dòng `dong_bao_cao_goc`
+  - `bao_cao_ngay.so_dong_goc`, `so_dong_tong_hop`, `so_dong_chi_tiet` đều khớp với workbook
+  - kiểm tra `ma_hash_dong` giữa workbook parsed và `dong_bao_cao_goc` cho `28` report cho kết quả `0` mismatch
+- Đã kiểm tra một view dashboard thực tế:
+  - `v_dashboard_chat_luong_don_vi_moi_nhat`
+  - view có `20` dòng, là `UNION ALL` của `v_c11_tong_hop_moi_nhat`, `v_c12_tong_hop_moi_nhat`, `v_c13_tong_hop_moi_nhat`, `v_c14_tong_hop_moi_nhat`
+  - dữ liệu thực tế đọc đúng cho các tổ của Sơn Tây và ngày `2026-04-20`
+- Đã tạo admin utility đồng bộ DB nhiều instance:
+  - [sqlite_history/sync_all_instance_dbs.py](/home/vtst/baocaohanoi/api_transition/sqlite_history/sync_all_instance_dbs.py)
+  - script này đứng ngoài full pipeline, dùng cho:
+    - `status`
+    - `apply-views`
+    - `init-if-missing`
+    - `reset-and-init`
+  - đã verify thực tế:
+    - `--mode status --unit son_tay`
+    - `--mode apply-views --unit son_tay`
+
+### Chưa triển khai
+
+- Chưa thay thế các root mặc định đang hard-code ở luồng hiện tại
+- Chưa làm hardening/report đặc biệt của Phase 5
+
 ## 2. Kiến trúc tổng thể
 
 ### 2.1. Luồng runtime mới
@@ -279,6 +401,12 @@ def sqlite_log_path(self, filename: str) -> Path: ...
 def lock_file_path(self) -> Path: ...
 ```
 
+Trạng thái hiện tại:
+
+- Đã triển khai đủ các helper trên trong `RuntimeContext`
+- `instance_root` tương đối hiện được resolve theo thư mục [api_transition](/home/vtst/baocaohanoi/api_transition/)
+- Khi `runtime.create_dirs: true`, loader sẽ tự tạo cây runtime tại thời điểm load config
+
 ### 4.4. Quy tắc build path
 
 Từ `instance_root`, loader phải tự sinh:
@@ -423,7 +551,6 @@ kwargs["unit_id"] = context.unit.ids["center_id_14"]
 - `ty_le_xac_minh_chi_tiet`
 - `kq_tiep_thi`
 - `vattu_thu_hoi`
-- `quyet_toan_vat_tu`
 
 Resolver:
 
@@ -794,9 +921,6 @@ reports:
 
   vattu_thu_hoi:
     vat_tu_ids: "1,2,3,4,8,6,5"
-
-  quyet_toan_vat_tu:
-    enabled: true
 ```
 
 ## 13. CLI đề xuất
