@@ -37,6 +37,7 @@ logs/
 # Local data exports
 username.xlsx
 dashboard_data_paths.xlsx
+runtime_app/
 
 # Environment
 .env

@@ -1,0 +1,108 @@
+- code: son_tay
+  slug: son-tay
+  name: "TTVT Sơn Tây"
+  port: 5011
+  hostname: son-tay.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/son_tay/sqlite_history/report_history.db
+- code: ba_dinh
+  slug: ba-dinh
+  name: "TTVT Ba Đình"
+  port: 5012
+  hostname: ba-dinh.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/ba_dinh/sqlite_history/report_history.db
+- code: cau_giay
+  slug: cau-giay
+  name: "TTVT Cầu Giấy"
+  port: 5013
+  hostname: cau-giay.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/cau_giay/sqlite_history/report_history.db
+- code: dong_anh
+  slug: dong-anh
+  name: "TTVT Đông Anh"
+  port: 5014
+  hostname: dong-anh.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/dong_anh/sqlite_history/report_history.db
+- code: dong_da
+  slug: dong-da
+  name: "TTVT Đống Đa"
+  port: 5015
+  hostname: dong-da.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/dong_da/sqlite_history/report_history.db
+- code: gia_lam
+  slug: gia-lam
+  name: "TTVT Gia Lâm"
+  port: 5016
+  hostname: gia-lam.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/gia_lam/sqlite_history/report_history.db
+- code: giai_phong
+  slug: giai-phong
+  name: "TTVT Giải Phóng"
+  port: 5017
+  hostname: giai-phong.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/giai_phong/sqlite_history/report_history.db
+- code: ha_dong
+  slug: ha-dong
+  name: "TTVT Hà Đông"
+  port: 5018
+  hostname: ha-dong.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/ha_dong/sqlite_history/report_history.db
+- code: hoai_duc
+  slug: hoai-duc
+  name: "TTVT Hoài Đức"
+  port: 5019
+  hostname: hoai-duc.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/hoai_duc/sqlite_history/report_history.db
+- code: hoan_kiem
+  slug: hoan-kiem
+  name: "TTVT Hoàn Kiếm"
+  port: 5020
+  hostname: hoan-kiem.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/hoan_kiem/sqlite_history/report_history.db
+- code: hoang_mai
+  slug: hoang-mai
+  name: "TTVT Hoàng Mai"
+  port: 5021
+  hostname: hoang-mai.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/hoang_mai/sqlite_history/report_history.db
+- code: long_bien
+  slug: long-bien
+  name: "TTVT Long Biên"
+  port: 5022
+  hostname: long-bien.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/long_bien/sqlite_history/report_history.db
+- code: phu_xuyen
+  slug: phu-xuyen
+  name: "TTVT Phú Xuyên"
+  port: 5023
+  hostname: phu-xuyen.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/phu_xuyen/sqlite_history/report_history.db
+- code: soc_son
+  slug: soc-son
+  name: "TTVT Sóc Sơn"
+  port: 5024
+  hostname: soc-son.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/soc_son/sqlite_history/report_history.db
+- code: tay_ho
+  slug: tay-ho
+  name: "TTVT Tây Hồ"
+  port: 5025
+  hostname: tay-ho.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/tay_ho/sqlite_history/report_history.db
+- code: thach_that
+  slug: thach-that
+  name: "TTVT Thạch Thất"
+  port: 5026
+  hostname: thach-that.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/thach_that/sqlite_history/report_history.db
+- code: thanh_tri
+  slug: thanh-tri
+  name: "TTVT Thanh Trì"
+  port: 5027
+  hostname: thanh-tri.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/thanh_tri/sqlite_history/report_history.db
+- code: tu_liem
+  slug: tu-liem
+  name: "TTVT Từ Liêm"
+  port: 5028
+  hostname: tu-liem.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/tu_liem/sqlite_history/report_history.db

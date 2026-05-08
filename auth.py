@@ -16,11 +16,13 @@ from threading import Lock
 # Lock để đảm bảo thread-safe khi đọc/ghi Excel
 file_lock = Lock()
 
-EXCEL_FILE = 'username.xlsx'
-LOGIN_LOG_FILE = 'logs/login_history.csv'
+EXCEL_FILE = os.getenv('DASHV4_USER_FILE', 'username.xlsx')
+LOGIN_LOG_FILE = os.getenv('DASHV4_LOGIN_LOG_FILE', 'logs/login_history.csv')
 
 # Đảm bảo thư mục logs tồn tại
-os.makedirs('logs', exist_ok=True)
+login_log_dir = os.path.dirname(os.path.abspath(LOGIN_LOG_FILE))
+if login_log_dir:
+    os.makedirs(login_log_dir, exist_ok=True)
 
 # Khởi tạo file log nếu chưa có
 if not os.path.exists(LOGIN_LOG_FILE):

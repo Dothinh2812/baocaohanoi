@@ -1,0 +1,59 @@
+tunnel: CHANGE-ME-TUNNEL-ID
+credentials-file: /root/.cloudflared/CHANGE-ME-TUNNEL-ID.json
+
+ingress:
+  - hostname: son-tay.dashboard.example.vn
+    service: http://127.0.0.1:5011
+
+  - hostname: ba-dinh.dashboard.example.vn
+    service: http://127.0.0.1:5012
+
+  - hostname: cau-giay.dashboard.example.vn
+    service: http://127.0.0.1:5013
+
+  - hostname: dong-anh.dashboard.example.vn
+    service: http://127.0.0.1:5014
+
+  - hostname: dong-da.dashboard.example.vn
+    service: http://127.0.0.1:5015
+
+  - hostname: gia-lam.dashboard.example.vn
+    service: http://127.0.0.1:5016
+
+  - hostname: giai-phong.dashboard.example.vn
+    service: http://127.0.0.1:5017
+
+  - hostname: ha-dong.dashboard.example.vn
+    service: http://127.0.0.1:5018
+
+  - hostname: hoai-duc.dashboard.example.vn
+    service: http://127.0.0.1:5019
+
+  - hostname: hoan-kiem.dashboard.example.vn
+    service: http://127.0.0.1:5020
+
+  - hostname: hoang-mai.dashboard.example.vn
+    service: http://127.0.0.1:5021
+
+  - hostname: long-bien.dashboard.example.vn
+    service: http://127.0.0.1:5022
+
+  - hostname: phu-xuyen.dashboard.example.vn
+    service: http://127.0.0.1:5023
+
+  - hostname: soc-son.dashboard.example.vn
+    service: http://127.0.0.1:5024
+
+  - hostname: tay-ho.dashboard.example.vn
+    service: http://127.0.0.1:5025
+
+  - hostname: thach-that.dashboard.example.vn
+    service: http://127.0.0.1:5026
+
+  - hostname: thanh-tri.dashboard.example.vn
+    service: http://127.0.0.1:5027
+
+  - hostname: tu-liem.dashboard.example.vn
+    service: http://127.0.0.1:5028
+
+  - service: http_status:404

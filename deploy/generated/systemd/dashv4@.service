@@ -1,0 +1,15 @@
+[Unit]
+Description=Dashv4 Dashboard Instance %i
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/vtst/dashv4
+EnvironmentFile=/etc/dashv4/%i.env
+ExecStart=/usr/bin/gunicorn -c gunicorn_config.py dashboard:app
+Restart=always
+RestartSec=5
+User=vtst
+
+[Install]
+WantedBy=multi-user.target

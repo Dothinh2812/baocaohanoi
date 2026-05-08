@@ -1,0 +1,14 @@
+tunnel: CHANGE-ME-TUNNEL-ID
+credentials-file: /root/.cloudflared/CHANGE-ME-TUNNEL-ID.json
+
+ingress:
+  - hostname: son-tay.dashboard.example.vn
+    service: http://127.0.0.1:5011
+
+  - hostname: ba-dinh.dashboard.example.vn
+    service: http://127.0.0.1:5012
+
+  - hostname: cau-giay.dashboard.example.vn
+    service: http://127.0.0.1:5013
+
+  - service: http_status:404

@@ -20,24 +20,24 @@ timeout = 120  # Timeout 120 giây cho các request chậm (đọc Excel lớn)
 keepalive = 5
 
 # Process naming
-proc_name = 'dashv4_vnpt'
+proc_name = f'dashv4_{DashboardConfig.UNIT_CODE}'
 
 # Server mechanics
 daemon = False  # Không chạy background, để supervisor/systemd quản lý
-pidfile = '/tmp/dashv4.pid'
+pidfile = DashboardConfig.PID_FILE
 umask = 0
 user = None
 group = None
 tmp_upload_dir = None
 
 # Logging
-accesslog = 'logs/gunicorn_access.log'
-errorlog = 'logs/gunicorn_error.log'
+accesslog = os.path.join(DashboardConfig.LOG_DIR, 'gunicorn_access.log')
+errorlog = os.path.join(DashboardConfig.LOG_DIR, 'gunicorn_error.log')
 loglevel = 'info'
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
 # Tạo thư mục logs nếu chưa có
-os.makedirs('logs', exist_ok=True)
+os.makedirs(DashboardConfig.LOG_DIR, exist_ok=True)
 
 # SSL (nếu cần)
 # keyfile = None

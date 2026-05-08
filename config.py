@@ -51,6 +51,15 @@ def _default_secret_key():
 
 DEFAULT_BASE_DATA_PATH = os.path.abspath(os.path.join(BASE_DIR, '..', 'one-suachua'))
 FALLBACK_BASE_DATA_PATH = os.path.abspath(os.path.join(BASE_DIR, '..', 'onev2'))
+UNIT_CODE = _env_value('DASHV4_UNIT_CODE', default='son_tay')
+UNIT_NAME = _env_value('DASHV4_UNIT_NAME', default='TTVT Sơn Tây')
+APP_DISPLAY_NAME = _env_value('DASHV4_APP_NAME', default='Dashboard V4')
+INSTANCE_RUNTIME_DIR = os.path.abspath(
+    _env_value(
+        'DASHV4_RUNTIME_DIR',
+        default=os.path.join(BASE_DIR, 'runtime_app', UNIT_CODE),
+    )
+)
 
 BASE_DATA_PATH = _first_existing_path(
     os.getenv('DASH_BASE_DATA_PATH'),
@@ -95,8 +104,18 @@ SHC_SOURCE_K2_DB_PATH = _first_existing_path(
     os.path.join(BAOCAO_HANOI_PATH, 'suy_hao_history_k2.db'),
 )
 
-SESSION_FILE_DIR = os.path.join(BASE_DIR, 'flask_session')
-CACHE_DIR = os.path.join(BASE_DIR, 'cache')
+SESSION_FILE_DIR = os.path.abspath(
+    _env_value('DASHV4_SESSION_FILE_DIR', default=os.path.join(INSTANCE_RUNTIME_DIR, 'flask_session'))
+)
+CACHE_DIR = os.path.abspath(
+    _env_value('DASHV4_CACHE_DIR', default=os.path.join(INSTANCE_RUNTIME_DIR, 'cache'))
+)
+LOG_DIR = os.path.abspath(_env_value('DASHV4_LOG_DIR', default=os.path.join(BASE_DIR, 'logs', UNIT_CODE)))
+PID_FILE = _env_value('DASHV4_PID_FILE', default=f'/tmp/dashv4-{UNIT_CODE}.pid')
+USER_FILE = os.path.abspath(_env_value('DASHV4_USER_FILE', default=os.path.join(INSTANCE_RUNTIME_DIR, 'users.xlsx')))
+LOGIN_LOG_FILE = os.path.abspath(
+    _env_value('DASHV4_LOGIN_LOG_FILE', default=os.path.join(LOG_DIR, 'login_history.csv'))
+)
 QUANG_CHU_DONG_CACHE_DIR = os.path.join(CACHE_DIR, 'quangchudong')
 QUANG_CHU_DONG_CACHE_FILE = os.path.join(QUANG_CHU_DONG_CACHE_DIR, 'snapshot.json')
 QUANG_CHU_DONG_CACHE_LOCK_FILE = os.path.join(QUANG_CHU_DONG_CACHE_DIR, 'snapshot.lock')
@@ -144,10 +163,6 @@ TAM_DUNG_KHOI_PHUC_FILE = os.path.join(
 )
 SH_PORTAL_URL = os.getenv('DASH_SH_PORTAL_URL', 'https://sh.ttvt8.online/')
 SH_PORTAL_USERNAME_PARAM = os.getenv('DASH_SH_PORTAL_USERNAME_PARAM', 'username')
-UNIT_CODE = _env_value('DASHV4_UNIT_CODE', default='son_tay')
-UNIT_NAME = _env_value('DASHV4_UNIT_NAME', default='TTVT Sơn Tây')
-APP_DISPLAY_NAME = _env_value('DASHV4_APP_NAME', default='Dashboard V4')
-
 INVENTORY_TEAM_CONFIGS = {
     'qoi': {
         'active_page': 'ton_kho_vat_tu_qoi',
@@ -211,6 +226,12 @@ class DashboardConfig:
     UNIT_CODE = UNIT_CODE
     UNIT_NAME = UNIT_NAME
     APP_DISPLAY_NAME = APP_DISPLAY_NAME
+    INSTANCE_RUNTIME_DIR = INSTANCE_RUNTIME_DIR
+    CACHE_DIR = CACHE_DIR
+    LOG_DIR = LOG_DIR
+    PID_FILE = PID_FILE
+    USER_FILE = USER_FILE
+    LOGIN_LOG_FILE = LOGIN_LOG_FILE
     ENABLE_BACKGROUND_SERVICES = _env_flag('DASHV4_ENABLE_BACKGROUND_SERVICES', default=False)
 
 
