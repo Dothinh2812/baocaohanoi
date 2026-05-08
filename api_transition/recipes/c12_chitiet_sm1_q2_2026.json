@@ -1,45 +1,35 @@
 {
   "name": "c12_chitiet_sm1_q2_2026",
-  "report_page_url": "https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194",
-  "report_id": "267215",
-  "menu_id": "276194",
+  "report_page_url": "https://baocao.hanoi.vnpt.vn/",
+  "report_id": "535080",
+  "menu_id": "",
   "export_payload": {
-    "reportId": "267215",
+    "reportId": "535080",
     "lstInputParams": [
       {
-        "name": "pdonvi_id",
+        "name": "ptrungtamid",
         "dataType": "NUMBER",
-        "value": "284656"
+        "value": "14324"
       },
       {
-        "name": "vngay_bd",
+        "name": "pthang",
         "dataType": "VARCHAR2",
-        "value": "26/03/2026"
+        "value": "98944805"
       },
       {
-        "name": "vngay_kt",
-        "dataType": "VARCHAR2",
-        "value": "25/04/2026"
-      },
-      {
-        "name": "vdichvu",
-        "dataType": "VARCHAR2",
-        "value": "1,4,6,7,8,9,10,13,27,98,25,26,15,22,2,12,14,16"
-      },
-      {
-        "name": "vloaikh",
+        "name": "ploaict",
         "dataType": "NUMBER",
-        "value": "0"
+        "value": "1"
       },
       {
-        "name": "vngay",
+        "name": "ploai",
         "dataType": "NUMBER",
-        "value": "0"
+        "value": "1"
       },
       {
-        "name": "vloaiph",
+        "name": "pcot",
         "dataType": "NUMBER",
-        "value": "1211"
+        "value": "7"
       },
       {
         "name": "ppageindex",
@@ -59,13 +49,13 @@
         "value": ""
       },
       {
-        "name": "pdata",
+        "name": "odata",
         "dataType": "CURSOR",
         "value": ""
       }
     ]
   },
-  "default_output_name": "",
-  "captured_at": "2026-04-15T21:42:28.295587",
-  "notes": "Sinh tự động từ capture_with_legacy_flow.py"
+  "default_output_name": "BC-bao cao chi tiet chi tieu C11, C12, C13-6.5.2026-40.18.9.xlsx",
+  "captured_at": "2026-05-06T09:18:24.178730",
+  "notes": "Trich xuat tu luong get-data-export. Store Procedure: P_CTCL_11_Q22026_CT"
 }

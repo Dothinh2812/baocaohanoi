@@ -65,10 +65,17 @@ MIGRATION_CATALOG = [
     ),
     MigrationItem(
         old_function="download_report_c11_chitiet",
-        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194",
+        report_page_url="https://baocao.hanoi.vnpt.vn/",
         status="implemented",
         recipe_name="c11_chitiet_q2_2026",
-        note="Đã capture thành công và có downloader API riêng.",
+        note="Đã cập nhật recipe mới report_id=535080; downloader dùng ptrungtamid và pthang.",
+    ),
+    MigrationItem(
+        old_function="download_report_c11_chitiet_sm6_ccco",
+        report_page_url="https://baocao.hanoi.vnpt.vn/",
+        status="implemented",
+        recipe_name="c11_chitiet_sm6_ccco_q2_2026",
+        note="Báo cáo mới dùng report_id=535080, pcot=6, ptrungtamid và pthang; đã nối downloader/batch, processor chờ yêu cầu xử lý.",
     ),
     MigrationItem(
         old_function="download_report_c11_chitiet_SM2",
@@ -78,17 +85,17 @@ MIGRATION_CATALOG = [
     ),
     MigrationItem(
         old_function="download_report_c12_chitiet_SM1",
-        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194",
+        report_page_url="https://baocao.hanoi.vnpt.vn/",
         status="implemented",
         recipe_name="c12_chitiet_sm1_q2_2026",
-        note="Đã capture thành công và có downloader API riêng.",
+        note="Đã cập nhật recipe mới report_id=535080; downloader dùng ptrungtamid, pthang và pcot=7.",
     ),
     MigrationItem(
         old_function="download_report_c12_chitiet_SM2",
-        report_page_url="https://baocao.hanoi.vnpt.vn/report/report-info?id=267215&menu_id=276194",
+        report_page_url="https://baocao.hanoi.vnpt.vn/",
         status="implemented",
         recipe_name="c12_chitiet_sm2_q2_2026",
-        note="Đã capture thành công và có downloader API riêng.",
+        note="Đã cập nhật recipe mới report_id=535080; downloader dùng ptrungtamid, pthang và pcot=4.",
     ),
     MigrationItem(
         old_function="download_report_I15",

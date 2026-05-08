@@ -117,9 +117,10 @@ python3 api_transition/chua_dung_den/export_from_recipe.py --c12 --headed --mont
 python3 api_transition/chua_dung_den/export_from_recipe.py --c13 --headed --month-id 98944548
 python3 api_transition/chua_dung_den/export_from_recipe.py --c14 --headed --month-id 98944548
 python3 api_transition/chua_dung_den/export_from_recipe.py --c14-chi-tiet --headed --month-id 98944548
-python3 api_transition/chua_dung_den/export_from_recipe.py --c11-chi-tiet --headed --start-date "26/03/2026" --end-date "25/04/2026"
-python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm1 --headed --start-date "26/03/2026" --end-date "25/04/2026"
-python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm2 --headed --start-date "26/03/2026" --end-date "25/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --c11-chi-tiet --headed --month-id 98944805
+python3 api_transition/chua_dung_den/export_from_recipe.py --c11-chi-tiet-sm6-ccco --headed --month-id 98944805
+python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm1 --headed --month-id 98944805
+python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm2 --headed --month-id 98944805
 python3 api_transition/chua_dung_den/export_from_recipe.py --i15 --headed --start-date "14/04/2026" --end-date "14/04/2026"
 python3 api_transition/chua_dung_den/export_from_recipe.py --i15-k2 --headed --start-date "14/04/2026" --end-date "14/04/2026"
 python3 api_transition/chua_dung_den/export_from_recipe.py --ghtt-hni --headed --month-id 98944548
@@ -174,7 +175,7 @@ results = run_batch_download(
 Danh sách report hiện được batch gọi:
 - `C1.1`, `C1.2`, `C1.3`, `C1.4`, `C1.4 Chi tiết`
 - `C1.5`, `C1.5 Chi tiết`
-- `C1.1 Chi tiết`, `C1.2 Chi tiết SM1`, `C1.2 Chi tiết SM2`
+- `C1.1 Chi tiết`, `C1.1 Chi tiết SM6 CCCO`, `C1.2 Chi tiết SM1`, `C1.2 Chi tiết SM2`
 - `I1.5`, `I1.5 K2`
 - `GHTT HNI`, `GHTT Sơn Tây`, `GHTT NVKT DB`
 - `Xác minh tạm dừng`, `Kết quả tiếp thị`, `CTS SHC ngày`

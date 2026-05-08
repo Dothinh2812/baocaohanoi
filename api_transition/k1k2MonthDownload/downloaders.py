@@ -6,8 +6,8 @@ import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from api_transition.auth import capture_authorization, login
-from api_transition.report_api_client import (
+from auth import capture_authorization, login
+from report_api_client import (
     export_report,
     find_value_by_label,
     get_info_report,
@@ -267,89 +267,70 @@ def download_report_c15_chitiet_api(
 
 
 def download_report_c11_chitiet_api(
-    month_id="",
-    month_label="",
-    unit_id="14324",
+    start_date="26/03/2026",
+    end_date="25/04/2026",
+    unit_id="284656",
     headed=False,
     output_dir=group_output_dir("chi_tieu_c"),
     session=None,
 ):
-    overrides = {"ptrungtamid": str(unit_id)}
+    overrides = {
+        "pdonvi_id": str(unit_id),
+        "vngay_bd": str(start_date),
+        "vngay_kt": str(end_date),
+    }
     return download_with_recipe(
         "c11_chitiet_q2_2026",
         headed=headed,
         output_dir=output_dir,
         output_name="c1.1_chitiet_report.xlsx",
         overrides=overrides,
-        month_id=month_id,
-        month_label=month_label,
-        month_override_key="pthang",
-        session=session,
-    )
-
-
-def download_report_c11_chitiet_sm6_ccco_api(
-    month_id="",
-    month_label="",
-    unit_id="14324",
-    headed=False,
-    output_dir=group_output_dir("chi_tieu_c"),
-    session=None,
-):
-    overrides = {"ptrungtamid": str(unit_id)}
-    return download_with_recipe(
-        "c11_chitiet_sm6_ccco_q2_2026",
-        headed=headed,
-        output_dir=output_dir,
-        output_name="c1.1_chitiet_sm6_ccco_report.xlsx",
-        overrides=overrides,
-        month_id=month_id,
-        month_label=month_label,
-        month_override_key="pthang",
         session=session,
     )
 
 
 def download_report_c12_chitiet_sm1_api(
-    month_id="",
-    month_label="",
-    unit_id="14324",
+    start_date="26/03/2026",
+    end_date="25/04/2026",
+    unit_id="284656",
     headed=False,
     output_dir=group_output_dir("chi_tieu_c"),
     session=None,
 ):
-    overrides = {"ptrungtamid": str(unit_id)}
+    overrides = {
+        "pdonvi_id": str(unit_id),
+        "vngay_bd": str(start_date),
+        "vngay_kt": str(end_date),
+    }
     return download_with_recipe(
         "c12_chitiet_sm1_q2_2026",
         headed=headed,
         output_dir=output_dir,
         output_name="c1.2_chitiet_sm1_report.xlsx",
         overrides=overrides,
-        month_id=month_id,
-        month_label=month_label,
-        month_override_key="pthang",
         session=session,
     )
 
 
 def download_report_c12_chitiet_sm2_api(
-    month_id="",
-    month_label="",
-    unit_id="14324",
+    start_date="26/03/2026",
+    end_date="25/04/2026",
+    unit_id="284656",
     headed=False,
     output_dir=group_output_dir("chi_tieu_c"),
     session=None,
 ):
-    overrides = {"ptrungtamid": str(unit_id)}
+    overrides = {
+        "pdonvi_id": str(unit_id),
+        "vngay_bd": str(start_date),
+        "vngay_kt": str(end_date),
+    }
     return download_with_recipe(
         "c12_chitiet_sm2_q2_2026",
         headed=headed,
         output_dir=output_dir,
         output_name="c1.2_chitiet_sm2_report.xlsx",
         overrides=overrides,
-        month_id=month_id,
-        month_label=month_label,
-        month_override_key="pthang",
         session=session,
     )
 

@@ -1,45 +1,35 @@
 {
-  "name": "c11_chitiet_q2_2026",
+  "name": "c11_chitiet_sm6_ccco_q2_2026",
   "report_page_url": "https://baocao.hanoi.vnpt.vn/",
   "report_id": "535080",
   "menu_id": "",
-  "api_endpoints": {
-    "get_info": "https://baocaobe.myhanoi.vn/report-api/get-info-report/535080?menu_id=",
-    "get_data": "https://baocaobe.myhanoi.vn/report-api/get-data-report",
-    "export_data": "https://baocaobe.myhanoi.vn/report-api/get-data-export"
-  },
   "export_payload": {
     "reportId": "535080",
     "lstInputParams": [
       {
         "name": "ptrungtamid",
         "dataType": "NUMBER",
-        "value": "14324",
-        "description": "ID Don vi"
+        "value": "14324"
       },
       {
         "name": "pthang",
         "dataType": "VARCHAR2",
-        "value": "98944805",
-        "description": "Thang (ma noi bo)"
+        "value": "98944805"
       },
       {
         "name": "ploaict",
         "dataType": "NUMBER",
-        "value": "1",
-        "description": "vchitieu"
+        "value": "1"
       },
       {
         "name": "ploai",
         "dataType": "NUMBER",
-        "value": "1",
-        "description": "pLoai (Dich vu VT)"
+        "value": "1"
       },
       {
         "name": "pcot",
         "dataType": "NUMBER",
-        "value": "4",
-        "description": "vCot (Doi tuong KH)"
+        "value": "6"
       },
       {
         "name": "ppageindex",
@@ -65,12 +55,12 @@
       }
     ]
   },
-  "default_output_name": "",
+  "default_output_name": "BC-bao cao chi tiet chi tieu C11, C12, C13-6.5.2026-33.8.9.xlsx",
+  "captured_at": "2026-05-06T09:08:37.661827",
   "metadata": {
     "procedure_name": "P_CTCL_11_Q22026_CT",
     "package_name": "PKG_HN_CTCL",
-    "creator": "Vu Viet Hung (hungvv.hni)",
-    "captured_at": "2026-05-06T09:00:28.227585"
+    "creator": "Vu Viet Hung (hungvv.hni)"
   },
-  "notes": "Du lieu duoc trich xuat tu luong thao tac bao cao chi tiet C11, C12, C13. ppagesize duoc set len 1000000 khi export."
+  "notes": "Trich xuat tu luong get-data-export. Tham so ppagesize duoc set toi da 1000000 de lay toan bo du lieu."
 }

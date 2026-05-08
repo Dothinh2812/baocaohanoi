@@ -128,13 +128,16 @@ def process_kpi_nvkt_c11_api_output(
         "SM3",
         "SM4",
         "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn",
+        "SM5",
+        "SM6",
+        "Tỷ lệ phiếu sửa chữa trong ngày tại CCCO",
         "Chỉ tiêu BSC",
     ]
     return _process_kpi_nvkt_report(
         input_path=input_path,
         dsnv_file=dsnv_file,
         output_columns=output_columns,
-        output_slice=slice(1, 8),
+        output_slice=slice(1, 11),
         sheet_name=sheet_name,
         overwrite_processed=overwrite_processed,
     )

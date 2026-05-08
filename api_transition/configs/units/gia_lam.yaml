@@ -6,11 +6,11 @@ runtime:
   instance_root: runtime/gia_lam
   create_dirs: true
 period:
-  report_month: 4
+  report_month: 5
   report_year: 2026
-  month_id: "98944548"
-  month_label: "Tháng 04/2026"
-  vattu_start_date: "01/04/2025"
+  month_id: "98944805"
+  month_label: "Tháng 05/2026"
+  vattu_start_date: "01/05/2025"
 ids:
   center_id_14: "14326"
   unit_id_28: "1003576"
@@ -24,11 +24,11 @@ team_ids:
   family_28: {gia_lam: "1003710", phu_dong: "1003711"}
 reports:
   defaults: {enabled: true}
-  ghtt_hni: {enabled: false}
-  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: false}
-  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: false}
-  ngung_psc_fiber_thang_t_1_cap_to: {enabled: false}
-  ngung_psc_mytv_thang_t_1_cap_to: {enabled: false}
+  ghtt_hni: {enabled: true}
+  ngung_psc_mytv_thang_t_1_cap_ttvt: {enabled: true}
+  ngung_psc_fiber_thang_t_1_cap_ttvt: {enabled: true}
+  ngung_psc_fiber_thang_t_1_cap_to: {enabled: true}
+  ngung_psc_mytv_thang_t_1_cap_to: {enabled: true}
   onebss_hni_pttb_001: {enabled: false, team_id: "0"}
   onebss_bc_phieu_ton_dv_chi_tiet_hni: {enabled: false, team_id: "0"}
   onebss_bc_ton_sua_chua_2026: {enabled: false, team_id: "0"}

@@ -18,9 +18,10 @@ Nguyên tắc áp dụng:
 | `download_report_c13` | `download_report_c13_api()` | `c13_q2_2026.json` | OK |
 | `download_report_c14` | `download_report_c14_api()` | `c14_q2_2026.json` | OK |
 | `download_report_c14_chitiet` | `download_report_c14_chitiet_api()` | `c14_chitiet_q2_2026.json` | OK |
-| `download_report_c11_chitiet` | `download_report_c11_chitiet_api()` | `c11_chitiet_q2_2026.json` | OK |
-| `download_report_c12_chitiet_SM1` | `download_report_c12_chitiet_sm1_api()` | `c12_chitiet_sm1_q2_2026.json` | OK |
-| `download_report_c12_chitiet_SM2` | `download_report_c12_chitiet_sm2_api()` | `c12_chitiet_sm2_q2_2026.json` | OK |
+| `download_report_c11_chitiet` | `download_report_c11_chitiet_api()` | `c11_chitiet_q2_2026.json` | OK, cập nhật report_id 535080 |
+| `download_report_c11_chitiet_sm6_ccco` | `download_report_c11_chitiet_sm6_ccco_api()` | `c11_chitiet_sm6_ccco_q2_2026.json` | OK, chờ yêu cầu xử lý |
+| `download_report_c12_chitiet_SM1` | `download_report_c12_chitiet_sm1_api()` | `c12_chitiet_sm1_q2_2026.json` | OK, cập nhật report_id 535080 |
+| `download_report_c12_chitiet_SM2` | `download_report_c12_chitiet_sm2_api()` | `c12_chitiet_sm2_q2_2026.json` | OK, cập nhật report_id 535080 |
 | `download_report_I15` | `download_report_i15_api()` | `i15_q2_2026.json` | OK |
 | `download_report_I15_k2` | `download_report_i15_k2_api()` | `i15_k2_q2_2026.json` | OK |
 | `download_GHTT_report_HNI` | `download_ghtt_report_hni_api()` | `ghtt_hni_q2_2026.json` | OK |
@@ -62,6 +63,7 @@ Ghi chú xác nhận:
 
 - `c11_q2_2026.json`
 - `c11_chitiet_q2_2026.json`
+- `c11_chitiet_sm6_ccco_q2_2026.json`
 - `c12_q2_2026.json`
 - `c12_chitiet_sm1_q2_2026.json`
 - `c12_chitiet_sm2_q2_2026.json`
@@ -193,9 +195,10 @@ python3 api_transition/chua_dung_den/export_from_recipe.py --c12 --month-id 9894
 python3 api_transition/chua_dung_den/export_from_recipe.py --c13 --month-id 98944548
 python3 api_transition/chua_dung_den/export_from_recipe.py --c14 --month-id 98944548
 python3 api_transition/chua_dung_den/export_from_recipe.py --c14-chi-tiet --month-id 98944548
-python3 api_transition/chua_dung_den/export_from_recipe.py --c11-chi-tiet --start-date "26/03/2026" --end-date "25/04/2026"
-python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm1 --start-date "26/03/2026" --end-date "25/04/2026"
-python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm2 --start-date "26/03/2026" --end-date "25/04/2026"
+python3 api_transition/chua_dung_den/export_from_recipe.py --c11-chi-tiet --month-id 98944805
+python3 api_transition/chua_dung_den/export_from_recipe.py --c11-chi-tiet-sm6-ccco --month-id 98944805
+python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm1 --month-id 98944805
+python3 api_transition/chua_dung_den/export_from_recipe.py --c12-chi-tiet-sm2 --month-id 98944805
 python3 api_transition/chua_dung_den/export_from_recipe.py --i15 --start-date "14/04/2026" --end-date "14/04/2026"
 python3 api_transition/chua_dung_den/export_from_recipe.py --i15-k2 --start-date "14/04/2026" --end-date "14/04/2026"
 python3 api_transition/chua_dung_den/export_from_recipe.py --ghtt-hni --month-id 98944548
@@ -224,7 +227,7 @@ python3 api_transition/chua_dung_den/export_from_recipe.py --cau-hinh-tu-dong-ch
 - Nhóm `ghtt`, `xac_minh_tam_dung`, `kq_tiep_thi`, `vat_tu_thu_hoi` lưu tương ứng theo tên nghiệp vụ.
 - Nhóm C1.1, C1.2, C1.3 dùng pattern tháng kiểu `pthang`.
 - Nhóm C1.4 dùng pattern tháng kiểu `vthoigian`.
-- Nhóm chi tiết C1.1/C1.2 hiện dùng cặp ngày `vngay_bd` và `vngay_kt`, không dùng `month-id`.
+- C1.1 chi tiết đã chuyển sang recipe mới `report_id=535080`, dùng `ptrungtamid` và `pthang`; biến thể SM6 CCCO dùng cùng report với `pcot=6`. C1.2 chi tiết SM1/SM2 đã chuyển sang cùng report; SM1 dùng `pcot=7`, SM2 dùng `pcot=4`.
 - Nhóm I1.5 và I1.5 K2 cũng dùng cặp ngày `vngay_bd` và `vngay_kt`; riêng I1.5 có thêm `vdk=0`.
 - `CTS SHC ngày` dùng tham số `report_date = T-1` trong batch; module CTS sẽ tự dựng `tuNgay`, `denNgay`, `BeginDate`, `endDate` từ ngày này khi gọi API binary.
 - Nhóm GHTT dùng `vthoigian` và `vdonvi`; `vloai=1` cho HNI/Sơn Tây và `vloai=2` cho NVKT DB.

@@ -593,6 +593,9 @@ kpi_c11 AS (
         "SM3" AS kpi_c11_sm3,
         "SM4" AS kpi_c11_sm4,
         "Tỷ lệ phiếu sửa chữa báo hỏng dịch vụ BRCĐ đúng quy định không tính hẹn" AS kpi_c11_ty_le_dung_hen,
+        "SM5" AS kpi_c11_sm5,
+        "SM6" AS kpi_c11_sm6,
+        "Tỷ lệ phiếu sửa chữa trong ngày tại CCCO" AS kpi_c11_ty_le_ccco,
         "Chỉ tiêu BSC" AS kpi_c11_chi_tieu_bsc
     FROM "kpi_nvkt_c11_nvktdb_report_c11_kpi_nvkt"
     WHERE TRIM(COALESCE("NVKT", '')) <> ''
@@ -690,6 +693,9 @@ SELECT
     kpi_c11.kpi_c11_sm3,
     kpi_c11.kpi_c11_sm4,
     kpi_c11.kpi_c11_ty_le_dung_hen,
+    kpi_c11.kpi_c11_sm5,
+    kpi_c11.kpi_c11_sm6,
+    kpi_c11.kpi_c11_ty_le_ccco,
     kpi_c11.kpi_c11_chi_tieu_bsc,
     kpi_c12.kpi_c12_sm1,
     kpi_c12.kpi_c12_sm2,

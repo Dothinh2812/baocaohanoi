@@ -42,6 +42,7 @@ from api_transition.downloaders import (
     download_report_c15_api,
     download_report_c15_chitiet_api,
     download_report_c11_chitiet_api,
+    download_report_c11_chitiet_sm6_ccco_api,
     download_report_c12_chitiet_sm1_api,
     download_report_c12_chitiet_sm2_api,
     download_report_i15_api,
@@ -241,30 +242,38 @@ REPORT_TASKS: List[ReportTask] = [
         group="chi_tieu_c",
         id_family="unit_id_28",
     ),
-    # --- Nhóm Chỉ tiêu C chi tiết (dùng date_range) ---
+    # --- Nhóm Chỉ tiêu C chi tiết ---
     ReportTask(
         name="C1.1 Chi tiết",
         report_key="c11_chi_tiet",
         func=download_report_c11_chitiet_api,
-        params_type="date_range",
+        params_type="month",
         group="chi_tieu_c",
-        id_family="unit_id_28",
+        id_family="center_id_14",
+    ),
+    ReportTask(
+        name="C1.1 Chi tiết SM6 CCCO",
+        report_key="c11_chi_tiet_sm6_ccco",
+        func=download_report_c11_chitiet_sm6_ccco_api,
+        params_type="month",
+        group="chi_tieu_c",
+        id_family="center_id_14",
     ),
     ReportTask(
         name="C1.2 Chi tiết SM1",
         report_key="c12_chi_tiet_sm1",
         func=download_report_c12_chitiet_sm1_api,
-        params_type="date_range",
+        params_type="month",
         group="chi_tieu_c",
-        id_family="unit_id_28",
+        id_family="center_id_14",
     ),
     ReportTask(
         name="C1.2 Chi tiết SM2",
         report_key="c12_chi_tiet_sm2",
         func=download_report_c12_chitiet_sm2_api,
-        params_type="date_range",
+        params_type="month",
         group="chi_tieu_c",
-        id_family="unit_id_28",
+        id_family="center_id_14",
     ),
     # --- Nhóm Chỉ tiêu I (dùng T-1 = ngày hôm qua) ---
     ReportTask(
@@ -454,8 +463,8 @@ REPORT_TASKS: List[ReportTask] = [
 # Session management
 # ---------------------------------------------------------------------------
 
-# URL bất kỳ của 1 report đã implemented để capture Authorization header
-_DEFAULT_AUTH_REPORT_URL = "https://baocao.hanoi.vnpt.vn/report/report-info?id=534964&menu_id=535020"
+# Trang gốc hiện ổn định hơn các URL report cũ để kích hoạt request /report-api/.
+_DEFAULT_AUTH_REPORT_URL = Settings.BAOCAO_URL
 
 
 def create_session(headed=False, auth_report_url=""):
