@@ -19,7 +19,8 @@ from blueprints import (
     sa_outage_bp,
     statistics_bp,
 )
-from config import DISABLED_NONPAGE_ENDPOINTS, DISABLED_PAGE_ENDPOINTS, PUBLIC_ENDPOINTS
+from config import PUBLIC_ENDPOINTS
+from route_policy import get_disabled_feature
 from services import initialize_background_services
 
 app = Flask(__name__)
@@ -71,25 +72,22 @@ def enforce_auth_policy():
         return None
 
     if 'username' in session:
-        if request.endpoint in DISABLED_PAGE_ENDPOINTS:
-            feature = DISABLED_PAGE_ENDPOINTS[request.endpoint]
-            return render_template(
-                'pages/pending_feature.html',
-                current_user=get_user_by_username(session.get('username')),
-                active_page=feature['active_page'],
-                feature_title=feature['title'],
-                feature_reason=feature['reason'],
-            ), 501
-        if request.endpoint in DISABLED_NONPAGE_ENDPOINTS:
-            feature = DISABLED_NONPAGE_ENDPOINTS[request.endpoint]
+        disabled_feature = get_disabled_feature(request.endpoint)
+        if disabled_feature:
+            if disabled_feature['kind'] == 'page':
+                return render_template(
+                    'pages/pending_feature.html',
+                    current_user=get_user_by_username(session.get('username')),
+                    active_page=disabled_feature['active_page'],
+                    feature_title=disabled_feature['title'],
+                    feature_reason=disabled_feature['reason'],
+                ), 501
             payload = {
-                'error': 'legacy_endpoint_disabled',
-                'title': feature['title'],
-                'reason': feature['reason'],
-                'required_display_contract': feature.get('required_display_contract', {}),
+                'error': 'route_disabled',
+                'title': disabled_feature['title'],
+                'reason': disabled_feature['reason'],
+                'required_display_contract': disabled_feature.get('required_display_contract', {}),
             }
-            if request.path.startswith('/api/'):
-                return jsonify(payload), 501
             return jsonify(payload), 501
         return None
 

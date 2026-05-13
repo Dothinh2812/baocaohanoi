@@ -68,3 +68,44 @@ def test_instance_disabled_endpoint_blocks_api_with_generic_metadata():
         "required_display_contract": {},
     }
     assert enabled is False
+
+
+def test_before_request_blocks_instance_disabled_page(monkeypatch):
+    monkeypatch.setenv("DASHV4_DISABLED_ENDPOINTS", "quangchudong.page_quangchudong")
+
+    import importlib
+    import config
+    import dashboard
+
+    importlib.reload(config)
+    dashboard = importlib.reload(dashboard)
+    dashboard.app.config["TESTING"] = True
+
+    with dashboard.app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess["username"] = "admin"
+        response = client.get("/quangchudong")
+
+    assert response.status_code == 501
+    assert "Route này đang bị khóa trong cấu hình instance hiện tại.".encode("utf-8") in response.data
+
+
+def test_before_request_blocks_instance_disabled_api(monkeypatch):
+    monkeypatch.setenv("DASHV4_DISABLED_ENDPOINTS", "quangchudong.get_dashboard_payload")
+
+    import importlib
+    import config
+    import dashboard
+
+    importlib.reload(config)
+    dashboard = importlib.reload(dashboard)
+    dashboard.app.config["TESTING"] = True
+
+    with dashboard.app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess["username"] = "admin"
+        response = client.get("/api/quangchudong/dashboard")
+
+    assert response.status_code == 501
+    assert response.get_json()["error"] == "route_disabled"
+    assert response.get_json()["title"] == "quangchudong.get_dashboard_payload"

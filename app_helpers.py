@@ -12,7 +12,7 @@ import pandas as pd
 from flask import current_app, flash, jsonify, redirect, request, send_file, session, url_for
 from werkzeug.utils import safe_join
 
-from config import DashboardConfig
+import config
 
 
 _EXCEL_CACHE_MAX_ENTRIES = 50
@@ -29,7 +29,7 @@ _HIDDEN_DASHBOARD_COLUMNS = {
 
 
 def configure_app(app):
-    app.config.from_object(DashboardConfig)
+    app.config.from_object(config.DashboardConfig)
     app.template_folder = 'templates'
     os.makedirs(app.config['SESSION_FILE_DIR'], exist_ok=True)
     register_template_globals(app)
