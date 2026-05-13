@@ -107,3 +107,52 @@ def test_generate_files_writes_env_systemd_cloudflared_and_smoke_script(tmp_path
     smoke_script = output_dir / "smoke_test.sh"
     assert smoke_script.exists()
     assert "curl -fsS http://127.0.0.1:5011/" in smoke_script.read_text(encoding="utf-8")
+
+
+def test_load_units_accepts_optional_route_policy_fields(tmp_path):
+    units_file = tmp_path / "units.yaml"
+    units_file.write_text(
+        """
+- code: ba_dinh
+  slug: ba-dinh
+  name: "TTVT Ba Đình"
+  port: 5012
+  hostname: ba-dinh.example.vn
+  db_path: /runtime/ba_dinh/sqlite_history/report_history.db
+  disabled_endpoints:
+    - quangchudong.page_quangchudong
+    - sa_outage.page_su_co_sa
+  enabled_endpoints:
+    - quality.page_shc_processing
+""",
+        encoding="utf-8",
+    )
+
+    units = generate_instances.load_units(units_file)
+
+    assert units[0].disabled_endpoints == (
+        "quangchudong.page_quangchudong",
+        "sa_outage.page_su_co_sa",
+    )
+    assert units[0].enabled_endpoints == ("quality.page_shc_processing",)
+
+
+def test_render_env_file_contains_route_policy_when_configured():
+    unit = generate_instances.UnitConfig(
+        code="ba_dinh",
+        slug="ba-dinh",
+        name="TTVT Ba Đình",
+        port=5012,
+        hostname="ba-dinh.example.vn",
+        db_path="/runtime/ba_dinh/sqlite_history/report_history.db",
+        disabled_endpoints=(
+            "quangchudong.page_quangchudong",
+            "sa_outage.page_su_co_sa",
+        ),
+        enabled_endpoints=("quality.page_shc_processing",),
+    )
+
+    content = generate_instances.render_env(unit)
+
+    assert "DASHV4_DISABLED_ENDPOINTS=quangchudong.page_quangchudong,sa_outage.page_su_co_sa" in content
+    assert "DASHV4_ENABLED_ENDPOINTS=quality.page_shc_processing" in content
