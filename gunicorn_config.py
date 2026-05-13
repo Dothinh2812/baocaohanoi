@@ -1,7 +1,6 @@
 # Gunicorn configuration file for dashv4 application
 # Sử dụng: gunicorn -c gunicorn_config.py dashboard:app
 
-import multiprocessing
 import os
 
 from config import DashboardConfig
@@ -11,12 +10,12 @@ bind = f"{DashboardConfig.SERVER_HOST}:{DashboardConfig.SERVER_PORT}"
 backlog = 2048
 
 # Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1  # Công thức khuyến nghị: (2 x $num_cores) + 1
+workers = DashboardConfig.GUNICORN_WORKERS
 worker_class = 'sync'  # Dùng sync vì Flask app không async
 worker_connections = 1000
 max_requests = 1000  # Restart worker sau 1000 requests để tránh memory leak
 max_requests_jitter = 50
-timeout = 120  # Timeout 120 giây cho các request chậm (đọc Excel lớn)
+timeout = DashboardConfig.GUNICORN_TIMEOUT
 keepalive = 5
 
 # Process naming

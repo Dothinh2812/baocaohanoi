@@ -1,7 +1,7 @@
 from repositories.sqlite_runtime import read_sql_dataframe, read_sql_rows
 
 
-def load_ttvt_son_tay_tong_hop_rows(unit_name):
+def load_tong_hop_bsc_kpi_rows(unit_name):
     return read_sql_rows(
         '''
         SELECT

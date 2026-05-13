@@ -20,7 +20,7 @@ Xây một dashboard mới tên `dashv4`, độc lập với `dashv3`, nhưng v�
 
 Đợt 1 nên tập trung các màn đã có contract dữ liệu khá rõ trong DB runtime Sơn Tây:
 - `/cau-hinh-tu-dong`
-- `/ttvt-son-tay-tong-hop`
+- `/tong-hop-bsc-kpi`
 - `/chatluong`
 - `/giahan`
 - `/tiepthi`

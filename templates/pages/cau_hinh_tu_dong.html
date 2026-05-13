@@ -68,19 +68,10 @@
     </div>
 
     <div class="section">
-        <div class="excel-table-card" style="padding: 16px;">
-            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
-                <div>
-                    <label for="cau-hinh-tu-dong-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
-                    <input type="date" id="cau-hinh-tu-dong-date-input" class="form-control" style="min-width: 220px;">
-                </div>
-                <button id="cau-hinh-tu-dong-date-apply" class="btn btn-primary">
-                    <i class="fas fa-filter"></i>
-                    Xem theo ngày
-                </button>
-            </div>
-            <div id="cau-hinh-tu-dong-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
-        </div>
+        {% set date_input_id = 'cau-hinh-tu-dong-date-input' %}
+        {% set date_apply_id = 'cau-hinh-tu-dong-date-apply' %}
+        {% set date_meta_id = 'cau-hinh-tu-dong-date-meta' %}
+        {% include 'components/date_picker.html' %}
     </div>
 
     <div class="section">

@@ -126,7 +126,7 @@ def render_env(unit, *, app_dir=APP_DIR, secret_key=None):
     return "\n".join(lines) + "\n"
 
 
-def render_systemd_service(*, app_dir=APP_DIR, env_dir=DEFAULT_ENV_DIR):
+def render_systemd_service(*, app_dir=APP_DIR, env_dir=DEFAULT_ENV_DIR, gunicorn_bin='/home/vtst/.local/bin/gunicorn'):
     return f"""[Unit]
 Description=Dashv4 Dashboard Instance %i
 After=network.target
@@ -135,7 +135,7 @@ After=network.target
 Type=simple
 WorkingDirectory={app_dir}
 EnvironmentFile={env_dir}/%i.env
-ExecStart=/usr/bin/gunicorn -c gunicorn_config.py dashboard:app
+ExecStart={gunicorn_bin} -c gunicorn_config.py dashboard:app
 Restart=always
 RestartSec=5
 User=vtst

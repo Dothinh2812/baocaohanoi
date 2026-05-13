@@ -42,7 +42,7 @@ Nếu route đổi logic nguồn dữ liệu:
 
 | Route/Page | API chính | Nguồn `dashv3` | Nguồn `dashv4` hiện tại | supports_date | status | Ghi chú |
 | --- | --- | --- | --- | --- | --- | --- |
-| `/ttvt-son-tay-tong-hop` | `/api/ttvt-son-tay-tong-hop` | payload build tay từ dữ liệu trung gian | `v_dashboard_ttvt_son_tay_tong_hop_moi_nhat` | `planned` | `compatible` | Đang đọc snapshot mới nhất. Có thể chuyển sang by-date nếu map lại từ bảng raw nền. |
+| `/tong-hop-bsc-kpi` | `/api/tong-hop-bsc-kpi` | payload build tay từ dữ liệu trung gian | `v_dashboard_ttvt_son_tay_tong_hop_moi_nhat` | `planned` | `compatible` | Đang đọc snapshot mới nhất theo đơn vị cấu hình. Có thể chuyển sang by-date nếu map lại từ bảng raw nền. |
 | `/cau-hinh-tu-dong` | `/api/cau-hinh-tu-dong/son-tay` | Excel/process cục bộ | 2 bảng raw import `cau_hinh_tu_dong_cau_hinh_tu_dong_chi_tiet_th_theo_to`, `cau_hinh_tu_dong_cau_hinh_tu_dong_chi_tiet_th_theo_nvkt` truy qua `sheet_bao_cao_tong_hop` + `bao_cao_tong_hop_ngay` | `yes` | `compatible-with-adapter` | Đã hỗ trợ `?date=YYYY-MM-DD`, summary cards và 2 bảng cùng đọc một `selected_date` chung. |
 | `/tiepthi` | `/api/tiepthi-data` | Excel kết quả tiếp thị | 2 bảng raw import `kq_tiep_thi_kq_tiep_thi_report_kq_th`, `kq_tiep_thi_kq_tiep_thi_report_kq_tiep_thi` truy qua `sheet_bao_cao_tong_hop` + `bao_cao_tong_hop_ngay` | `yes` | `compatible-with-adapter` | Đã hỗ trợ `?date=YYYY-MM-DD`, đồng bộ cả bảng tổng hợp theo tổ và tab chi tiết theo nhân viên. |
 | `/giahan` | `/api/giahan-ghtt-hni`, `/api/giahan-ghtt-sty`, `/api/giahan-ghtt-nvktdb` | Excel GHTT HNI/STY/NVKTDB | 3 bảng raw import `ghtt_ghtt_hni_report_kq_hni`, `ghtt_ghtt_sontay_report_kq_sontay`, `ghtt_ghtt_nvktdb_report_kq_nvktdb` truy qua `sheet_bao_cao_tong_hop` + `bao_cao_tong_hop_ngay` | `yes` | `compatible-with-adapter` | Đã hỗ trợ `?date=YYYY-MM-DD`, cả 3 API dùng chung một `selected_date` cho HNI, STY và NVKTĐB. |
@@ -58,14 +58,14 @@ Nếu route đổi logic nguồn dữ liệu:
 | `/tong-hop-cap-to` | `/api/tong-hop-cap-to-data` | tổng hợp nội bộ | `v_don_vi_tong_hop_da_nguon` | `planned` | `compatible` | Route mới của `dashv4`, hiện chưa có by-date. |
 | `/bsc-kpi-cac-to` | `/api/bsc-kpi-cac-to-data` | tổng hợp nội bộ | `v_chi_tieu_bsc_kpi_cac_to` | `planned` | `compatible` | Route mới của `dashv4`, hiện chưa có by-date. |
 | `/thuctang` | `n/a` | ảnh/PNG + file info | chưa có nguồn DB 1:1 | `n/a` | `disabled-pending-data` | Chưa phải route report_history chuẩn. |
-| `/brcd` | nhiều API legacy trong `operations_routes.py` | Excel từ repo khác | chưa có contract tương ứng trong `report_history.db` | `n/a` | `disabled-pending-data` | Không thuộc phạm vi lọc ngày của `report_history.db` hiện tại. |
-| `/pttb` | `/api/pttb-data-*` | Excel từ repo khác | chưa có contract tương ứng trong `report_history.db` | `n/a` | `disabled-pending-data` | Không thuộc phạm vi lọc ngày hiện tại. |
+| `/brcd` | `/api/excel-data`, `/api/excel-data-main`, `/api/excel-data-pending` | Excel từ repo khác | Excel runtime `1bss`: `/home/vtst/1bss/runtime/default/downloads/kq_dhsc/bc_BRCD.xlsx`, `/home/vtst/1bss/runtime/default/downloads/chiaTheoDoi/chiTietBrcd5Doi.xlsx`, `/home/vtst/1bss/runtime/default/downloads/chiaTheoDoi/chiTietBrcd5Doi_OFF.xlsx` | `n/a` | `legacy-non-report-history` | Không thuộc phạm vi lọc ngày của `report_history.db`; giữ logic Excel của `dashv3` nhưng đổi nguồn sang runtime mới. |
+| `/pttb` | `/api/pttb-data-*` | Excel từ repo khác | Excel runtime `1bss`: `/home/vtst/1bss/runtime/default/downloads/ton_pttb/baoCaoPTTB.xlsx` | `n/a` | `legacy-non-report-history` | Không thuộc phạm vi lọc ngày hiện tại; giữ logic Excel của `dashv3` nhưng đổi nguồn sang runtime mới. |
 | `/shc-processing` | `/api/shc-processing-report`, `/api/shc-nvkt-detail/*` | báo cáo SHC xử lý riêng | service/nguồn riêng ngoài contract chuẩn `report_history.db` | `n/a` | `legacy-non-report-history` | Chưa đưa vào chuẩn lọc ngày chung của tài liệu 09. |
 | `/ton-kho-vat-tu` | `/api/ton-kho-vat-tu`, `/api/ton-kho-vat-tu-tot-thuong-dung` | `baocao-vattu` | Excel cũ | `n/a` | `legacy-non-report-history` | Không dùng `report_history.db`. |
 | `/Tong_hop_tien` | page render trực tiếp | `baocao-vattu` | Excel cũ | `n/a` | `legacy-non-report-history` | Không dùng `report_history.db`. |
-| `/tra-cuu-nhanh-vat-tu` | `/api/tra-cuu-nhanh-vat-tu` | `baocao-vattu` | Excel cũ | `n/a` | `legacy-non-report-history` | Không dùng `report_history.db`. |
-| `/quangchudong` | `/api/quangchudong/*` | DB/service riêng | service riêng | `n/a` | `legacy-non-report-history` | Không thuộc `report_history.db`. |
-| `/su_co_sa` | `/api/su-co-sa/data` | DB riêng | DB riêng | `n/a` | `legacy-non-report-history` | Không thuộc `report_history.db`. |
+| `/tra-cuu-nhanh-vat-tu` | `/api/tra-cuu-nhanh-vat-tu` | `baocao-vattu` | Excel cũ, giữ nguyên logic `dashv3` | `n/a` | `legacy-non-report-history` | Không dùng `report_history.db`; template và JS đang giống hệt `dashv3`. |
+| `/quangchudong` | `/api/quangchudong/*` | DB/service riêng | snapshot JSON từ `/home/vtst/do_chu_dong_api/runtime/current_off_snapshot.json` | `n/a` | `legacy-non-report-history` | Không thuộc `report_history.db`; dashboard đọc từ snapshot do `do_chu_dong_api` sinh ra. |
+| `/su_co_sa` | `/api/su-co-sa/data` | DB riêng | SQLite `/home/vtst/1bss/runtime/default/sqlite/sa_outage.db` bảng `sa_outage_incidents` | `n/a` | `legacy-non-report-history` | Không thuộc `report_history.db`; hiển thị sự cố SA đang tồn và đã kết thúc trong ngày. |
 
 ## Route ưu tiên triển khai `supports_date = yes`
 
@@ -98,7 +98,7 @@ Không làm theo tài liệu 09 cho đến khi chuyển nguồn:
 
 - `/kpi`
 - `/kpi-nvkt-bchn`
-- `/ttvt-son-tay-tong-hop`
+- `/tong-hop-bsc-kpi`
 
 Lý do:
 - đang dùng view tổng hợp business hoặc adapter nhiều lớp

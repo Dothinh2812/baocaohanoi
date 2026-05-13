@@ -161,25 +161,40 @@
         </div>
     </div>
 
-    <div class="shc-report-toolbar">
-        <div class="filter-row">
-            <div class="filter-group">
-                <label class="filter-label" for="shc-report-date">Ngày báo cáo</label>
-                <input id="shc-report-date" class="filter-input" type="date">
+    <div class="date-picker-panel" style="margin-bottom: 24px;">
+        <div class="date-picker-row">
+            <div class="date-picker-field">
+                <label for="shc-report-date" class="date-picker-label">
+                    <i class="fas fa-calendar-alt"></i>
+                    Ngày báo cáo
+                </label>
+                <input id="shc-report-date" type="date" class="date-picker-input">
             </div>
-            <div class="filter-group">
-                <label class="filter-label" for="shc-report-team">Lọc theo tổ</label>
-                <select id="shc-report-team" class="filter-select">
+            <div class="date-picker-nav">
+                <button type="button" class="date-picker-nav-btn" title="Ngày trước" onclick="(function(btn){var inp=btn.closest('.date-picker-panel').querySelector('.date-picker-input');if(inp.value){var d=new Date(inp.value);d.setDate(d.getDate()-1);inp.value=d.toISOString().slice(0,10);inp.dispatchEvent(new Event('change'))}})(this)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button type="button" class="date-picker-today-btn" title="Hôm nay" onclick="(function(btn){var inp=btn.closest('.date-picker-panel').querySelector('.date-picker-input');inp.value=new Date().toISOString().slice(0,10);inp.dispatchEvent(new Event('change'))})(this)">
+                    <i class="fas fa-crosshairs"></i> Hôm nay
+                </button>
+                <button type="button" class="date-picker-nav-btn" title="Ngày sau" onclick="(function(btn){var inp=btn.closest('.date-picker-panel').querySelector('.date-picker-input');if(inp.value){var d=new Date(inp.value);d.setDate(d.getDate()+1);inp.value=d.toISOString().slice(0,10);inp.dispatchEvent(new Event('change'))}})(this)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="date-picker-field">
+                <label for="shc-report-team" class="date-picker-label">
+                    <i class="fas fa-users"></i>
+                    Lọc theo tổ
+                </label>
+                <select id="shc-report-team" class="date-picker-input" style="min-width: 180px;">
                     <option value="">Tất cả tổ</option>
                 </select>
             </div>
-        </div>
-        <div class="filter-actions">
-            <button id="shc-report-apply" class="filter-btn apply" type="button">
+            <button id="shc-report-apply" class="date-picker-btn" type="button">
                 <i class="fas fa-filter"></i>
                 Xem báo cáo
             </button>
-            <button id="shc-report-reset" class="filter-btn reset" type="button">
+            <button id="shc-report-reset" class="date-picker-btn" type="button" style="background: linear-gradient(135deg, #6c757d 0%, #8b949e 100%); box-shadow: 0 3px 12px rgba(108, 117, 125, 0.3);">
                 <i class="fas fa-rotate-left"></i>
                 Đặt lại
             </button>

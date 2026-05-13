@@ -20,6 +20,12 @@ def get_active_outages():
     return jsonify(get_quangchudong_cache().get_active_payload())
 
 
+@quangchudong_bp.route('/api/quangchudong/dashboard')
+@login_required
+def get_dashboard_payload():
+    return jsonify(get_quangchudong_cache().get_dashboard_payload())
+
+
 @quangchudong_bp.route('/api/quangchudong/recovered')
 @login_required
 def get_recovered_alerts():
@@ -32,10 +38,28 @@ def get_wide_area_outages():
     return jsonify(get_quangchudong_cache().get_wide_area_payload())
 
 
+@quangchudong_bp.route('/api/quangchudong/wide-area-groups')
+@login_required
+def get_wide_area_groups():
+    return jsonify(get_quangchudong_cache().get_wide_area_groups_payload())
+
+
 @quangchudong_bp.route('/api/quangchudong/exclusion-list')
 @login_required
 def get_exclusion_list():
     return jsonify(get_quangchudong_cache().get_exclusion_list_payload())
+
+
+@quangchudong_bp.route('/api/quangchudong/pattern-exclusions')
+@login_required
+def get_pattern_exclusions():
+    return jsonify(get_quangchudong_cache().get_pattern_exclusions_payload())
+
+
+@quangchudong_bp.route('/api/quangchudong/port-down-groups')
+@login_required
+def get_port_down_groups():
+    return jsonify(get_quangchudong_cache().get_port_down_groups_payload())
 
 
 @quangchudong_bp.route('/api/quangchudong/stats')

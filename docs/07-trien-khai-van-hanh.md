@@ -6,6 +6,10 @@
 
 Tại thời điểm `2026-04-20`, `dashv4` được triển khai theo chiến lược fork từ `dashv3`, sau đó thay data layer dần sang SQLite mới.
 
+Nếu triển khai nhiều instance song song từ cùng một codebase, đọc thêm:
+
+- [10-trien-khai-multi-instance.md](/home/vtst/dashv4/docs/10-trien-khai-multi-instance.md)
+
 ## Môi trường mục tiêu
 
 - Linux server hoặc VM nội bộ
@@ -70,7 +74,7 @@ systemd
 ## Smoke test tối thiểu sau triển khai
 
 1. mở trang chủ
-2. mở `/ttvt-son-tay-tong-hop`
+2. mở `/tong-hop-bsc-kpi`
 3. mở `/cau-hinh-tu-dong`
 4. gọi API JSON của từng route pha 1
 5. kiểm tra route disabled trả thông báo rõ ràng

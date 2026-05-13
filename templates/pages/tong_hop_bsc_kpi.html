@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Tổng hợp BSC KPI{% endblock %}
+
+{% block extra_css %}
+<style>
+    #tong-hop-bsc-kpi-section {
+        display: grid;
+        gap: 20px;
+    }
+
+    .tong-hop-bsc-kpi-filter-card {
+        padding: 16px;
+    }
+
+    .tong-hop-bsc-kpi-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: end;
+    }
+
+    .tong-hop-bsc-kpi-filter-meta {
+        margin-top: 10px;
+        color: #6c757d;
+        font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+        .tong-hop-bsc-kpi-filter-row {
+            align-items: stretch;
+        }
+
+        .tong-hop-bsc-kpi-filter-row > div,
+        .tong-hop-bsc-kpi-filter-row > button {
+            width: 100%;
+        }
+
+        #tong-hop-bsc-kpi-date-input {
+            width: 100%;
+            min-width: 0;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="tong-hop-bsc-kpi-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">Tổng hợp BSC KPI</h2>
+        <p class="dashboard-subtitle">Bảng Chỉ tiêu chất lượng C đọc theo ngày từ các bảng C1 trong `report_history.db`.</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Tổng hợp BSC KPI</span>
+        </div>
+    </div>
+
+    <div class="section">
+        {% set date_input_id = 'tong-hop-bsc-kpi-date-input' %}
+        {% set date_apply_id = 'tong-hop-bsc-kpi-date-apply' %}
+        {% set date_meta_id = 'tong-hop-bsc-kpi-date-meta' %}
+        {% set date_btn_text = 'Áp dụng' %}
+        {% include 'components/date_picker.html' %}
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Chỉ tiêu chất lượng C
+        </h3>
+        <div id="tong-hop-bsc-kpi-chat-luong-c">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/tong_hop_bsc_kpi.js') }}"></script>
+{% endblock %}

@@ -120,10 +120,10 @@
             <span>2.1. Cấu hình tự động</span>
         </a>
 
-        <a href="{{ url_for('operations.page_ttvt_son_tay_tong_hop') }}" class="menu-item {% if active_page == 'ttvt_son_tay_tong_hop' %}active{% endif %}"
-            data-tooltip="Dashboard tổng hợp các chỉ tiêu TTVT Sơn Tây">
+        <a href="{{ url_for('operations.page_tong_hop_bsc_kpi') }}" class="menu-item {% if active_page == 'tong_hop_bsc_kpi' %}active{% endif %}"
+            data-tooltip="Dashboard tổng hợp BSC KPI">
             <i class="fas fa-chart-column"></i>
-            <span>2.2. TTVT Sơn Tây tổng hợp</span>
+            <span>2.2. Tổng hợp BSC KPI</span>
         </a>
 
         <!-- <a href="{{ url_for('operations.page_thuctang') }}" class="menu-item {% if active_page == 'thuctang' %}active{% endif %}"
@@ -290,7 +290,7 @@
 
     <script>
     (function() {
-        var REFRESH_MS = 2 * 60 * 1000; // 2 phút
+        var REFRESH_MS = 5 * 60 * 1000; // 5 phút
         var TICKER_HEIGHT = 32;
 
         function setTickerOffset(isVisible) {

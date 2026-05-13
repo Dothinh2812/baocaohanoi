@@ -1,0 +1,41 @@
+{# 
+  Reusable Date Picker Component
+  
+  Usage: {% include 'components/date_picker.html' %}
+  
+  Required variables (set before include):
+    - date_input_id: the id for the date input element
+    - date_apply_id: the id for the apply button
+    - date_meta_id: the id for the meta info div
+  
+  Optional variables:
+    - date_label: label text (default: "Ngày dữ liệu")
+    - date_btn_text: button text (default: "Xem theo ngày")
+#}
+<div class="date-picker-panel">
+    <div class="date-picker-row">
+        <div class="date-picker-field">
+            <label for="{{ date_input_id }}" class="date-picker-label">
+                <i class="fas fa-calendar-alt"></i>
+                {{ date_label | default('Ngày dữ liệu') }}
+            </label>
+            <input type="date" id="{{ date_input_id }}" class="date-picker-input">
+        </div>
+        <div class="date-picker-nav">
+            <button type="button" class="date-picker-nav-btn" title="Ngày trước" onclick="(function(btn){var inp=btn.closest('.date-picker-panel').querySelector('.date-picker-input');if(inp.value){var d=new Date(inp.value);d.setDate(d.getDate()-1);inp.value=d.toISOString().slice(0,10);inp.dispatchEvent(new Event('change'))}})(this)">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button type="button" class="date-picker-today-btn" title="Hôm nay" onclick="(function(btn){var inp=btn.closest('.date-picker-panel').querySelector('.date-picker-input');inp.value=new Date().toISOString().slice(0,10);inp.dispatchEvent(new Event('change'))})(this)">
+                <i class="fas fa-crosshairs"></i> Hôm nay
+            </button>
+            <button type="button" class="date-picker-nav-btn" title="Ngày sau" onclick="(function(btn){var inp=btn.closest('.date-picker-panel').querySelector('.date-picker-input');if(inp.value){var d=new Date(inp.value);d.setDate(d.getDate()+1);inp.value=d.toISOString().slice(0,10);inp.dispatchEvent(new Event('change'))}})(this)">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        <button type="button" id="{{ date_apply_id }}" class="date-picker-btn">
+            <i class="fas fa-filter"></i>
+            {{ date_btn_text | default('Xem theo ngày') }}
+        </button>
+    </div>
+    <div id="{{ date_meta_id }}" class="date-picker-meta"></div>
+</div>

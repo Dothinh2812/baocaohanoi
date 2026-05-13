@@ -2,6 +2,8 @@ import glob
 import hmac
 import os
 import secrets
+import time
+from collections import OrderedDict
 from datetime import datetime
 from functools import wraps
 from threading import Lock
@@ -13,7 +15,8 @@ from werkzeug.utils import safe_join
 from config import DashboardConfig
 
 
-_EXCEL_CACHE = {}
+_EXCEL_CACHE_MAX_ENTRIES = 50
+_EXCEL_CACHE = OrderedDict()
 _EXCEL_CACHE_LOCK = Lock()
 _HIDDEN_DASHBOARD_COLUMNS = {
     'id',
@@ -149,18 +152,39 @@ def _cache_key(file_path, sheet_name, kwargs):
     )
 
 
+def _evict_excel_cache():
+    stale_keys = [k for k in _EXCEL_CACHE if k[0] not in _active_file_paths]
+    for key in stale_keys:
+        _EXCEL_CACHE.pop(key, None)
+    while len(_EXCEL_CACHE) > _EXCEL_CACHE_MAX_ENTRIES:
+        _EXCEL_CACHE.popitem(last=False)
+
+
+_active_file_paths = set()
+
+
 def read_excel_sheet_cached(file_path, sheet_name, **kwargs):
     cache_key = _cache_key(file_path, sheet_name, kwargs)
+    abs_path = cache_key[0]
 
     with _EXCEL_CACHE_LOCK:
         for stale_key in list(_EXCEL_CACHE):
-            if stale_key[0] == cache_key[0] and stale_key[1:3] != cache_key[1:3]:
+            if stale_key[0] == abs_path and stale_key[1:3] != cache_key[1:3]:
                 _EXCEL_CACHE.pop(stale_key, None)
 
         cached_df = _EXCEL_CACHE.get(cache_key)
-        if cached_df is None:
-            cached_df = pd.read_excel(file_path, sheet_name=sheet_name, **kwargs)
-            _EXCEL_CACHE[cache_key] = cached_df
+        if cached_df is not None:
+            _EXCEL_CACHE.move_to_end(cache_key)
+            return cached_df.copy()
+
+        _active_file_paths.add(abs_path)
+        cached_df = pd.read_excel(file_path, sheet_name=sheet_name, **kwargs)
+        _EXCEL_CACHE[cache_key] = cached_df
+        _EXCEL_CACHE.move_to_end(cache_key)
+
+        while len(_EXCEL_CACHE) > _EXCEL_CACHE_MAX_ENTRIES:
+            evicted_key, _ = _EXCEL_CACHE.popitem(last=False)
+            _active_file_paths.discard(evicted_key[0])
 
     return cached_df.copy()
 

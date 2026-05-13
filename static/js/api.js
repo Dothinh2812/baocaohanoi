@@ -95,15 +95,15 @@ const API = {
     },
 
     /**
-     * Get consolidated dashboard data for TTVT Son Tay
+     * Get consolidated BSC KPI dashboard data for current unit
      */
-    getTTVTSonTayTongHop(date = '') {
+    getTongHopBscKpi(date = '') {
         const query = new URLSearchParams();
         if (date) {
             query.set('date', date);
         }
         const suffix = query.toString() ? `?${query.toString()}` : '';
-        return this.fetchData(`/api/ttvt-son-tay-tong-hop${suffix}`);
+        return this.fetchData(`/api/tong-hop-bsc-kpi${suffix}`);
     },
 
     /* ========================================

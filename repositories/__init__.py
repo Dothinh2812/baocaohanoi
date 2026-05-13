@@ -45,7 +45,7 @@ from .dashboard_views import (
     load_tam_dung_khoi_phuc_tong_hop_theo_to_df,
     load_thu_hoi_chi_tiet_df,
     load_thu_hoi_tong_hop_df,
-    load_ttvt_son_tay_tong_hop_rows,
+    load_tong_hop_bsc_kpi_rows,
     load_xac_minh_chi_tiet_df,
 )
 from .report_history_by_date import (
@@ -102,7 +102,7 @@ __all__ = [
     'load_tam_dung_khoi_phuc_tong_hop_theo_to_df',
     'load_thu_hoi_chi_tiet_df',
     'load_thu_hoi_tong_hop_df',
-    'load_ttvt_son_tay_tong_hop_rows',
+    'load_tong_hop_bsc_kpi_rows',
     'load_xac_minh_chi_tiet_df',
     'get_available_dates',
     'load_many_tables_by_date',

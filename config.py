@@ -87,6 +87,7 @@ PTTB_PSC_DIR = os.path.join(BAOCAO_HANOI_PATH, 'PTTB-PSC')
 KPI_TONGHOP_NVKT_FILE = os.path.join(BAOCAO_HANOI_PATH, 'KPI_TongHop_NVKT.xlsx')
 REPORT_HISTORY_DB_PATH = _first_existing_path(
     _env_value('DASHV4_DB_PATH', 'DASH_REPORT_HISTORY_DB'),
+    '/home/vtst/bchn/runtime/son_tay/sqlite_history/report_history.db',
     os.path.join(BAOCAO_HANOI_PATH, 'api_transition', 'runtime', 'son_tay', 'sqlite_history', 'report_history.db'),
     os.path.join(BAOCAO_HANOI_PATH, 'api_transition', 'report_history.db'),
     os.path.join(BAOCAO_HANOI_PATH, 'report_history.db'),
@@ -121,6 +122,10 @@ QUANG_CHU_DONG_CACHE_FILE = os.path.join(QUANG_CHU_DONG_CACHE_DIR, 'snapshot.jso
 QUANG_CHU_DONG_CACHE_LOCK_FILE = os.path.join(QUANG_CHU_DONG_CACHE_DIR, 'snapshot.lock')
 QUANG_CHU_DONG_CACHE_REFRESH_SECONDS = int(os.getenv('DASH_QUANG_CHU_DONG_CACHE_REFRESH_SECONDS', '60'))
 QUANG_CHU_DONG_CACHE_WAIT_SECONDS = int(os.getenv('DASH_QUANG_CHU_DONG_CACHE_WAIT_SECONDS', '10'))
+QUANG_CHU_DONG_SOURCE_SNAPSHOT_FILE = _first_existing_path(
+    os.getenv('DASH_QUANG_CHU_DONG_SOURCE_SNAPSHOT_FILE'),
+    '/home/vtst/do_chu_dong_api/runtime/current_off_snapshot.json',
+)
 
 SHC_NVKT_DETAIL_REPORTS = {
     'k1': {
@@ -220,6 +225,10 @@ class DashboardConfig:
     SERVER_HOST = _env_value('DASHV4_HOST', 'DASH_HOST', '0.0.0.0')
     SERVER_PORT = int(_env_value('DASHV4_PORT', 'DASH_PORT', '5011'))
     DEBUG = _env_flag('DASHV4_DEBUG', default=_env_flag('DASH_DEBUG', default=False))
+    DEV_SERVER_THREADED = _env_flag('DASHV4_DEV_SERVER_THREADED', default=False)
+    GUNICORN_WORKERS = int(_env_value('DASHV4_WORKERS', 'DASH_WORKERS', '2'))
+    GUNICORN_TIMEOUT = int(_env_value('DASHV4_GUNICORN_TIMEOUT', 'DASH_GUNICORN_TIMEOUT', '30'))
+    LOG_REQUESTS = _env_flag('DASHV4_LOG_REQUESTS', default=False)
     SH_PORTAL_URL = SH_PORTAL_URL
     SH_PORTAL_USERNAME_PARAM = SH_PORTAL_USERNAME_PARAM
     REPORT_HISTORY_DB_PATH = REPORT_HISTORY_DB_PATH
@@ -247,16 +256,6 @@ PUBLIC_ENDPOINTS = {
 
 
 DISABLED_PAGE_ENDPOINTS = {
-    'operations.page_brcd': {
-        'title': 'BRCD',
-        'active_page': 'brcd',
-        'reason': 'Route này vẫn phụ thuộc dữ liệu ngoài SQLite runtime mới.',
-    },
-    'operations.page_pttb': {
-        'title': 'PTTB',
-        'active_page': 'pttb',
-        'reason': 'Route này chưa có contract dữ liệu tương ứng trong report_history.db.',
-    },
     'operations.page_thuctang': {
         'title': 'Thực tăng ảnh/chart',
         'active_page': 'thuctang',
@@ -267,113 +266,10 @@ DISABLED_PAGE_ENDPOINTS = {
         'active_page': 'shc_processing',
         'reason': 'Màn này vẫn dùng nguồn xử lý SHC riêng ngoài report_history.db.',
     },
-    'inventory.page_ton_kho_vat_tu': {
-        'title': 'Tồn kho vật tư',
-        'active_page': 'ton_kho_vat_tu',
-        'reason': 'Nguồn vật tư kho cũ chưa được đưa vào contract SQLite mới.',
-    },
-    'inventory.page_tong_hop_tien': {
-        'title': 'Tổng hợp tiền vật tư',
-        'active_page': 'tong_hop_tien',
-        'reason': 'Nguồn vật tư kho cũ chưa được đưa vào contract SQLite mới.',
-    },
-    'inventory.page_tra_cuu_nhanh_vat_tu': {
-        'title': 'Tra cứu nhanh vật tư',
-        'active_page': 'tra_cuu_nhanh_vat_tu',
-        'reason': 'Nguồn vật tư kho cũ chưa được đưa vào contract SQLite mới.',
-    },
-    'quangchudong.page_quangchudong': {
-        'title': 'Quang chủ động',
-        'active_page': 'quangchudong',
-        'reason': 'Màn này vẫn phụ thuộc DB và cache dịch vụ riêng.',
-    },
-    'sa_outage.page_su_co_sa': {
-        'title': 'Sự cố SA',
-        'active_page': 'su_co_sa',
-        'reason': 'Màn này vẫn phụ thuộc SQLite riêng ngoài report_history.db.',
-    },
 }
 
 
 DISABLED_NONPAGE_ENDPOINTS = {
-    'operations.get_excel_data': {
-        'title': 'BRCD API',
-        'reason': 'API BRCD cũ đọc Excel, chưa có contract tương ứng trong report_history.db.',
-        'required_display_contract': {
-            'summary': ['ton_dv_theo_to', 'ton_dv_theo_nvkt', 'tong_hop_5doi'],
-            'details': ['chi_tiet_pending', 'chi_tiet_main'],
-        },
-    },
-    'operations.get_excel_data_main': {
-        'title': 'BRCD API main',
-        'reason': 'API BRCD cũ đọc Excel, chưa có contract tương ứng trong report_history.db.',
-        'required_display_contract': {
-            'summary': ['ton_dv_theo_to', 'ton_dv_theo_nvkt', 'tong_hop_5doi'],
-        },
-    },
-    'operations.get_excel_data_pending': {
-        'title': 'BRCD API pending',
-        'reason': 'API BRCD pending cũ đọc Excel, chưa có contract tương ứng trong report_history.db.',
-        'required_display_contract': {
-            'details': ['danh_sach_phieu_ton_khong_ly_do'],
-        },
-    },
-    'operations.download_excel': {
-        'title': 'BRCD download',
-        'reason': 'Tải file Excel BRCD cũ đã bị ngắt khỏi dashv4.',
-        'required_display_contract': {
-            'source_of_truth': 'report_history.db hoặc view consumer mới',
-        },
-    },
-    'operations.download_excel_main': {
-        'title': 'BRCD download main',
-        'reason': 'Tải file Excel BRCD cũ đã bị ngắt khỏi dashv4.',
-        'required_display_contract': {
-            'source_of_truth': 'report_history.db hoặc view consumer mới',
-        },
-    },
-    'operations.download_bc_brcd': {
-        'title': 'BRCD file gốc',
-        'reason': 'Tải file Excel BRCD cũ đã bị ngắt khỏi dashv4.',
-        'required_display_contract': {
-            'source_of_truth': 'report_history.db hoặc view consumer mới',
-        },
-    },
-    'operations.get_pttb_data_summary': {
-        'title': 'PTTB summary',
-        'reason': 'PTTB chưa có contract dữ liệu trong report_history.db.',
-        'required_display_contract': {
-            'summary': ['tong_hop_don_gian', 'tong_hop_5doi', 'trang_thai'],
-        },
-    },
-    'operations.get_pttb_data_detail': {
-        'title': 'PTTB detail',
-        'reason': 'PTTB chưa có contract dữ liệu trong report_history.db.',
-        'required_display_contract': {
-            'details': ['tong_hop_dia_ban', 'chi_tiet_theo_to'],
-        },
-    },
-    'operations.get_pttb_data_pending': {
-        'title': 'PTTB pending',
-        'reason': 'PTTB chưa có contract dữ liệu trong report_history.db.',
-        'required_display_contract': {
-            'details': ['phieu_qua_gio', 'phieu_chua_co_ly_do_ton'],
-        },
-    },
-    'operations.get_pttb_data_chitiet_to': {
-        'title': 'PTTB chi tiết tổ',
-        'reason': 'PTTB chưa có contract dữ liệu trong report_history.db.',
-        'required_display_contract': {
-            'details': ['danh_sach_phieu_theo_to'],
-        },
-    },
-    'operations.download_excel_pttb': {
-        'title': 'PTTB file gốc',
-        'reason': 'Tải file Excel PTTB cũ đã bị ngắt khỏi dashv4.',
-        'required_display_contract': {
-            'source_of_truth': 'report_history.db hoặc view consumer mới',
-        },
-    },
     'retention.download_giahan_ghtt': {
         'title': 'Gia hạn file gốc',
         'reason': 'Tải file Excel gia hạn cũ đã bị ngắt khỏi dashv4.',
@@ -429,76 +325,6 @@ DISABLED_NONPAGE_ENDPOINTS = {
         'reason': 'Tải file Excel C1 cũ đã bị ngắt khỏi dashv4.',
         'required_display_contract': {
             'source_of_truth': 'report_history.db hoặc contract mới',
-        },
-    },
-    'inventory.api_tra_cuu_nhanh_vat_tu': {
-        'title': 'Tra cứu nhanh vật tư',
-        'reason': 'Nguồn vật tư kho cũ chưa có contract trong report_history.db.',
-        'required_display_contract': {
-            'table_shape': ['ma_vat_tu', 'ten_vat_tu', 'don_vi', 'so_luong'],
-        },
-    },
-    'inventory.download_ton_kho_vat_tu': {
-        'title': 'Tồn kho vật tư download',
-        'reason': 'Tải file Excel vật tư cũ đã bị ngắt khỏi dashv4.',
-        'required_display_contract': {
-            'source_of_truth': 'report_history.db hoặc pipeline vật tư mới',
-        },
-    },
-    'inventory.api_ton_kho_vat_tu': {
-        'title': 'Tồn kho vật tư',
-        'reason': 'Nguồn vật tư kho cũ chưa có contract trong report_history.db.',
-        'required_display_contract': {
-            'summary': ['tong_hop', 'thong_ke_theo_vat_tu'],
-        },
-    },
-    'inventory.api_ton_kho_vat_tu_tot_thuong_dung': {
-        'title': 'Tồn kho vật tư tốt thường dùng',
-        'reason': 'Nguồn vật tư kho cũ chưa có contract trong report_history.db.',
-        'required_display_contract': {
-            'details': ['ton_theo_don_vi', 'gia_tri_ton'],
-        },
-    },
-    'quangchudong.get_active_outages': {
-        'title': 'Quang chủ động active',
-        'reason': 'Quang chủ động vẫn phụ thuộc service/cache riêng, không thuộc report_history.db.',
-        'required_display_contract': {
-            'summary': ['alerts', 'excluded', 'sources'],
-        },
-    },
-    'quangchudong.get_recovered_alerts': {
-        'title': 'Quang chủ động recovered',
-        'reason': 'Quang chủ động vẫn phụ thuộc service/cache riêng, không thuộc report_history.db.',
-        'required_display_contract': {
-            'details': ['recovered_alerts'],
-        },
-    },
-    'quangchudong.get_wide_area_outages': {
-        'title': 'Quang chủ động wide-area',
-        'reason': 'Quang chủ động vẫn phụ thuộc service/cache riêng, không thuộc report_history.db.',
-        'required_display_contract': {
-            'details': ['wide_area_alerts'],
-        },
-    },
-    'quangchudong.get_exclusion_list': {
-        'title': 'Quang chủ động exclusion',
-        'reason': 'Quang chủ động vẫn phụ thuộc service/cache riêng, không thuộc report_history.db.',
-        'required_display_contract': {
-            'details': ['exclusion_list'],
-        },
-    },
-    'quangchudong.get_outage_stats': {
-        'title': 'Quang chủ động stats',
-        'reason': 'Quang chủ động vẫn phụ thuộc service/cache riêng, không thuộc report_history.db.',
-        'required_display_contract': {
-            'summary': ['active_by_doi_vt', 'recovered_24h_by_doi_vt'],
-        },
-    },
-    'sa_outage.api_su_co_sa_data': {
-        'title': 'Sự cố SA',
-        'reason': 'Sự cố SA vẫn phụ thuộc SQLite riêng ngoài report_history.db.',
-        'required_display_contract': {
-            'summary': ['dang_ton', 'da_clear_hom_nay'],
         },
     },
     'statistics.get_ticket_statistics': {

@@ -37,7 +37,7 @@ Các thay đổi nền:
 - dùng biến môi trường `DASHV4_*`
 - DB mặc định trỏ về:
   `/home/vtst/baocaohanoi/api_transition/runtime/son_tay/sqlite_history/report_history.db`
-- trang chủ đổi sang `/ttvt-son-tay-tong-hop`
+- trang chủ đổi sang `/tong-hop-bsc-kpi`
 - background services mặc định tắt trong `dashv4`
 
 ## 3. Thêm data layer SQLite read-only
@@ -55,7 +55,7 @@ Nguyên tắc đã áp dụng:
 
 ### Đã chạy từ `report_history.db`
 
-- `/api/ttvt-son-tay-tong-hop`
+- `/api/tong-hop-bsc-kpi`
 - `/api/cau-hinh-tu-dong/son-tay`
 - `/api/tiepthi-data`
 - `/api/thu-hoi-data`
@@ -111,16 +111,11 @@ Page HTML đã bật filter ngày tương ứng:
 - [templates/pages/pending_feature.html](/home/vtst/dashv4/templates/pages/pending_feature.html)
 
 Hiện các page sau trả trạng thái pending thay vì chạy nguồn cũ:
-- `/brcd`
-- `/pttb`
 - `/thuctang`
 - `/shc-processing`
 - `/ton-kho-vat-tu`
 - `/Tong_hop_tien`
-- `/tra-cuu-nhanh-vat-tu`
 - `/tam-dung-khoi-phuc`
-- `/quangchudong`
-- `/su_co_sa`
 
 Hai trang I1.5 đã được mở lại và đọc trực tiếp từ `report_history.db`:
 - `/i15`
@@ -143,7 +138,7 @@ Mục tiêu của payload này là biến endpoint bị ngắt thành backlog d�
 ### API smoke test
 
 Đã xác nhận bằng Flask `test_client`:
-- `/api/ttvt-son-tay-tong-hop` trả `200`
+- `/api/tong-hop-bsc-kpi` trả `200`
 - `/api/cau-hinh-tu-dong/son-tay` trả `200`
 - `/api/tiepthi-data` trả `200`
 - `/api/kpi-data` trả `200`
@@ -184,7 +179,7 @@ Mục tiêu của payload này là biến endpoint bị ngắt thành backlog d�
 
 - chưa refactor adapter logic về `services/serializers`
 - chưa có consumer view chính thức cho phần MyTV của `thuc-tang-ngung-psc`
-- vẫn còn các nhóm ngoài phạm vi DB mới: `brcd`, `pttb`, `inventory`, `shc`, `quangchudong`, `sa_outage`, `statistics`
+- vẫn còn các nhóm ngoài phạm vi DB mới: `shc`, `statistics`
 - đã có `/chatluong`, `/tam-dung-khoi-phuc`, `/thuc-tang-ngung-psc`, `/giahan`, `/cau-hinh-tu-dong`, `/tiepthi`, `/kpi`, `/i15` và `/i15k2` được chuyển sang chuẩn lọc ngày; các route còn lại vẫn chủ yếu đang đọc snapshot mới nhất
 
 ## Bước tiếp theo đề xuất

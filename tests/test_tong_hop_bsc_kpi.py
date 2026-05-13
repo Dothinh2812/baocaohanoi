@@ -40,7 +40,7 @@ def test_build_chat_luong_c_table_merges_selected_bsc_columns():
         ]),
     }
 
-    sheet = operations_routes._build_ttvt_son_tay_chat_luong_c_sheet(date_context, frames)
+    sheet = operations_routes._build_tong_hop_bsc_kpi_chat_luong_c_sheet(date_context, frames)
 
     assert sheet['columns'] == [
         'Đơn vị',
@@ -68,7 +68,7 @@ def test_build_chat_luong_c_table_merges_selected_bsc_columns():
     }
 
 
-def test_build_ttvt_son_tay_payload_includes_chat_luong_date_state(monkeypatch):
+def test_build_tong_hop_bsc_kpi_payload_includes_chat_luong_date_state(monkeypatch):
     date_context = {
         'selected_date': '2026-04-22',
         'latest_available_date': '2026-04-22',
@@ -78,7 +78,7 @@ def test_build_ttvt_son_tay_payload_includes_chat_luong_date_state(monkeypatch):
 
     monkeypatch.setattr(
         operations_routes,
-        '_load_ttvt_son_tay_tong_hop_rows',
+        '_load_tong_hop_bsc_kpi_rows',
         lambda: [{
             'ngay_du_lieu': '2026-04-22',
             'ttvt': 'TTVT Sơn Tây',
@@ -93,7 +93,7 @@ def test_build_ttvt_son_tay_payload_includes_chat_luong_date_state(monkeypatch):
     )
     monkeypatch.setattr(
         operations_routes,
-        '_load_ttvt_son_tay_chat_luong_c_frames',
+        '_load_tong_hop_bsc_kpi_chat_luong_c_frames',
         lambda selected_date: {
             'c1_1': pd.DataFrame([{'Đơn vị': 'Tổng', 'Chỉ tiêu BSC': 2.3}]),
             'c1_2': pd.DataFrame([{'Đơn vị': 'Tổng', 'Chỉ tiêu BSC': 1.69}]),
@@ -108,7 +108,7 @@ def test_build_ttvt_son_tay_payload_includes_chat_luong_date_state(monkeypatch):
         lambda *_args, **_kwargs: {'name': 'report_history.db', 'modified': '2026-04-23 08:00:00'},
     )
 
-    payload = operations_routes._build_ttvt_son_tay_tong_hop_payload(date_context)
+    payload = operations_routes._build_tong_hop_bsc_kpi_payload(date_context)
 
     assert payload['selected_date'] == '2026-04-22'
     assert payload['latest_available_date'] == '2026-04-22'
@@ -133,16 +133,41 @@ def test_build_ttvt_son_tay_payload_includes_chat_luong_date_state(monkeypatch):
     ]
 
 
-def test_ttvt_son_tay_page_keeps_only_chat_luong_c_section():
-    with app.test_request_context('/ttvt-son-tay-tong-hop'):
+def test_tong_hop_bsc_kpi_page_keeps_only_chat_luong_c_section():
+    with app.test_request_context('/tong-hop-bsc-kpi'):
         from flask import session
         session['username'] = 'test-user'
-        html = operations_routes.page_ttvt_son_tay_tong_hop()
+        html = operations_routes.page_tong_hop_bsc_kpi()
 
+    assert 'Tổng hợp BSC KPI' in html
+    assert 'TTVT Sơn Tây tổng hợp' not in html
     assert 'Chỉ tiêu chất lượng C' in html
-    assert 'Bộ lọc ngày dữ liệu' in html
+    assert 'Ngày dữ liệu' in html
+    assert 'id="tong-hop-bsc-kpi-date-input"' in html
     assert 'Chỉ số nổi bật' not in html
     assert 'Điểm BSC chất lượng' not in html
     assert 'Tóm tắt theo nhóm dữ liệu' not in html
     assert 'Chi tiết toàn bộ chỉ tiêu' not in html
-    assert 'class="excel-table-card" id="ttvt-son-tay-chat-luong-c"' not in html
+    assert 'class="excel-table-card" id="tong-hop-bsc-kpi-chat-luong-c"' not in html
+
+
+def test_tong_hop_bsc_kpi_route_and_menu_are_generic():
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/tong-hop-bsc-kpi')
+
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'href="/tong-hop-bsc-kpi"' in html
+    assert '2.2. Tổng hợp BSC KPI' in html
+    assert '/ttvt-son-tay-tong-hop' not in html
+    assert '2.2. TTVT Sơn Tây tổng hợp' not in html
+
+
+def test_tong_hop_bsc_kpi_page_does_not_freeze_only_row_number_column():
+    script = Path('static/js/pages/tong_hop_bsc_kpi.js').read_text(encoding='utf-8')
+
+    assert 'showRowNumbers: true' in script
+    assert 'frozenColumns: 1' not in script

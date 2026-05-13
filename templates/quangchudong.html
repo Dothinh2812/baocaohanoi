@@ -95,8 +95,17 @@
         font-size: 0.7rem;
     }
 
-    .tab-content {
+.tab-content {
         padding: 1rem 0;
+    }
+
+    .table-filters {
+        display: grid;
+        gap: 0.3rem;
+        padding: 0.5rem;
+        background: #495057;
+        border-radius: 4px 4px 0 0;
+        overflow-x: auto;
     }
 
     .tab-pane {
@@ -170,6 +179,24 @@
 
     .filter-input::placeholder {
         color: #adb5bd;
+    }
+
+    .filter-select {
+        width: 95%;
+        max-width: 170px;
+        padding: 0.3rem 0.5rem;
+        border: 1px solid #6c757d;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        background: #fff;
+        color: #333;
+        box-sizing: border-box;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
 
     .duration-badge {
@@ -306,6 +333,12 @@
         font-weight: 500;
     }
 
+    .data-table thead th:empty {
+        background: #343a40;
+        border-bottom: none;
+        padding: 0;
+    }
+
     @media (max-width: 768px) {
         .stats-container {
             grid-template-columns: 1fr 1fr;
@@ -344,58 +377,220 @@
         <h5>🔴 Cảnh báo DOWN</h5>
         <h2 id="alert-count">-</h2>
     </div>
+    <div class="stat-card warning">
+        <h5>📡 Port diện rộng</h5>
+        <h2 id="wide-area-count">-</h2>
+    </div>
+    <div class="stat-card secondary">
+        <h5>🚫 Pattern exclusion</h5>
+        <h2 id="pattern-count">-</h2>
+    </div>
+    <div class="stat-card warning">
+        <h5>⛔ Port OLT Down</h5>
+        <h2 id="port-down-count">-</h2>
+    </div>
     <div class="stat-card info">
         <h5>Cập nhật lúc</h5>
         <h4 id="last-update">-</h4>
     </div>
 </div>
 
-<!-- Bảng Cảnh báo DOWN -->
-<div class="table-filters" id="alert-filters"
-    style="display: grid; grid-template-columns: 1fr 1.1fr 1.3fr 0.9fr 1.3fr 1.3fr 1.2fr 0.7fr 1.1fr 0.7fr 1.1fr; gap: 0.3rem; padding: 0.5rem; background: #495057; border-radius: 4px 4px 0 0;">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="0" placeholder="Mã TB">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="1" placeholder="Tên TB">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="2" placeholder="Địa chỉ">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="3" placeholder="SĐT">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="4" placeholder="NVKT">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="5" placeholder="Đội VT">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="6" placeholder="OLT">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="7" placeholder="SA">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="8" placeholder="Thời gian DOWN">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="9" placeholder="Thời lượng">
-    <input type="text" class="filter-input" data-table="alert-table" data-column="10" placeholder="Phiếu BH">
-</div>
-<table class="data-table" id="alert-table" style="table-layout: fixed; width: 100%;">
-    <colgroup>
-        <col style="width: 8%;">
-        <col style="width: 9%;">
-        <col style="width: 12%;">
-        <col style="width: 7%;">
-        <col style="width: 10%;">
-        <col style="width: 10%;">
-        <col style="width: 10%;">
-        <col style="width: 5%;">
-        <col style="width: 10%;">
-        <col style="width: 6%;">
-        <col style="width: 9%;">
-    </colgroup>
-    <thead>
-        <tr>
-            <th>Mã TB</th>
-            <th>Tên TB</th>
-            <th>Địa chỉ</th>
-            <th>SĐT</th>
-            <th>NVKT</th>
-            <th>Đội VT</th>
-            <th>OLT</th>
-            <th>SA</th>
-            <th>Thời gian DOWN</th>
-            <th>Thời lượng</th>
-            <th>Phiếu BH Lúc</th>
-        </tr>
-    </thead>
-    <tbody></tbody>
-</table>
+<div class="tabs-container">
+    <div class="nav-tabs">
+        <button class="nav-link active" type="button" data-tab="alerts">
+            Cảnh báo DOWN <span class="badge badge-danger" id="alert-tab-count">-</span>
+        </button>
+        <button class="nav-link" type="button" data-tab="wide-area">
+            Sự cố diện rộng <span class="badge badge-warning" id="wide-area-tab-count">-</span>
+        </button>
+        <button class="nav-link" type="button" data-tab="pattern">
+            Pattern exclusion <span class="badge badge-secondary" id="pattern-tab-count">-</span>
+        </button>
+        <button class="nav-link" type="button" data-tab="port-down">
+            Port OLT Down <span class="badge badge-warning" id="port-down-tab-count">-</span>
+        </button>
+    </div>
+
+    <div class="tab-content">
+        <div class="tab-pane active" id="alerts-pane">
+            <div class="table-filters" id="alert-filters"
+                style="grid-template-columns: 1fr 1.1fr 1.3fr 0.9fr 1.3fr 1.3fr 1.2fr 0.7fr 1.1fr 0.7fr 1.1fr 1fr;">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="0" placeholder="Mã TB">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="1" placeholder="Tên TB">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="2" placeholder="Địa chỉ">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="3" placeholder="SĐT">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="4" placeholder="NVKT">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="5" placeholder="Đội VT">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="6" placeholder="OLT">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="7" placeholder="SA">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="8" placeholder="Thời gian DOWN">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="9" placeholder="Thời lượng">
+                <input type="text" class="filter-input" data-table="alert-table" data-column="10" placeholder="Phiếu BH">
+                <select class="filter-select" data-table="alert-table" data-filter-type="duration-day">
+                    <option value="">Thời lượng: Tất cả</option>
+                    <option value="gt1d">&gt; 1 ngày</option>
+                    <option value="lt1d">&lt; 1 ngày</option>
+                </select>
+            </div>
+            <table class="data-table" id="alert-table" style="table-layout: fixed; width: 100%;">
+                <colgroup>
+                    <col style="width: 8%;">
+                    <col style="width: 9%;">
+                    <col style="width: 12%;">
+                    <col style="width: 7%;">
+                    <col style="width: 10%;">
+                    <col style="width: 10%;">
+                    <col style="width: 10%;">
+                    <col style="width: 5%;">
+                    <col style="width: 10%;">
+                    <col style="width: 6%;">
+                    <col style="width: 9%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Mã TB</th>
+                        <th>Tên TB</th>
+                        <th>Địa chỉ</th>
+                        <th>SĐT</th>
+                        <th>NVKT</th>
+                        <th>Đội VT</th>
+                        <th>OLT</th>
+                        <th>SA</th>
+                        <th>Thời gian DOWN</th>
+                        <th>Thời lượng</th>
+                        <th>Phiếu BH Lúc</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane" id="wide-area-pane">
+            <div class="table-filters" id="wide-area-filters"
+                style="grid-template-columns: 2fr 1.5fr 0.8fr 0.8fr 1.5fr 1.2fr 1fr 1.2fr;">
+                <input type="text" class="filter-input" data-table="wide-area-table" data-column="0" placeholder="Parent port">
+                <input type="text" class="filter-input" data-table="wide-area-table" data-column="1" placeholder="OLT">
+                <input type="text" class="filter-input" data-table="wide-area-table" data-column="2" placeholder="SA">
+                <input type="text" class="filter-input" data-table="wide-area-table" data-column="3" placeholder="Số TB off">
+                <input type="text" class="filter-input" data-table="wide-area-table" data-column="4" placeholder="Bắt đầu">
+                <input type="text" class="filter-input" data-table="wide-area-table" data-column="5" placeholder="Kéo dài">
+                <input type="number" min="0" class="filter-input" data-table="wide-area-table" data-filter-type="count-min" placeholder="Số thuê bao >">
+                <select class="filter-select" data-table="wide-area-table" data-filter-type="duration-day">
+                    <option value="">Thời lượng: Tất cả</option>
+                    <option value="gt1d">&gt; 1 ngày</option>
+                    <option value="lt1d">&lt; 1 ngày</option>
+                </select>
+            </div>
+            <table class="data-table" id="wide-area-table" style="table-layout: fixed; width: 100%;">
+                <colgroup>
+                    <col style="width: 22%;">
+                    <col style="width: 17%;">
+                    <col style="width: 9%;">
+                    <col style="width: 9%;">
+                    <col style="width: 17%;">
+                    <col style="width: 13%;">
+                    <col style="width: 6%;">
+                    <col style="width: 7%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Parent port</th>
+                        <th>OLT</th>
+                        <th>SA</th>
+                        <th>Số thuê bao OFF</th>
+                        <th>Thời điểm bắt đầu</th>
+                        <th>Thời gian kéo dài</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane" id="pattern-pane">
+            <div class="table-filters" id="pattern-filters"
+                style="grid-template-columns: 0.9fr 1fr 1.4fr 0.9fr 1.1fr 1.2fr 1fr 0.7fr 1.1fr 0.8fr 1fr 1fr;">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="0" placeholder="Mã TB">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="1" placeholder="Tên TB">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="2" placeholder="Địa chỉ">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="3" placeholder="SĐT">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="4" placeholder="NVKT">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="5" placeholder="Đội VT">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="6" placeholder="OLT">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="7" placeholder="SA">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="8" placeholder="Thời gian OFF">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="9" placeholder="Thời lượng">
+                <input type="text" class="filter-input" data-table="pattern-table" data-column="10" placeholder="Lý do">
+                <select class="filter-select" data-table="pattern-table" data-filter-type="duration-day">
+                    <option value="">Thời lượng: Tất cả</option>
+                    <option value="gt1d">&gt; 1 ngày</option>
+                    <option value="lt1d">&lt; 1 ngày</option>
+                </select>
+            </div>
+            <table class="data-table" id="pattern-table" style="table-layout: fixed; width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Mã TB</th>
+                        <th>Tên TB</th>
+                        <th>Địa chỉ</th>
+                        <th>SĐT</th>
+                        <th>NVKT</th>
+                        <th>Đội VT</th>
+                        <th>OLT</th>
+                        <th>SA</th>
+                        <th>Thời gian OFF</th>
+                        <th>Thời lượng</th>
+                        <th>Lý do loại trừ</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane" id="port-down-pane">
+            <div class="table-filters" id="port-down-filters"
+                style="grid-template-columns: 2fr 1.5fr 0.8fr 0.8fr 1.5fr 1.2fr 1fr 1.2fr;">
+                <input type="text" class="filter-input" data-table="port-down-table" data-column="0" placeholder="Parent port">
+                <input type="text" class="filter-input" data-table="port-down-table" data-column="1" placeholder="OLT">
+                <input type="text" class="filter-input" data-table="port-down-table" data-column="2" placeholder="SA">
+                <input type="text" class="filter-input" data-table="port-down-table" data-column="3" placeholder="Số TB">
+                <input type="text" class="filter-input" data-table="port-down-table" data-column="4" placeholder="Bắt đầu">
+                <input type="text" class="filter-input" data-table="port-down-table" data-column="5" placeholder="Kéo dài">
+                <input type="number" min="0" class="filter-input" data-table="port-down-table" data-filter-type="count-min" placeholder="Số thuê bao >">
+                <select class="filter-select" data-table="port-down-table" data-filter-type="duration-day">
+                    <option value="">Thời lượng: Tất cả</option>
+                    <option value="gt1d">&gt; 1 ngày</option>
+                    <option value="lt1d">&lt; 1 ngày</option>
+                </select>
+            </div>
+            <table class="data-table" id="port-down-table" style="table-layout: fixed; width: 100%;">
+                <colgroup>
+                    <col style="width: 22%;">
+                    <col style="width: 17%;">
+                    <col style="width: 9%;">
+                    <col style="width: 9%;">
+                    <col style="width: 17%;">
+                    <col style="width: 13%;">
+                    <col style="width: 6%;">
+                    <col style="width: 7%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Parent port</th>
+                        <th>OLT</th>
+                        <th>SA</th>
+                        <th>Số thuê bao PORT_DOWN</th>
+                        <th>Thời điểm bắt đầu</th>
+                        <th>Thời gian kéo dài</th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <!-- Nút refresh -->
@@ -406,7 +601,6 @@
 
 {% block extra_js %}
 <script>
-    // Auto-refresh mỗi 30 giây
     const REFRESH_INTERVAL = 120000; // 2 phút (dữ liệu cập nhật mỗi 30 phút)
     let refreshTimer = null;
 
@@ -428,86 +622,175 @@
         return date.toLocaleString('vi-VN');
     }
 
-    function getPatternBadge(patternType) {
-        const patterns = {
-            'NIGHT_OFF': { class: 'night-off', label: 'Tắt đêm' },
-            'EVENING_OFF': { class: 'evening-off', label: 'Tắt tối' },
-            'MULTI_DAILY': { class: 'multi-daily', label: 'Nhiều lần/ngày' },
-            'CONSISTENT_HOUR': { class: 'consistent-hour', label: 'Giờ cố định' },
-            'MIXED': { class: 'mixed', label: 'Hỗn hợp' }
-        };
-        const p = patterns[patternType] || { class: 'mixed', label: patternType || 'N/A' };
-        return `<span class="pattern-badge ${p.class}">${p.label}</span>`;
+    function getDurationMinutes(startTime) {
+        if (!startTime) return null;
+        const start = new Date(startTime);
+        const now = new Date();
+        const diff = Math.floor((now - start) / 60000);
+        if (Number.isNaN(diff) || diff < 0) return null;
+        return diff;
     }
 
-    function getScoreBar(score) {
-        const percent = Math.round((score || 0) * 100);
-        return `${percent}% <div class="score-bar"><div class="score-fill" style="width: ${percent}%"></div></div>`;
+    function formatReason(reason) {
+        if (!reason) return '';
+        if (reason === 'pattern_exclusion') return 'Pattern exclusion';
+        if (reason === 'wide_area') return 'Sự cố diện rộng';
+        return reason;
+    }
+
+    function setActiveTab(tabName) {
+        document.querySelectorAll('.nav-link[data-tab]').forEach(button => {
+            button.classList.toggle('active', button.dataset.tab === tabName);
+        });
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.toggle('active', pane.id === `${tabName}-pane`);
+        });
+    }
+
+    function renderAlerts(alerts) {
+        const alertTbody = document.querySelector('#alert-table tbody');
+        document.getElementById('alert-count').textContent = alerts.length;
+        document.getElementById('alert-tab-count').textContent = alerts.length;
+
+        if (alerts.length === 0) {
+            alertTbody.innerHTML = '<tr><td colspan="11" class="no-data">Không có cảnh báo DOWN nào cần xử lý</td></tr>';
+            return;
+        }
+
+        alertTbody.innerHTML = alerts.map(row => `
+            <tr data-duration-minutes="${getDurationMinutes(row.first_off_time || row.alert_time) ?? ''}">
+                <td>${row.ma_tb || 'N/A'}</td>
+                <td>${row.ten_tb || 'N/A'}</td>
+                <td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td>
+                <td>${row.dienthoai_lh || ''}</td>
+                <td>${row.ten_nvkt_db || ''}</td>
+                <td>${row.doi_vt || ''}</td>
+                <td>${row.olt_name || ''}</td>
+                <td>${row.sa || ''}</td>
+                <td>${formatDateTime(row.first_off_time || row.alert_time)}</td>
+                <td class="duration-badge">${formatDuration(row.first_off_time || row.alert_time)}</td>
+                <td>${row.ngay_bh || ''}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderWideAreaGroups(rows) {
+        const tbody = document.querySelector('#wide-area-table tbody');
+        document.getElementById('wide-area-count').textContent = rows.length;
+        document.getElementById('wide-area-tab-count').textContent = rows.length;
+
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">Không có port nào đang bị sự cố diện rộng</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr data-count="${row.down_count || 0}" data-duration-minutes="${getDurationMinutes(row.start_time) ?? ''}">
+                <td>${row.parent_port_key || ''}</td>
+                <td>${row.olt_name || ''}</td>
+                <td>${row.sa || ''}</td>
+                <td><span class="wide-area-badge">${row.down_count || 0}</span></td>
+                <td>${formatDateTime(row.start_time)}</td>
+                <td class="duration-badge">${formatDuration(row.start_time)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderPatternExclusions(rows) {
+        const tbody = document.querySelector('#pattern-table tbody');
+        document.getElementById('pattern-count').textContent = rows.length;
+        document.getElementById('pattern-tab-count').textContent = rows.length;
+
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="11" class="no-data">Không có thuê bao nào bị loại trừ do pattern_exclusion</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr data-duration-minutes="${getDurationMinutes(row.first_off_time || row.alert_time) ?? ''}">
+                <td>${row.ma_tb || ''}</td>
+                <td>${row.ten_tb || ''}</td>
+                <td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td>
+                <td>${row.dienthoai_lh || ''}</td>
+                <td>${row.ten_nvkt_db || ''}</td>
+                <td>${row.doi_vt || ''}</td>
+                <td>${row.olt_name || ''}</td>
+                <td>${row.sa || ''}</td>
+                <td>${formatDateTime(row.first_off_time || row.alert_time)}</td>
+                <td class="duration-badge">${formatDuration(row.first_off_time || row.alert_time)}</td>
+                <td>${formatReason(row.suppression_reason || row.exclude_reason)}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderPortDownGroups(rows) {
+        const tbody = document.querySelector('#port-down-table tbody');
+        document.getElementById('port-down-count').textContent = rows.length;
+        document.getElementById('port-down-tab-count').textContent = rows.length;
+
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="no-data">Không có port nào đang ở trạng thái PORT_DOWN</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = rows.map(row => `
+            <tr data-count="${row.down_count || 0}" data-duration-minutes="${getDurationMinutes(row.start_time) ?? ''}">
+                <td>${row.parent_port_key || ''}</td>
+                <td>${row.olt_name || ''}</td>
+                <td>${row.sa || ''}</td>
+                <td><span class="wide-area-badge">${row.down_count || 0}</span></td>
+                <td>${formatDateTime(row.start_time)}</td>
+                <td class="duration-badge">${formatDuration(row.start_time)}</td>
+            </tr>
+        `).join('');
     }
 
     function loadData() {
         const refreshBtn = document.getElementById('refreshBtn');
         refreshBtn.classList.add('loading');
 
-        // Load alerts and excluded (from /api/quangchudong/active)
-        fetch('/api/quangchudong/active')
+        fetch('/api/quangchudong/dashboard')
             .then(res => res.json())
-            .then(data => {
-                if (data.error) {
-                    document.getElementById('alert-count').textContent = 'Lỗi';
-                    console.error(data.error);
-                    return;
+            .then(payload => {
+                const activeData = payload.active || {};
+                if (activeData.error) {
+                    throw new Error(activeData.error);
                 }
 
-                // Alerts (sự cố thực sự)
-                const alerts = data.alerts || [];
-                document.getElementById('alert-count').textContent = alerts.length;
                 document.getElementById('last-update').textContent =
-                    data.cache && data.cache.refreshed_at
-                        ? data.cache.refreshed_at
+                    activeData.cache && activeData.cache.refreshed_at
+                        ? activeData.cache.refreshed_at
                         : new Date().toLocaleTimeString('vi-VN');
+                renderAlerts(activeData.alerts || []);
+                renderWideAreaGroups(payload.wide_area_groups || []);
+                renderPatternExclusions(payload.pattern_exclusions || []);
+                renderPortDownGroups(payload.port_down_groups || []);
 
-                const alertTbody = document.querySelector('#alert-table tbody');
-                if (alerts.length === 0) {
-                    alertTbody.innerHTML = '<tr><td colspan="11" class="no-data">Không có cảnh báo DOWN nào cần xử lý</td></tr>';
-                } else {
-                    alertTbody.innerHTML = alerts.map(row => `
-                    <tr>
-                        <td>${row.ma_tb || 'N/A'}</td>
-                        <td>${row.ten_tb || 'N/A'}</td>
-                        <td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td>
-                        <td>${row.dienthoai_lh || ''}</td>
-                        <td>${row.ten_nvkt_db || ''}</td>
-                        <td>${row.doi_vt || ''}</td>
-                        <td>${row.olt_name || ''}</td>
-                        <td>${row.sa || ''}</td>
-                        <td>${formatDateTime(row.first_off_time || row.alert_time)}</td>
-                        <td class="duration-badge">${formatDuration(row.first_off_time || row.alert_time)}</td>
-                        <td>${row.ngay_bh || ''}</td>
-                    </tr>
-                `).join('');
-                }
+                ['alert-table', 'wide-area-table', 'pattern-table', 'port-down-table'].forEach(filterTable);
             })
             .catch(err => {
-                console.error('Error loading alerts:', err);
+                console.error('Error loading quang chu dong data:', err);
                 document.getElementById('alert-count').textContent = 'Lỗi';
+                document.getElementById('wide-area-count').textContent = 'Lỗi';
+                document.getElementById('pattern-count').textContent = 'Lỗi';
+                document.getElementById('port-down-count').textContent = 'Lỗi';
             })
             .finally(() => {
                 refreshBtn.classList.remove('loading');
             });
-
     }
 
-    // Manual refresh
+    document.querySelectorAll('.nav-link[data-tab]').forEach(button => {
+        button.addEventListener('click', function () {
+            setActiveTab(this.dataset.tab);
+        });
+    });
+
     document.getElementById('refreshBtn').addEventListener('click', loadData);
 
-    // Load ban đầu
     loadData();
-
-    // Auto-refresh
     refreshTimer = setInterval(loadData, REFRESH_INTERVAL);
 
-    // Filter table function
     function filterTable(tableId) {
         const table = document.getElementById(tableId);
         if (!table) return;
@@ -515,13 +798,15 @@
         const tbody = table.querySelector('tbody');
         const rows = tbody.querySelectorAll('tr');
         // Get filters that target this table
-        const filters = document.querySelectorAll(`.filter-input[data-table="${tableId}"]`);
+        const textFilters = document.querySelectorAll(`.filter-input[data-table="${tableId}"][data-column]`);
+        const countFilter = document.querySelector(`.filter-input[data-table="${tableId}"][data-filter-type="count-min"]`);
+        const durationFilter = document.querySelector(`.filter-select[data-table="${tableId}"][data-filter-type="duration-day"]`);
 
         rows.forEach(row => {
             let showRow = true;
             const cells = row.querySelectorAll('td');
 
-            filters.forEach(filter => {
+            textFilters.forEach(filter => {
                 const colIndex = parseInt(filter.dataset.column);
                 const filterValue = filter.value.toLowerCase().trim();
 
@@ -533,13 +818,44 @@
                 }
             });
 
+            if (showRow && countFilter && countFilter.value !== '') {
+                const minCount = Number(countFilter.value);
+                const rowCount = Number(row.dataset.count || 0);
+                if (!Number.isNaN(minCount) && rowCount <= minCount) {
+                    showRow = false;
+                }
+            }
+
+            if (showRow && durationFilter && durationFilter.value) {
+                const rawDuration = row.dataset.durationMinutes;
+                if (!rawDuration) {
+                    showRow = false;
+                } else {
+                    const durationMinutes = Number(rawDuration);
+                    const oneDayMinutes = 24 * 60;
+                    if (!Number.isNaN(durationMinutes)) {
+                        if (durationFilter.value === 'gt1d' && durationMinutes <= oneDayMinutes) {
+                            showRow = false;
+                        }
+                        if (durationFilter.value === 'lt1d' && durationMinutes >= oneDayMinutes) {
+                            showRow = false;
+                        }
+                    }
+                }
+            }
+
             row.style.display = showRow ? '' : 'none';
         });
     }
 
-    // Initialize filter event listeners
-    document.querySelectorAll('.filter-input').forEach(input => {
+    document.querySelectorAll('.filter-input, .filter-select').forEach(input => {
         input.addEventListener('input', function () {
+            const tableId = this.dataset.table;
+            if (tableId) {
+                filterTable(tableId);
+            }
+        });
+        input.addEventListener('change', function () {
             const tableId = this.dataset.table;
             if (tableId) {
                 filterTable(tableId);

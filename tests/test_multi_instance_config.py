@@ -1,5 +1,6 @@
 import importlib
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -93,3 +94,105 @@ def test_gunicorn_uses_instance_log_and_pid_paths(monkeypatch, tmp_path):
     assert gunicorn_config.pidfile == str(pid_file)
     assert gunicorn_config.accesslog == str(log_dir / "gunicorn_access.log")
     assert gunicorn_config.errorlog == str(log_dir / "gunicorn_error.log")
+
+
+def test_gunicorn_workers_are_limited_and_env_configurable(monkeypatch):
+    monkeypatch.delenv("DASHV4_WORKERS", raising=False)
+    monkeypatch.delenv("DASH_WORKERS", raising=False)
+
+    _reload_module("config")
+    gunicorn_config = _reload_module("gunicorn_config")
+
+    assert gunicorn_config.workers == 2
+
+    monkeypatch.setenv("DASHV4_WORKERS", "1")
+    _reload_module("config")
+    gunicorn_config = _reload_module("gunicorn_config")
+
+    assert gunicorn_config.workers == 1
+
+
+def test_gunicorn_timeout_is_bounded_and_env_configurable(monkeypatch):
+    monkeypatch.delenv("DASHV4_GUNICORN_TIMEOUT", raising=False)
+    monkeypatch.delenv("DASH_GUNICORN_TIMEOUT", raising=False)
+
+    _reload_module("config")
+    gunicorn_config = _reload_module("gunicorn_config")
+
+    assert gunicorn_config.timeout == 30
+
+    monkeypatch.setenv("DASHV4_GUNICORN_TIMEOUT", "45")
+    _reload_module("config")
+    gunicorn_config = _reload_module("gunicorn_config")
+
+    assert gunicorn_config.timeout == 45
+
+
+def test_development_server_is_single_threaded_by_default(monkeypatch):
+    monkeypatch.delenv("DASHV4_DEV_SERVER_THREADED", raising=False)
+    dashboard = _reload_module("dashboard")
+    captured = {}
+
+    def fake_run(**kwargs):
+        captured.update(kwargs)
+
+    monkeypatch.setattr(dashboard.app, "run", fake_run)
+
+    dashboard.run_development_server()
+
+    assert captured["threaded"] is False
+
+
+def test_runtime_limits_set_native_thread_defaults():
+    env = os.environ.copy()
+    for name in [
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+        "BLIS_NUM_THREADS",
+    ]:
+        env.pop(name, None)
+
+    output = subprocess.check_output(
+        [
+            sys.executable,
+            "-c",
+            "import dashboard, os; print(os.environ['OPENBLAS_NUM_THREADS'], os.environ['OMP_NUM_THREADS'])",
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        env=env,
+        text=True,
+    )
+
+    assert output.strip() == "1 1"
+
+
+def test_start_dashboard_uses_gunicorn_not_flask_dev_server():
+    script = Path("start_dashboard.sh").read_text(encoding="utf-8")
+
+    assert "gunicorn_config.py dashboard:app" in script
+    assert "python3 dashboard.py" not in script
+
+
+def test_report_history_db_prefers_bchn_runtime_path_over_baocaohanoi_default(monkeypatch):
+    preferred_path = "/home/vtst/bchn/runtime/son_tay/sqlite_history/report_history.db"
+    legacy_path = "/home/vtst/baocaohanoi/api_transition/runtime/son_tay/sqlite_history/report_history.db"
+
+    monkeypatch.delenv("DASHV4_DB_PATH", raising=False)
+    monkeypatch.delenv("DASH_REPORT_HISTORY_DB", raising=False)
+    monkeypatch.delenv("DASH_BAOCAO_HANOI_PATH", raising=False)
+
+    real_exists = os.path.exists
+
+    def fake_exists(path):
+        if path in {preferred_path, legacy_path}:
+            return True
+        return real_exists(path)
+
+    monkeypatch.setattr(os.path, "exists", fake_exists)
+
+    config = _reload_module("config")
+
+    assert config.REPORT_HISTORY_DB_PATH == preferred_path

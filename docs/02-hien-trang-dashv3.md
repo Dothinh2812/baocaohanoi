@@ -41,7 +41,7 @@ Luồng chung của một màn `dashv3`:
 | `/brcd` | báo cáo BRCD |
 | `/pttb` | báo cáo PTTB |
 | `/cau-hinh-tu-dong` | cấu hình tự động Sơn Tây |
-| `/ttvt-son-tay-tong-hop` | dashboard tổng hợp Sơn Tây |
+| `/tong-hop-bsc-kpi` | dashboard tổng hợp BSC KPI theo đơn vị hiện tại |
 | `/thuctang` | trang ảnh/thông tin thực tăng |
 | `/kpi` | KPI tổng hợp |
 | `/kpi-nvkt-bchn` | KPI NVKT BCHN |
@@ -55,7 +55,7 @@ API liên quan nổi bật:
 - `/api/pttb-data-pending`
 - `/api/pttb-data-chitiet-to`
 - `/api/cau-hinh-tu-dong/son-tay`
-- `/api/ttvt-son-tay-tong-hop`
+- `/api/tong-hop-bsc-kpi`
 - `/api/kpi-data`
 - `/api/kpi-nvkt-bchn-data`
 

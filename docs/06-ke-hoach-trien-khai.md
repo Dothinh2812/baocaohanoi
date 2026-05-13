@@ -34,7 +34,7 @@ Mục tiêu:
 ## Pha 2: các route gần như sẵn sàng
 
 Ưu tiên theo thứ tự:
-1. `/ttvt-son-tay-tong-hop`
+1. `/tong-hop-bsc-kpi`
 2. `/cau-hinh-tu-dong`
 3. `/tiepthi`
 4. `/thuhoi`

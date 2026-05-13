@@ -16,25 +16,11 @@
     </div>
 
     <div class="section">
-        <h3 class="section-title">
-            <i class="fas fa-calendar-alt"></i>
-            Bộ lọc ngày dữ liệu
-        </h3>
-        <div class="excel-table-card" style="padding: 16px;">
-            <div style="display: flex; gap: 12px; align-items: end; flex-wrap: wrap;">
-                <div>
-                    <label for="chatluong-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
-                    <input id="chatluong-date-input" type="date" style="padding: 8px 10px; min-width: 180px;">
-                </div>
-                <div>
-                    <button id="chatluong-date-apply" class="download-btn" type="button">
-                        <i class="fas fa-filter"></i>
-                        Áp dụng
-                    </button>
-                </div>
-                <div id="chatluong-date-meta" style="font-size: 13px; color: #666;"></div>
-            </div>
-        </div>
+        {% set date_input_id = 'chatluong-date-input' %}
+        {% set date_apply_id = 'chatluong-date-apply' %}
+        {% set date_meta_id = 'chatluong-date-meta' %}
+        {% set date_btn_text = 'Áp dụng' %}
+        {% include 'components/date_picker.html' %}
     </div>
 
     {% set view_ids = [

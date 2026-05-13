@@ -30,12 +30,20 @@ from repositories import (
     load_nvkt_tong_hop_da_nguon_by_name_df,
     load_nvkt_tong_hop_da_nguon_df,
     resolve_date_context,
-    load_ttvt_son_tay_tong_hop_rows,
+    load_tong_hop_bsc_kpi_rows,
 )
 from repositories import load_dashboard_kpi_nvkt_df, load_kpi_nvkt_tong_hop_df
 
 
 operations_bp = Blueprint('operations', __name__)
+
+
+BRCD_RUNTIME_DOWNLOADS_DIR = '/home/vtst/1bss/runtime/default/downloads'
+BRCD_SUMMARY_FILE = os.path.join(BRCD_RUNTIME_DOWNLOADS_DIR, 'kq_dhsc', 'bc_BRCD.xlsx')
+BRCD_DETAIL_MAIN_FILE = os.path.join(BRCD_RUNTIME_DOWNLOADS_DIR, 'chiaTheoDoi', 'chiTietBrcd5Doi.xlsx')
+BRCD_DETAIL_OFF_FILE = os.path.join(BRCD_RUNTIME_DOWNLOADS_DIR, 'chiaTheoDoi', 'chiTietBrcd5Doi_OFF.xlsx')
+PTTB_RUNTIME_DOWNLOADS_DIR = '/home/vtst/1bss/runtime/default/downloads'
+PTTB_SUMMARY_FILE = os.path.join(PTTB_RUNTIME_DOWNLOADS_DIR, 'ton_pttb', 'baoCaoPTTB.xlsx')
 
 
 CAU_HINH_TU_DONG_DATE_BINDINGS = [
@@ -76,7 +84,7 @@ KPI_DATE_BINDINGS = [
 ]
 
 
-TTVT_SON_TAY_CHAT_LUONG_C_DATE_BINDINGS = [
+TONG_HOP_BSC_KPI_CHAT_LUONG_C_DATE_BINDINGS = [
     {
         'key': 'c1_1',
         'report_code': 'chi_tieu_c_c1_1_report',
@@ -404,17 +412,17 @@ def _build_kpi_detail_frames(date_context):
     return summary_df, detail_df
 
 
-def _load_ttvt_son_tay_tong_hop_rows():
-    return load_ttvt_son_tay_tong_hop_rows(UNIT_NAME)
+def _load_tong_hop_bsc_kpi_rows():
+    return load_tong_hop_bsc_kpi_rows(UNIT_NAME)
 
 
-def _load_ttvt_son_tay_chat_luong_c_frames(selected_date):
+def _load_tong_hop_bsc_kpi_chat_luong_c_frames(selected_date):
     if not selected_date:
-        return {binding['key']: pd.DataFrame() for binding in TTVT_SON_TAY_CHAT_LUONG_C_DATE_BINDINGS}
-    return load_many_tables_by_date(TTVT_SON_TAY_CHAT_LUONG_C_DATE_BINDINGS, selected_date)
+        return {binding['key']: pd.DataFrame() for binding in TONG_HOP_BSC_KPI_CHAT_LUONG_C_DATE_BINDINGS}
+    return load_many_tables_by_date(TONG_HOP_BSC_KPI_CHAT_LUONG_C_DATE_BINDINGS, selected_date)
 
 
-def _build_ttvt_son_tay_chat_luong_c_sheet(date_context, frames):
+def _build_tong_hop_bsc_kpi_chat_luong_c_sheet(date_context, frames):
     column_specs = [
         ('c1_1', 'Chỉ tiêu BSC', 'C1.1 - Chỉ tiêu BSC'),
         ('c1_2', 'Chỉ tiêu BSC', 'C1.2 - Chỉ tiêu BSC'),
@@ -444,19 +452,19 @@ def _build_ttvt_son_tay_chat_luong_c_sheet(date_context, frames):
     return build_sheet_payload(merged_df.reset_index(drop=True))
 
 
-def _build_ttvt_son_tay_tong_hop_payload(date_context=None):
+def _build_tong_hop_bsc_kpi_payload(date_context=None):
     file_info = build_file_info(REPORT_HISTORY_DB_PATH, include_name=True)
     if date_context is None:
         date_context = resolve_date_context(
             None,
-            [binding['report_code'] for binding in TTVT_SON_TAY_CHAT_LUONG_C_DATE_BINDINGS],
+            [binding['report_code'] for binding in TONG_HOP_BSC_KPI_CHAT_LUONG_C_DATE_BINDINGS],
         )
 
     if date_context['date_has_data']:
-        chat_luong_frames = _load_ttvt_son_tay_chat_luong_c_frames(date_context['selected_date'])
+        chat_luong_frames = _load_tong_hop_bsc_kpi_chat_luong_c_frames(date_context['selected_date'])
     else:
-        chat_luong_frames = {binding['key']: pd.DataFrame() for binding in TTVT_SON_TAY_CHAT_LUONG_C_DATE_BINDINGS}
-    chat_luong_c_sheet = _build_ttvt_son_tay_chat_luong_c_sheet(date_context, chat_luong_frames)
+        chat_luong_frames = {binding['key']: pd.DataFrame() for binding in TONG_HOP_BSC_KPI_CHAT_LUONG_C_DATE_BINDINGS}
+    chat_luong_c_sheet = _build_tong_hop_bsc_kpi_chat_luong_c_sheet(date_context, chat_luong_frames)
 
     return {
         'file_info': file_info,
@@ -479,16 +487,15 @@ def page_brcd():
     ton_5doi_columns = []
 
     try:
-        excel_path = os.path.join(BASE_DATA_PATH, 'downloads', 'kq_dhsc', 'bc_BRCD.xlsx')
-        df = read_excel_sheet_cached(excel_path, 'ton_dv_theo_to')
+        df = read_excel_sheet_cached(BRCD_SUMMARY_FILE, 'ton_dv_theo_to')
         ton_dv_columns = df.columns.tolist()
         ton_dv_data = df.fillna('').to_dict('records')
 
-        df_nvkt = read_excel_sheet_cached(excel_path, 'ton_dv_theo_nvkt')
+        df_nvkt = read_excel_sheet_cached(BRCD_SUMMARY_FILE, 'ton_dv_theo_nvkt')
         ton_nvkt_columns = df_nvkt.columns.tolist()
         ton_nvkt_data = df_nvkt.fillna('').to_dict('records')
 
-        df_5doi = read_excel_sheet_cached(excel_path, 'tong_hop_5doi')
+        df_5doi = read_excel_sheet_cached(BRCD_SUMMARY_FILE, 'tong_hop_5doi')
         ton_5doi_columns = df_5doi.columns.tolist()
         ton_5doi_data = df_5doi.fillna('').to_dict('records')
     except Exception as exc:
@@ -510,9 +517,8 @@ def page_brcd():
 @operations_bp.route('/download/bc-brcd')
 @login_required
 def download_bc_brcd():
-    excel_path = os.path.join(BASE_DATA_PATH, 'downloads', 'kq_dhsc', 'bc_BRCD.xlsx')
     return safe_file_response(
-        excel_path,
+        BRCD_SUMMARY_FILE,
         as_attachment=True,
         download_name='bc_BRCD.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -535,13 +541,13 @@ def page_cau_hinh_tu_dong():
     )
 
 
-@operations_bp.route('/ttvt-son-tay-tong-hop')
+@operations_bp.route('/tong-hop-bsc-kpi')
 @login_required
-def page_ttvt_son_tay_tong_hop():
+def page_tong_hop_bsc_kpi():
     return render_template(
-        'pages/ttvt_son_tay_tong_hop.html',
+        'pages/tong_hop_bsc_kpi.html',
         current_user=_current_user(),
-        active_page='ttvt_son_tay_tong_hop',
+        active_page='tong_hop_bsc_kpi',
     )
 
 
@@ -641,22 +647,22 @@ def get_nvkt_chi_tiet_data(nvkt_slug):
         return jsonify({'error': f'Lỗi khi đọc dữ liệu NVKT từ SQLite: {exc}'}), 500
 
 
-@operations_bp.route('/api/ttvt-son-tay-tong-hop')
-def get_ttvt_son_tay_tong_hop_data():
+@operations_bp.route('/api/tong-hop-bsc-kpi')
+def get_tong_hop_bsc_kpi_data():
     try:
         date_context = resolve_date_context(
             request.args.get('date'),
-            [binding['report_code'] for binding in TTVT_SON_TAY_CHAT_LUONG_C_DATE_BINDINGS],
+            [binding['report_code'] for binding in TONG_HOP_BSC_KPI_CHAT_LUONG_C_DATE_BINDINGS],
         )
-        return jsonify(_build_ttvt_son_tay_tong_hop_payload(date_context))
+        return jsonify(_build_tong_hop_bsc_kpi_payload(date_context))
     except FileNotFoundError as exc:
         return jsonify({'error': str(exc)}), 404
     except sqlite3.Error as exc:
         current_app.logger.exception('Khong the doc report_history.db: %s', exc)
         return jsonify({'error': f'Lỗi khi đọc SQLite: {exc}'}), 500
     except Exception as exc:
-        current_app.logger.exception('Khong the tao payload tong hop Son Tay: %s', exc)
-        return jsonify({'error': f'Lỗi khi tải dashboard Sơn Tây: {exc}'}), 500
+        current_app.logger.exception('Khong the tao payload tong hop BSC KPI: %s', exc)
+        return jsonify({'error': f'Lỗi khi tải dashboard tổng hợp BSC KPI: {exc}'}), 500
 
 
 @operations_bp.route('/chart/<filename>')
@@ -709,33 +715,30 @@ def get_file_info():
 
 @operations_bp.route('/api/excel-data')
 def get_excel_data():
-    excel_path = os.path.join(BASE_DATA_PATH, 'chiaTheoDoi', 'chiTietBrcd5Doi_OFF.xlsx')
-    if not os.path.exists(excel_path):
+    if not os.path.exists(BRCD_DETAIL_OFF_FILE):
         return jsonify({'error': 'File Excel không tồn tại'}), 404
 
     try:
-        return jsonify(build_multi_sheet_payload(excel_path))
+        return jsonify(build_multi_sheet_payload(BRCD_DETAIL_OFF_FILE))
     except Exception as exc:
         return jsonify({'error': f'Lỗi khi đọc file Excel: {exc}'}), 500
 
 
 @operations_bp.route('/api/excel-data-main')
 def get_excel_data_main():
-    excel_path = os.path.join(BASE_DATA_PATH, 'chiaTheoDoi', 'chiTietBrcd5Doi.xlsx')
-    if not os.path.exists(excel_path):
+    if not os.path.exists(BRCD_DETAIL_MAIN_FILE):
         return jsonify({'error': 'File Excel không tồn tại'}), 404
 
     try:
-        return jsonify(build_multi_sheet_payload(excel_path))
+        return jsonify(build_multi_sheet_payload(BRCD_DETAIL_MAIN_FILE))
     except Exception as exc:
         return jsonify({'error': f'Lỗi khi đọc file Excel: {exc}'}), 500
 
 
 @operations_bp.route('/download/excel')
 def download_excel():
-    excel_path = os.path.join(BASE_DATA_PATH, 'chiaTheoDoi', 'chiTietBrcd5Doi_OFF.xlsx')
     return safe_file_response(
-        excel_path,
+        BRCD_DETAIL_OFF_FILE,
         as_attachment=True,
         download_name='ChiTietBrcd5Doi_OFF.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -744,21 +747,19 @@ def download_excel():
 
 @operations_bp.route('/api/excel-data-pending')
 def get_excel_data_pending():
-    excel_path = os.path.join(BASE_DATA_PATH, 'chiaTheoDoi', 'chiTietBrcd5Doi.xlsx')
-    if not os.path.exists(excel_path):
+    if not os.path.exists(BRCD_DETAIL_MAIN_FILE):
         return jsonify({'error': 'File Excel không tồn tại'}), 404
 
     try:
-        return jsonify(build_multi_sheet_payload(excel_path, transform=_filter_pending_brcd_sheet))
+        return jsonify(build_multi_sheet_payload(BRCD_DETAIL_MAIN_FILE, transform=_filter_pending_brcd_sheet))
     except Exception as exc:
         return jsonify({'error': f'Lỗi khi đọc file Excel: {exc}'}), 500
 
 
 @operations_bp.route('/download/excel-main')
 def download_excel_main():
-    excel_path = os.path.join(BASE_DATA_PATH, 'chiaTheoDoi', 'chiTietBrcd5Doi.xlsx')
     return safe_file_response(
-        excel_path,
+        BRCD_DETAIL_MAIN_FILE,
         as_attachment=True,
         download_name='ChiTietBrcd5Doi.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -767,14 +768,13 @@ def download_excel_main():
 
 @operations_bp.route('/api/pttb-data-summary')
 def get_pttb_data_summary():
-    excel_path = os.path.join(BASE_DATA_PATH, 'downloads', 'ton pttb', 'baoCaoPTTB.xlsx')
-    if not os.path.exists(excel_path):
+    if not os.path.exists(PTTB_SUMMARY_FILE):
         return jsonify({'error': 'File Excel PTTB không tồn tại'}), 404
 
     try:
         return jsonify(
             build_multi_sheet_payload(
-                excel_path,
+                PTTB_SUMMARY_FILE,
                 sheet_names=['TK_TongHop_DonGian', 'tong_hop_5doi', 'TK_TongHop_TrangThai'],
                 include_sheet_errors=True,
             )
@@ -785,14 +785,13 @@ def get_pttb_data_summary():
 
 @operations_bp.route('/api/pttb-data-detail')
 def get_pttb_data_detail():
-    excel_path = os.path.join(BASE_DATA_PATH, 'downloads', 'ton pttb', 'baoCaoPTTB.xlsx')
-    if not os.path.exists(excel_path):
+    if not os.path.exists(PTTB_SUMMARY_FILE):
         return jsonify({'error': 'File Excel PTTB không tồn tại'}), 404
 
     try:
         return jsonify(
             build_multi_sheet_payload(
-                excel_path,
+                PTTB_SUMMARY_FILE,
                 sheet_names=['tong_hop_dia_ban', 'TK_ToKT_SonTay', 'TK_ToKT_SuoiHai', 'TK_ToKT_QuangOai'],
                 include_sheet_errors=True,
             )
@@ -803,14 +802,13 @@ def get_pttb_data_detail():
 
 @operations_bp.route('/api/pttb-data-pending')
 def get_pttb_data_pending():
-    excel_path = os.path.join(BASE_DATA_PATH, 'downloads', 'ton pttb', 'baoCaoPTTB.xlsx')
-    if not os.path.exists(excel_path):
+    if not os.path.exists(PTTB_SUMMARY_FILE):
         return jsonify({'error': 'File Excel PTTB không tồn tại'}), 404
 
     try:
         return jsonify(
             build_multi_sheet_payload(
-                excel_path,
+                PTTB_SUMMARY_FILE,
                 sheet_names=['chua_co_lydoton', 'phieu_qua_gio'],
                 include_sheet_errors=True,
             )
@@ -821,14 +819,13 @@ def get_pttb_data_pending():
 
 @operations_bp.route('/api/pttb-data-chitiet-to')
 def get_pttb_data_chitiet_to():
-    excel_path = os.path.join(BASE_DATA_PATH, 'downloads', 'ton pttb', 'baoCaoPTTB.xlsx')
-    if not os.path.exists(excel_path):
+    if not os.path.exists(PTTB_SUMMARY_FILE):
         return jsonify({'error': 'File Excel PTTB không tồn tại'}), 404
 
     try:
         return jsonify(
             build_multi_sheet_payload(
-                excel_path,
+                PTTB_SUMMARY_FILE,
                 sheet_names=['ToKT_SonTay', 'ToKT_SuoiHai', 'ToKT_QuangOai', 'ToKT_PhucTho'],
                 include_sheet_errors=True,
                 transform=_pttb_chitiet_to_sheet,
@@ -883,9 +880,8 @@ def get_kpi_data():
 
 @operations_bp.route('/download/excel-pttb')
 def download_excel_pttb():
-    excel_path = os.path.join(BASE_DATA_PATH, 'downloads', 'ton pttb', 'baoCaoPTTB.xlsx')
     return safe_file_response(
-        excel_path,
+        PTTB_SUMMARY_FILE,
         as_attachment=True,
         download_name='BaoCaoPTTB.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

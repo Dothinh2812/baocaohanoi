@@ -46,6 +46,11 @@ Nếu vào repo ở phiên sau, hoặc cần sửa/thêm tính năng, bắt đ�
 - [08-trang-thai-thuc-thi.md](/home/vtst/dashv4/docs/08-trang-thai-thuc-thi.md)
 - [04-mapping-route-va-du-lieu.md](/home/vtst/dashv4/docs/04-mapping-route-va-du-lieu.md)
 
+### Muốn triển khai nhiều instance song song
+
+- [10-trien-khai-multi-instance.md](/home/vtst/dashv4/docs/10-trien-khai-multi-instance.md)
+- [07-trien-khai-van-hanh.md](/home/vtst/dashv4/docs/07-trien-khai-van-hanh.md)
+
 ## Danh sách tài liệu
 
 ### Tài liệu định hướng và phạm vi
@@ -65,6 +70,7 @@ Nếu vào repo ở phiên sau, hoặc cần sửa/thêm tính năng, bắt đ�
 - [06-ke-hoach-trien-khai.md](/home/vtst/dashv4/docs/06-ke-hoach-trien-khai.md)
 - [07-trien-khai-van-hanh.md](/home/vtst/dashv4/docs/07-trien-khai-van-hanh.md)
 - [08-trang-thai-thuc-thi.md](/home/vtst/dashv4/docs/08-trang-thai-thuc-thi.md)
+- [10-trien-khai-multi-instance.md](/home/vtst/dashv4/docs/10-trien-khai-multi-instance.md)
 
 ## Quy tắc đồng bộ tài liệu
 

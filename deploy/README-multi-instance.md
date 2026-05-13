@@ -114,3 +114,104 @@ curl -I https://ba-dinh.dashboard.example.vn/
 ```
 
 Then verify login, `/admin/users`, password change, and one data page per unit.
+
+• Chưa sẵn sàng để chạy thật bằng:
+
+  sudo systemctl start dashv4@son_tay
+
+  Tôi vừa kiểm tra trực tiếp, hiện còn thiếu các thành phần systemd production:
+
+  - Thiếu /etc/systemd/system/dashv4@.service
+  - Thiếu /etc/dashv4/son_tay.env
+  - Chưa có unit systemd dashv4@son_tay
+  - Service template generated đang dùng /usr/bin/gunicorn, nhưng máy hiện chỉ có /home/vtst/.local/bin/gunicorn
+  - File generated deploy/generated/env/son_tay.env vẫn có DASHV4_SECRET_KEY=change-me-son_tay, chưa phù hợp production
+
+  Các phần đã có đủ:
+
+  - deploy/generated/env/son_tay.env đã tồn tại
+  - /home/vtst/dashv4/runtime_app/son_tay/users.xlsx đã có
+  - /home/vtst/dashv4/logs/son_tay đã có
+  - DB Sơn Tây đã có: /home/vtst/baocaohanoi/api_transition/runtime/son_tay/sqlite_history/report_history.db
+  - Python packages chính có đủ: flask, flask_session, pandas, openpyxl, gunicorn
+
+  Để chạy thật, cần làm tối thiểu:
+
+  sudo mkdir -p /etc/dashv4
+  sudo cp deploy/generated/env/son_tay.env /etc/dashv4/son_tay.env
+  sudo cp deploy/generated/systemd/dashv4@.service /etc/systemd/system/
+
+  Sau đó sửa 2 điểm trước khi start:
+
+  1. Đổi DASHV4_SECRET_KEY=change-me-son_tay trong /etc/dashv4/son_tay.env thành secret thật.
+  2. Sửa service dùng đúng gunicorn, vì /usr/bin/gunicorn chưa có. Hoặc cài gunicorn vào /usr/bin, hoặc sửa ExecStart thành:
+
+  ExecStart=/home/vtst/.local/bin/gunicorn -c gunicorn_config.py dashboard:app
+
+  Rồi chạy:
+
+  sudo systemctl daemon-reload
+  sudo systemctl start dashv4@son_tay
+  sudo systemctl status dashv4@son_tay --no-pager
+
+  Tóm lại: cấu hình trong repo đã có, runtime Sơn Tây đã có, nhưng systemd production trên máy này chưa được cài đặt hoàn chỉnh.
+
+  1. Chạy thử bằng Gunicorn
+  Trong repo:
+
+  cd /home/vtst/dashv4
+  ./start_dashboard.sh
+
+  Script này đã chạy Gunicorn, không còn chạy python3 dashboard.py.
+
+  Kiểm tra:
+
+  ps -ef | grep 'gunicorn.*dashboard:app' | grep -v grep
+  curl -I http://127.0.0.1:5011/
+
+  Dừng bằng Ctrl+C nếu đang chạy trong terminal/tmux.
+
+  2. Chạy bền bằng systemd
+  Trước hết dừng bản đang chạy trong terminal/tmux để tránh trùng port 5011.
+
+  sudo mkdir -p /etc/dashv4
+
+  sudo tee /etc/dashv4/son_tay.env >/dev/null <<'EOF'
+  DASHV4_UNIT_CODE=son_tay
+  DASHV4_UNIT_NAME=TTVT Sơn Tây
+  DASHV4_HOST=0.0.0.0
+  DASHV4_PORT=5011
+  DASHV4_DB_PATH=/home/vtst/bchn/runtime/son_tay/sqlite_history/report_history.db
+  DASHV4_RUNTIME_DIR=/home/vtst/dashv4/runtime_app/son_tay
+  DASHV4_SESSION_FILE_DIR=/home/vtst/dashv4/runtime_app/son_tay/flask_session
+  DASHV4_CACHE_DIR=/home/vtst/dashv4/runtime_app/son_tay/cache
+  DASHV4_LOG_DIR=/home/vtst/dashv4/logs/son_tay
+  DASHV4_PID_FILE=/tmp/dashv4-son_tay.pid
+  DASHV4_NATIVE_THREADS=1
+  DASHV4_WORKERS=2
+  DASHV4_GUNICORN_TIMEOUT=30
+  DASHV4_LOG_REQUESTS=1
+  EOF
+
+  Cài unit systemd:
+
+  sudo cp /home/vtst/dashv4/deploy/systemd/dashv4@.service /etc/systemd/system/
+  sudo systemctl daemon-reload
+
+  Start service:
+
+  sudo systemctl enable --now dashv4@son_tay
+
+  Kiểm tra:
+
+  sudo systemctl status dashv4@son_tay --no-pager
+  journalctl -u dashv4@son_tay -f
+  tail -f /home/vtst/dashv4/logs/son_tay/gunicorn_error.log
+
+  Các lệnh vận hành thường dùng:
+
+  sudo systemctl restart dashv4@son_tay
+  sudo systemctl stop dashv4@son_tay
+  sudo systemctl start dashv4@son_tay
+
+  Quan trọng: sau khi dùng systemd thì không chạy thêm ./start_dashboard.sh hoặc python3 dashboard.py cùng lúc, vì sẽ tranh port 5011.

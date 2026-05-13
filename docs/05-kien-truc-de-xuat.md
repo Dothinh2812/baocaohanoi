@@ -146,7 +146,7 @@ Do mục tiêu hiện tại là đi nhanh, `dashv4` sẽ copy toàn bộ `static
 Sau khi copy, tách làm hai nhóm:
 - nhóm có thể giữ gần nguyên trạng:
   - `cau_hinh_tu_dong`
-  - `ttvt_son_tay_tong_hop`
+  - `tong_hop_bsc_kpi`
 - nhóm chỉ giữ giao diện và phải thay adapter:
   - `chatluong`
   - `giahan`

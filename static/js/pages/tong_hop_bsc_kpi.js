@@ -1,11 +1,11 @@
 document.addEventListener('DOMContentLoaded', async function () {
     bindDateFilter();
-    await loadTTVTSonTayTongHop();
+    await loadTongHopBscKpi();
 });
 
-async function loadTTVTSonTayTongHop() {
+async function loadTongHopBscKpi() {
     try {
-        const payload = await API.getTTVTSonTayTongHop(getRequestedDate());
+        const payload = await API.getTongHopBscKpi(getRequestedDate());
         if (payload.error) {
             throw new Error(payload.error);
         }
@@ -14,16 +14,16 @@ async function loadTTVTSonTayTongHop() {
         renderChatLuongCTable(payload.chat_luong_c, payload.file_info);
     } catch (error) {
         const message = `Không thể tải chỉ tiêu chất lượng C: ${error.message}`;
-        showError(message, 'ttvt-son-tay-chat-luong-c');
+        showError(message, 'tong-hop-bsc-kpi-chat-luong-c');
     }
 }
 
 function renderChatLuongCTable(tableData, fileInfo) {
-    const container = document.getElementById('ttvt-son-tay-chat-luong-c');
+    const container = document.getElementById('tong-hop-bsc-kpi-chat-luong-c');
     if (!container) return;
 
     if (!tableData || !tableData.columns) {
-        showEmptyState('Không có dữ liệu', 'ttvt-son-tay-chat-luong-c');
+        showEmptyState('Không có dữ liệu', 'tong-hop-bsc-kpi-chat-luong-c');
         return;
     }
 
@@ -31,14 +31,13 @@ function renderChatLuongCTable(tableData, fileInfo) {
         showRowNumbers: true,
         maxHeight: 'none',
         fileInfo,
-        frozenColumns: 1,
         enableFilter: true,
     });
 }
 
 function bindDateFilter() {
-    const input = document.getElementById('ttvt-son-tay-date-input');
-    const button = document.getElementById('ttvt-son-tay-date-apply');
+    const input = document.getElementById('tong-hop-bsc-kpi-date-input');
+    const button = document.getElementById('tong-hop-bsc-kpi-date-apply');
     if (!input || !button) return;
 
     button.addEventListener('click', function () {
@@ -60,8 +59,8 @@ function getRequestedDate() {
 }
 
 function syncDateFilterState(data) {
-    const input = document.getElementById('ttvt-son-tay-date-input');
-    const meta = document.getElementById('ttvt-son-tay-date-meta');
+    const input = document.getElementById('tong-hop-bsc-kpi-date-input');
+    const meta = document.getElementById('tong-hop-bsc-kpi-date-meta');
 
     if (input && data.selected_date) {
         input.value = data.selected_date;

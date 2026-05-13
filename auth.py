@@ -4,42 +4,66 @@
 Module xác thực và quản lý users cho Dashboard
 Lưu trữ user data trong file username.xlsx
 """
-import pandas as pd
 import csv
+import os
 from datetime import datetime
 from functools import wraps
-from flask import session, redirect, url_for, request, flash, jsonify
-from werkzeug.security import generate_password_hash, check_password_hash
-import os
 from threading import Lock
 
-# Lock để đảm bảo thread-safe khi đọc/ghi Excel
-file_lock = Lock()
+import pandas as pd
+from flask import flash, jsonify, redirect, request, session, url_for
+from werkzeug.security import check_password_hash, generate_password_hash
 
 EXCEL_FILE = os.getenv('DASHV4_USER_FILE', 'username.xlsx')
 LOGIN_LOG_FILE = os.getenv('DASHV4_LOGIN_LOG_FILE', 'logs/login_history.csv')
 
-# Đảm bảo thư mục logs tồn tại
-login_log_dir = os.path.dirname(os.path.abspath(LOGIN_LOG_FILE))
-if login_log_dir:
-    os.makedirs(login_log_dir, exist_ok=True)
+_login_log_dir = os.path.dirname(os.path.abspath(LOGIN_LOG_FILE))
+if _login_log_dir:
+    os.makedirs(_login_log_dir, exist_ok=True)
 
-# Khởi tạo file log nếu chưa có
 if not os.path.exists(LOGIN_LOG_FILE):
     with open(LOGIN_LOG_FILE, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(['timestamp', 'username', 'ip_address', 'user_agent', 'action', 'status'])
 
+file_lock = Lock()
+_users_cache_lock = Lock()
+_users_cache = None
+_users_cache_mtime = 0
+
 
 def get_all_users():
-    """Đọc tất cả users từ Excel file"""
+    """Đọc tất cả users từ Excel file, có cache theo mtime"""
+    global _users_cache, _users_cache_mtime
+    try:
+        current_mtime = os.path.getmtime(EXCEL_FILE)
+    except OSError:
+        return None
+
+    with _users_cache_lock:
+        if _users_cache is not None and current_mtime == _users_cache_mtime:
+            return _users_cache
+
     with file_lock:
         try:
             df = pd.read_excel(EXCEL_FILE)
-            return df
-        except Exception as e:
-            print(f"Lỗi khi đọc file Excel: {e}")
+        except Exception as exc:
+            print(f'Lỗi khi đọc file Excel: {exc}')
             return None
+
+    with _users_cache_lock:
+        _users_cache = df
+        _users_cache_mtime = current_mtime
+
+    return df
+
+
+def invalidate_users_cache():
+    """Xóa cache users, gọi sau khi ghi file"""
+    global _users_cache, _users_cache_mtime
+    with _users_cache_lock:
+        _users_cache = None
+        _users_cache_mtime = 0
 
 
 def get_user_by_username(username):
@@ -56,28 +80,23 @@ def get_user_by_username(username):
 
 
 def update_user(username, updates):
-    """
-    Cập nhật thông tin user trong Excel
-    updates: dict chứa các cột cần update
-    """
+    """Cập nhật thông tin user trong Excel"""
     with file_lock:
         try:
             df = pd.read_excel(EXCEL_FILE)
 
-            # Tìm user
             user_idx = df[df['username'] == username].index
             if user_idx.empty:
                 return False
 
-            # Update các trường
             for key, value in updates.items():
                 df.loc[user_idx, key] = value
 
-            # Lưu lại
             df.to_excel(EXCEL_FILE, index=False)
+            invalidate_users_cache()
             return True
-        except Exception as e:
-            print(f"Lỗi khi update user: {e}")
+        except Exception as exc:
+            print(f'Lỗi khi update user: {exc}')
             return False
 
 

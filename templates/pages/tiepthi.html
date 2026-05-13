@@ -60,19 +60,10 @@
     </div>
 
     <div class="section">
-        <div class="excel-table-card" style="padding: 16px;">
-            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: end;">
-                <div>
-                    <label for="tiepthi-date-input" style="display: block; font-weight: 600; margin-bottom: 6px;">Ngày dữ liệu</label>
-                    <input type="date" id="tiepthi-date-input" class="form-control" style="min-width: 220px;">
-                </div>
-                <button id="tiepthi-date-apply" class="btn btn-primary">
-                    <i class="fas fa-filter"></i>
-                    Xem theo ngày
-                </button>
-            </div>
-            <div id="tiepthi-date-meta" style="margin-top: 10px; color: #6c757d; font-size: 13px;"></div>
-        </div>
+        {% set date_input_id = 'tiepthi-date-input' %}
+        {% set date_apply_id = 'tiepthi-date-apply' %}
+        {% set date_meta_id = 'tiepthi-date-meta' %}
+        {% include 'components/date_picker.html' %}
     </div>
 
     <!-- Bảng tổng hợp theo Tổ -->
