@@ -10,6 +10,9 @@
   port: 5012
   hostname: ba-dinh.dashboard.example.vn
   db_path: /home/vtst/baocaohanoi/api_transition/runtime/ba_dinh/sqlite_history/report_history.db
+  disabled_endpoints:
+    - quangchudong.page_quangchudong
+    - sa_outage.page_su_co_sa
 - code: cau_giay
   slug: cau-giay
   name: "TTVT Cầu Giấy"

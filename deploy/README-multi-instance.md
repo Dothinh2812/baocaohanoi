@@ -52,6 +52,41 @@ deploy/generated/cloudflared/config.yml
 deploy/generated/smoke_test.sh
 ```
 
+## Per-Instance Route Policy
+
+Each unit in `deploy/units.yaml` can define route policy by Flask endpoint name:
+
+```yaml
+disabled_endpoints:
+  - quangchudong.page_quangchudong
+  - sa_outage.page_su_co_sa
+enabled_endpoints:
+  - quality.page_shc_processing
+```
+
+`disabled_endpoints` blocks a route only for that instance. Page routes return the pending-feature screen and are hidden from the sidebar. API routes return HTTP 501 with `{"error": "route_disabled"}`.
+
+`enabled_endpoints` re-opens a route that is globally disabled in `config.py`. Use this only after confirming that the route reads data from the correct per-unit source.
+
+Common page endpoints:
+
+- `operations.page_brcd`
+- `operations.page_pttb`
+- `operations.page_cau_hinh_tu_dong`
+- `operations.page_tong_hop_bsc_kpi`
+- `quality.page_chatluong`
+- `quality.page_i15`
+- `quality.page_i15k2`
+- `quality.page_shc_processing`
+- `quangchudong.page_quangchudong`
+- `sa_outage.page_su_co_sa`
+- `growth.page_tiepthi`
+- `growth.page_ngungpsc`
+- `retention.page_giahan`
+- `inventory.page_tra_cuu_nhanh_vat_tu`
+- `inventory.page_tong_hop_tien`
+- `inventory.page_tam_dung_khoi_phuc`
+
 ## Install On Server
 
 Copy env files and service template:

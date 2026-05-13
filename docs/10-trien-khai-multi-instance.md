@@ -446,6 +446,35 @@ Một số route/nguồn chưa tách theo đơn vị hoặc vẫn phụ thuộc 
 
 Điều này không ngăn app chạy nhiều process song song, nhưng có thể khiến một số page hiển thị dữ liệu chung hoặc dữ liệu không đúng đơn vị nếu mở cho tất cả instance.
 
+### Khóa/mở route theo từng instance
+
+Với các route chưa chắc chắn đúng dữ liệu theo đơn vị, cấu hình trong `deploy/units.yaml`:
+
+```yaml
+disabled_endpoints:
+  - quangchudong.page_quangchudong
+  - sa_outage.page_su_co_sa
+```
+
+Sau khi chạy `scripts/generate_instances.py`, env sinh ra sẽ có:
+
+```text
+DASHV4_DISABLED_ENDPOINTS=quangchudong.page_quangchudong,sa_outage.page_su_co_sa
+```
+
+Nếu một route đang bị khóa global trong `config.py` nhưng một instance đã có dữ liệu đúng, mở riêng bằng:
+
+```yaml
+enabled_endpoints:
+  - quality.page_shc_processing
+```
+
+Quy tắc vận hành:
+
+- khóa route đọc nguồn chung cho mọi instance chưa được kiểm chứng
+- chỉ mở route khi route đó đọc `DASHV4_DB_PATH` hoặc nguồn per-unit tương ứng
+- sau mỗi thay đổi policy, regenerate env và restart service instance liên quan
+
 Nguyên tắc vận hành:
 
 - page nào đã đọc `report_history.db` theo `DASHV4_DB_PATH` thì phù hợp multi-instance hơn
