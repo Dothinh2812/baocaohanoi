@@ -109,3 +109,24 @@ def test_before_request_blocks_instance_disabled_api(monkeypatch):
     assert response.status_code == 501
     assert response.get_json()["error"] == "route_disabled"
     assert response.get_json()["title"] == "quangchudong.get_dashboard_payload"
+
+
+def test_disabled_sidebar_item_is_hidden(monkeypatch):
+    monkeypatch.setenv("DASHV4_DISABLED_ENDPOINTS", "quangchudong.page_quangchudong")
+
+    import importlib
+    import config
+    import dashboard
+
+    importlib.reload(config)
+    dashboard = importlib.reload(dashboard)
+    dashboard.app.config["TESTING"] = True
+
+    with dashboard.app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess["username"] = "admin"
+        response = client.get("/tong-hop-bsc-kpi")
+
+    assert response.status_code == 200
+    assert "Giám sát Quang Chủ động".encode("utf-8") not in response.data
+    assert "Dashboard tổng hợp BSC KPI".encode("utf-8") in response.data

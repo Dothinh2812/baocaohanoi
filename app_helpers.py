@@ -13,6 +13,7 @@ from flask import current_app, flash, jsonify, redirect, request, send_file, ses
 from werkzeug.utils import safe_join
 
 import config
+from route_policy import is_endpoint_enabled
 
 
 _EXCEL_CACHE_MAX_ENTRIES = 50
@@ -38,7 +39,10 @@ def configure_app(app):
 def register_template_globals(app):
     @app.context_processor
     def inject_template_helpers():
-        return {'csrf_token': get_csrf_token}
+        return {
+            'csrf_token': get_csrf_token,
+            'is_endpoint_enabled': is_endpoint_enabled,
+        }
 
 
 def get_csrf_token():

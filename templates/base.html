@@ -102,29 +102,37 @@
         <input type="text" class="search-box" id="searchBox" placeholder="Tìm kiếm chức năng...">
 
         <!-- Menu items with active state -->
+        {% if is_endpoint_enabled('operations.page_brcd') %}
         <a href="{{ url_for('operations.page_brcd') }}" class="menu-item {% if active_page == 'brcd' %}active{% endif %}"
             data-tooltip="Điều hành sửa chữa">
             <i class="fas fa-wrench"></i>
             <span>1. Điều hành sửa chữa</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('operations.page_pttb') %}
         <a href="{{ url_for('operations.page_pttb') }}" class="menu-item {% if active_page == 'pttb' %}active{% endif %}"
             data-tooltip="Phát triển thuê bao">
             <i class="fas fa-chart-line"></i>
             <span>2. Phát triển thuê bao</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('operations.page_cau_hinh_tu_dong') %}
         <a href="{{ url_for('operations.page_cau_hinh_tu_dong') }}" class="menu-item {% if active_page == 'cau_hinh_tu_dong' %}active{% endif %}"
             data-tooltip="Cấu hình tự động">
             <i class="fas fa-sliders-h"></i>
             <span>2.1. Cấu hình tự động</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('operations.page_tong_hop_bsc_kpi') %}
         <a href="{{ url_for('operations.page_tong_hop_bsc_kpi') }}" class="menu-item {% if active_page == 'tong_hop_bsc_kpi' %}active{% endif %}"
             data-tooltip="Dashboard tổng hợp BSC KPI">
             <i class="fas fa-chart-column"></i>
             <span>2.2. Tổng hợp BSC KPI</span>
         </a>
+        {% endif %}
 
         <!-- <a href="{{ url_for('operations.page_thuctang') }}" class="menu-item {% if active_page == 'thuctang' %}active{% endif %}"
             data-tooltip="Thực tăng Fiber, MyTV">
@@ -132,11 +140,13 @@
             <span>3. Thực tăng Fiber, MyTV</span>
         </a> -->
 
+        {% if is_endpoint_enabled('retention.page_giahan') %}
         <a href="{{ url_for('retention.page_giahan') }}" class="menu-item {% if active_page == 'giahan' %}active{% endif %}"
             data-tooltip="Gia hạn TTTC">
             <i class="fas fa-check-circle"></i>
             <span>4. Gia hạn TTTC</span>
         </a>
+        {% endif %}
 
         <!-- <a href="{{ url_for('retention.page_thuhoi') }}" class="menu-item {% if active_page == 'thuhoi' %}active{% endif %}"
             data-tooltip="Thu hồi TBĐC">
@@ -144,61 +154,78 @@
             <span>5. Thu hồi TBĐC</span>
         </a> -->
 
+        {% if is_endpoint_enabled('quality.page_chatluong') %}
         <a href="{{ url_for('quality.page_chatluong') }}" class="menu-item {% if active_page == 'chatluong' %}active{% endif %}"
             data-tooltip="C1 - Chất lượng phục vụ khách hàng">
             <i class="fas fa-star"></i>
             <span>6. C1 - Chất lượng phục vụ khách hàng</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('quality.page_i15') %}
         <a href="{{ url_for('quality.page_i15') }}" class="menu-item {% if active_page == 'i15' %}active{% endif %}"
             data-tooltip="I1.5 - Chất lượng mạng cáp quang thuê bao">
             <i class="fas fa-network-wired"></i>
             <span>7.1 -  I1.5 - k1</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('quality.page_i15k2') %}
         <a href="{{ url_for('quality.page_i15k2') }}" class="menu-item {% if active_page == 'i15k2' %}active{% endif %}"
             data-tooltip="I1.5 K2 - Chất lượng mạng cáp quang thuê bao">
             <i class="fas fa-network-wired"></i>
             <span>7.2 -  I1.5 - K2</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('auth.redirect_sh_portal') %}
         <a href="{{ url_for('auth.redirect_sh_portal') }}" class="menu-item" target="_blank" rel="noopener noreferrer"
             data-tooltip="Mở hệ thống SH theo username đang đăng nhập">
             <i class="fas fa-right-to-bracket"></i>
             <span>7.3 - Cập nhật kết quả xử lý phiếu shc</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('quality.page_shc_processing') %}
         <a href="{{ url_for('quality.page_shc_processing') }}" class="menu-item {% if active_page == 'shc_processing' %}active{% endif %}"
             data-tooltip="Báo cáo kết quả xử lý SHC">
             <i class="fas fa-clipboard-check"></i>
             <span>7.4 - Kết quả xử lý SHC</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('quangchudong.page_quangchudong') %}
         <a href="{{ url_for('quangchudong.page_quangchudong') }}"
             class="menu-item {% if active_page == 'quangchudong' %}active{% endif %}"
             data-tooltip="Giám sát Quang Chủ động">
             <i class="fas fa-satellite-dish"></i>
             <span>8. Giám sát Quang Chủ động</span>
         </a>
+        {% endif %}
+        {% if is_endpoint_enabled('sa_outage.page_su_co_sa') %}
         <a href="{{ url_for('sa_outage.page_su_co_sa') }}"
             class="menu-item {% if active_page == 'su_co_sa' %}active{% endif %}"
             data-tooltip="Theo dõi sự cố SA">
             <i class="fas fa-exclamation-triangle"></i>
             <span>8.1 Sự cố SA</span>
         </a>
+        {% endif %}
 
-
+        {% if is_endpoint_enabled('growth.page_tiepthi') %}
         <a href="{{ url_for('growth.page_tiepthi') }}" class="menu-item {% if active_page == 'tiepthi' %}active{% endif %}"
             data-tooltip="Kết quả Tiếp thị">
             <i class="fas fa-bullhorn"></i>
             <span>10. Kết quả Tiếp thị</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('growth.page_ngungpsc') %}
         <a href="{{ url_for('growth.page_ngungpsc') }}" class="menu-item {% if active_page == 'ngungpsc' %}active{% endif %}"
             data-tooltip="Thực tăng Ngưng PSC">
             <i class="fas fa-signal"></i>
             <span>11. Thực tăng Ngưng PSC</span>
         </a>
+        {% endif %}
 
         <!-- <a href="{{ url_for('operations.page_kpi') }}" class="menu-item {% if active_page == 'kpi' %}active{% endif %}"
             data-tooltip="KPI NVKT">
@@ -206,21 +233,27 @@
             <span>9. KPI NVKT</span>
         </a> -->
 
+        {% if is_endpoint_enabled('operations.page_kpi_nvkt_bchn') %}
         <a href="{{ url_for('operations.page_kpi_nvkt_bchn') }}" class="menu-item {% if active_page == 'kpi_nvkt_bchn' %}active{% endif %}"
             data-tooltip="KPI NVKT BCHN">
             <i class="fas fa-medal"></i>
             <span>9.1. KPI NVKT BCHN</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('inventory.page_tra_cuu_nhanh_vat_tu') %}
         <a href="{{ url_for('inventory.page_tra_cuu_nhanh_vat_tu') }}" class="menu-item {% if active_page == 'tra_cuu_nhanh_vat_tu' %}active{% endif %}">
             <i class="fas fa-search"></i>
             <span>10.1-Vật tư- Tra cứu nhanh</span>
         </a>
+        {% endif %}
 
+        {% if is_endpoint_enabled('inventory.page_tong_hop_tien') %}
         <a href="{{ url_for('inventory.page_tong_hop_tien') }}" class="menu-item {% if active_page == 'tong_hop_tien' %}active{% endif %}">
             <i class="fas fa-coins"></i>
             <span>10.2-Vật tư-Tiền tồn kho</span>
         </a>
+        {% endif %}
 
         <!-- <a href="{{ url_for('inventory.page_xac_minh_tam_dung') }}" class="menu-item {% if active_page == 'xac_minh_tam_dung' %}active{% endif %}"
             data-tooltip="Xác minh tạm dừng">
@@ -228,12 +261,22 @@
             <span>13. Xác minh tạm dừng</span>
         </a> -->
 
+        {% if is_endpoint_enabled('inventory.page_tam_dung_khoi_phuc') %}
         <a href="{{ url_for('inventory.page_tam_dung_khoi_phuc') }}" class="menu-item {% if active_page == 'tam_dung_khoi_phuc' %}active{% endif %}"
             data-tooltip="Tạm dừng khôi phục">
             <i class="fas fa-play-circle"></i>
             <span>13. Tạm dừng khôi phục</span>
         </a>
+        {% endif %}
 
+        {% set inventory_group_visible =
+            is_endpoint_enabled('inventory.page_ton_kho_vat_tu')
+            or is_endpoint_enabled('inventory.page_ton_kho_vat_tu_qoi')
+            or is_endpoint_enabled('inventory.page_ton_kho_vat_tu_sty')
+            or is_endpoint_enabled('inventory.page_ton_kho_vat_tu_shi')
+            or is_endpoint_enabled('inventory.page_ton_kho_vat_tu_pto')
+        %}
+        {% if inventory_group_visible %}
         <div class="menu-group {% if active_page in ['ton_kho_vat_tu', 'ton_kho_vat_tu_qoi', 'ton_kho_vat_tu_shi', 'ton_kho_vat_tu_sty', 'ton_kho_vat_tu_pto'] %}open{% endif %}">
             <div class="menu-group-toggle" onclick="this.parentElement.classList.toggle('open')">
                 <i class="fas fa-warehouse menu-icon"></i>
@@ -241,28 +284,39 @@
                 <i class="fas fa-chevron-right menu-arrow"></i>
             </div>
             <div class="menu-submenu">
+                {% if is_endpoint_enabled('inventory.page_ton_kho_vat_tu') %}
                 <a href="{{ url_for('inventory.page_ton_kho_vat_tu') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu' %}active{% endif %}">
                     <i class="fas fa-boxes"></i>
                     <span>Tổng hợp TTVT</span>
                 </a>
+                {% endif %}
+                {% if is_endpoint_enabled('inventory.page_ton_kho_vat_tu_qoi') %}
                 <a href="{{ url_for('inventory.page_ton_kho_vat_tu_qoi') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu_qoi' %}active{% endif %}">
                     <i class="fas fa-box"></i>
                     <span>Quảng Oai</span>
                 </a>
+                {% endif %}
+                {% if is_endpoint_enabled('inventory.page_ton_kho_vat_tu_sty') %}
                 <a href="{{ url_for('inventory.page_ton_kho_vat_tu_sty') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu_sty' %}active{% endif %}">
                     <i class="fas fa-box"></i>
                     <span>Sơn Tây</span>
                 </a>
+                {% endif %}
+                {% if is_endpoint_enabled('inventory.page_ton_kho_vat_tu_shi') %}
                 <a href="{{ url_for('inventory.page_ton_kho_vat_tu_shi') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu_shi' %}active{% endif %}">
                     <i class="fas fa-box"></i>
                     <span>Suối Hai</span>
                 </a>
+                {% endif %}
+                {% if is_endpoint_enabled('inventory.page_ton_kho_vat_tu_pto') %}
                 <a href="{{ url_for('inventory.page_ton_kho_vat_tu_pto') }}" class="menu-item {% if active_page == 'ton_kho_vat_tu_pto' %}active{% endif %}">
                     <i class="fas fa-box"></i>
                     <span>Phúc Thọ</span>
                 </a>
+                {% endif %}
             </div>
         </div>
+        {% endif %}
     </div>
 
     <!-- MAIN CONTENT AREA -->
