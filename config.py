@@ -37,6 +37,13 @@ def _env_flag(name, default=False):
     return value.strip().lower() in {'1', 'true', 'yes', 'on'}
 
 
+def _env_csv_set(name):
+    value = os.getenv(name)
+    if not value:
+        return set()
+    return {item.strip() for item in value.split(',') if item.strip()}
+
+
 def _first_existing_path(*candidates):
     for candidate in candidates:
         if candidate and os.path.exists(candidate):
@@ -207,6 +214,9 @@ INVENTORY_TEAM_CONFIGS = {
     },
 }
 
+INSTANCE_DISABLED_ENDPOINTS = _env_csv_set('DASHV4_DISABLED_ENDPOINTS')
+INSTANCE_ENABLED_ENDPOINTS = _env_csv_set('DASHV4_ENABLED_ENDPOINTS')
+
 
 class DashboardConfig:
     SECRET_KEY = _env_value('DASHV4_SECRET_KEY', 'DASH_SECRET_KEY', _default_secret_key())
@@ -242,6 +252,8 @@ class DashboardConfig:
     USER_FILE = USER_FILE
     LOGIN_LOG_FILE = LOGIN_LOG_FILE
     ENABLE_BACKGROUND_SERVICES = _env_flag('DASHV4_ENABLE_BACKGROUND_SERVICES', default=False)
+    INSTANCE_DISABLED_ENDPOINTS = INSTANCE_DISABLED_ENDPOINTS
+    INSTANCE_ENABLED_ENDPOINTS = INSTANCE_ENABLED_ENDPOINTS
 
 
 PUBLIC_ENDPOINTS = {

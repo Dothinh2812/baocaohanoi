@@ -196,3 +196,33 @@ def test_report_history_db_prefers_bchn_runtime_path_over_baocaohanoi_default(mo
     config = _reload_module("config")
 
     assert config.REPORT_HISTORY_DB_PATH == preferred_path
+
+
+def test_config_parses_per_instance_route_policy(monkeypatch):
+    monkeypatch.setenv(
+        "DASHV4_DISABLED_ENDPOINTS",
+        "quangchudong.page_quangchudong, sa_outage.page_su_co_sa,,",
+    )
+    monkeypatch.setenv(
+        "DASHV4_ENABLED_ENDPOINTS",
+        "quality.page_shc_processing, operations.page_thuctang",
+    )
+
+    config = _reload_module("config")
+
+    assert config.INSTANCE_DISABLED_ENDPOINTS == {
+        "quangchudong.page_quangchudong",
+        "sa_outage.page_su_co_sa",
+    }
+    assert config.INSTANCE_ENABLED_ENDPOINTS == {
+        "quality.page_shc_processing",
+        "operations.page_thuctang",
+    }
+    assert config.DashboardConfig.INSTANCE_DISABLED_ENDPOINTS == {
+        "quangchudong.page_quangchudong",
+        "sa_outage.page_su_co_sa",
+    }
+    assert config.DashboardConfig.INSTANCE_ENABLED_ENDPOINTS == {
+        "quality.page_shc_processing",
+        "operations.page_thuctang",
+    }
