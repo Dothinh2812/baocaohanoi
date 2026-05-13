@@ -55,6 +55,11 @@
   port: 5019
   hostname: hoai-duc.dashboard.example.vn
   db_path: /home/vtst/baocaohanoi/api_transition/runtime/hoai_duc/sqlite_history/report_history.db
+  disabled_endpoints:
+    - quangchudong.page_quangchudong
+    - sa_outage.page_su_co_sa
+    - operations.page_pttb
+    - operations.page_brcd
 - code: hoan_kiem
   slug: hoan-kiem
   name: "TTVT Hoàn Kiếm"

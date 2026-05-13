@@ -68,6 +68,29 @@ enabled_endpoints:
 
 `enabled_endpoints` re-opens a route that is globally disabled in `config.py`. Use this only after confirming that the route reads data from the correct per-unit source.
 
+List all route endpoint names:
+
+```bash
+cd /home/vtst/dashv4
+python3 -c "import dashboard; rows=[]; [rows.append('{:<45s} {:<10s} {}'.format(r.endpoint, ','.join(sorted(r.methods - {'HEAD','OPTIONS'})), r.rule)) for r in dashboard.app.url_map.iter_rules()]; print('\n'.join(sorted(rows)))"
+```
+
+For a quick runtime-only change, edit the instance env file directly and restart only that instance:
+
+```bash
+sudo editor /etc/dashv4/hoai_duc.env
+```
+
+```env
+DASHV4_DISABLED_ENDPOINTS=quangchudong.page_quangchudong,sa_outage.page_su_co_sa,operations.page_pttb,operations.page_brcd
+```
+
+```bash
+sudo systemctl restart dashv4@hoai_duc
+```
+
+Direct edits in `/etc/dashv4/*.env` can be overwritten by regenerated env files. Record durable policy in `deploy/units.yaml`.
+
 Common page endpoints:
 
 - `operations.page_brcd`

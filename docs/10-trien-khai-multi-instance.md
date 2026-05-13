@@ -448,18 +448,80 @@ Một số route/nguồn chưa tách theo đơn vị hoặc vẫn phụ thuộc 
 
 ### Khóa/mở route theo từng instance
 
+#### Tra cứu danh sách route
+
+Route policy dùng Flask endpoint name, không dùng URL path. List toàn bộ route bằng lệnh:
+
+```bash
+cd /home/vtst/dashv4
+
+python3 -c "import dashboard; rows=[]; [rows.append('{:<45s} {:<10s} {}'.format(r.endpoint, ','.join(sorted(r.methods - {'HEAD','OPTIONS'})), r.rule)) for r in dashboard.app.url_map.iter_rules()]; print('\n'.join(sorted(rows)))"
+```
+
+Output có 3 cột:
+
+```text
+endpoint_name                                  method     url_path
+```
+
+Ví dụ:
+
+```text
+quangchudong.page_quangchudong                GET        /quangchudong
+sa_outage.page_su_co_sa                       GET        /su_co_sa
+operations.page_pttb                          GET        /pttb
+operations.page_brcd                          GET        /brcd
+```
+
+Tên đưa vào `disabled_endpoints`, `enabled_endpoints`, `DASHV4_DISABLED_ENDPOINTS`, `DASHV4_ENABLED_ENDPOINTS` là cột `endpoint_name`.
+
+Nếu chỉ muốn xem các page route:
+
+```bash
+python3 -c "import dashboard; print('\n'.join(sorted(f'{r.endpoint} {r.rule}' for r in dashboard.app.url_map.iter_rules() if '.page_' in r.endpoint)))"
+```
+
+Nếu chỉ muốn tìm route theo URL hoặc tên:
+
+```bash
+python3 -c "import dashboard; print('\n'.join(sorted(f'{r.endpoint} {r.rule}' for r in dashboard.app.url_map.iter_rules() if 'quangchudong' in r.endpoint or 'quangchudong' in r.rule)))"
+```
+
+#### Cách bền vững: sửa `deploy/units.yaml`
+
 Với các route chưa chắc chắn đúng dữ liệu theo đơn vị, cấu hình trong `deploy/units.yaml`:
 
 ```yaml
-disabled_endpoints:
-  - quangchudong.page_quangchudong
-  - sa_outage.page_su_co_sa
+- code: hoai_duc
+  slug: hoai-duc
+  name: "TTVT Hoài Đức"
+  port: 5019
+  hostname: hoai-duc.dashboard.example.vn
+  db_path: /home/vtst/baocaohanoi/api_transition/runtime/hoai_duc/sqlite_history/report_history.db
+  disabled_endpoints:
+    - quangchudong.page_quangchudong
+    - sa_outage.page_su_co_sa
+    - operations.page_pttb
+    - operations.page_brcd
 ```
 
 Sau khi chạy `scripts/generate_instances.py`, env sinh ra sẽ có:
 
 ```text
-DASHV4_DISABLED_ENDPOINTS=quangchudong.page_quangchudong,sa_outage.page_su_co_sa
+DASHV4_DISABLED_ENDPOINTS=quangchudong.page_quangchudong,sa_outage.page_su_co_sa,operations.page_pttb,operations.page_brcd
+```
+
+Sinh lại env và copy env cho instance liên quan:
+
+```bash
+cd /home/vtst/dashv4
+
+python3 scripts/generate_instances.py \
+  --units-file deploy/units.yaml \
+  --output-dir deploy/generated
+
+sudo cp deploy/generated/env/hoai_duc.env /etc/dashv4/hoai_duc.env
+sudo systemctl restart dashv4@hoai_duc
 ```
 
 Nếu một route đang bị khóa global trong `config.py` nhưng một instance đã có dữ liệu đúng, mở riêng bằng:
@@ -468,6 +530,41 @@ Nếu một route đang bị khóa global trong `config.py` nhưng một instanc
 enabled_endpoints:
   - quality.page_shc_processing
 ```
+
+#### Cách sửa nhanh: sửa trực tiếp file env
+
+Có thể sửa trực tiếp `/etc/dashv4/<unit>.env` khi cần thao tác nhanh trên server:
+
+```bash
+sudo editor /etc/dashv4/hoai_duc.env
+```
+
+Thêm hoặc sửa dòng:
+
+```env
+DASHV4_DISABLED_ENDPOINTS=quangchudong.page_quangchudong,sa_outage.page_su_co_sa,operations.page_pttb,operations.page_brcd
+```
+
+Mở riêng route global-disabled:
+
+```env
+DASHV4_ENABLED_ENDPOINTS=quality.page_shc_processing
+```
+
+Sau khi sửa file env, phải restart đúng instance vì app chỉ đọc env khi process khởi động:
+
+```bash
+sudo systemctl restart dashv4@hoai_duc
+```
+
+Kiểm tra env đang áp dụng trên file runtime:
+
+```bash
+grep DASHV4_DISABLED_ENDPOINTS /etc/dashv4/hoai_duc.env
+grep DASHV4_ENABLED_ENDPOINTS /etc/dashv4/hoai_duc.env
+```
+
+Lưu ý: sửa trực tiếp `/etc/dashv4/*.env` có thể bị mất nếu sau này regenerate từ `deploy/units.yaml` rồi copy đè env mới. Thay đổi cần lưu lâu dài nên ghi vào `deploy/units.yaml`.
 
 Quy tắc vận hành:
 
