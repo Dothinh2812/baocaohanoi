@@ -2,6 +2,7 @@ import io
 import os
 import unicodedata
 from collections import OrderedDict
+from datetime import datetime
 
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, render_template, request, send_file, session
@@ -32,6 +33,15 @@ from services.shc_processing_report import get_shc_processing_report
 
 
 quality_bp = Blueprint('quality', __name__)
+
+
+SHC_CTS_REPORT_PATH = '/home/vtst/shc/processed/reports/So_sanh_SHC_theo_ngay_T-1.xlsx'
+SHC_CTS_SUMMARY_SHEET = 'Theo_don_vi'
+SHC_CTS_DETAIL_SHEET = 'Chi_tiet_NVKT'
+SHC_CTS_INTRADAY_REPORT_PATH = '/home/vtst/shc/processed/intraday/reports/Bao_cao_tien_trinh_20260514.xlsx'
+SHC_CTS_INTRADAY_PROGRESS_SHEET = 'Theo NVKT'
+SHC_CTS_NVKT_DETAIL_ROOT = '/home/vtst/shc/processed'
+SHC_CTS_NVKT_DETAIL_PREFIX = 'shc_NVKT_danh_sach_chi_tiet_K1'
 
 
 CHAT_LUONG_DATE_BINDINGS = [
@@ -530,6 +540,191 @@ def _build_i15_download_workbook_response(payload, filename_prefix):
     )
 
 
+def _shc_cts_payload_from_excel():
+    if not os.path.exists(SHC_CTS_REPORT_PATH):
+        raise FileNotFoundError(f'File Excel SHC CTS không tồn tại: {SHC_CTS_REPORT_PATH}')
+    if not os.path.exists(SHC_CTS_INTRADAY_REPORT_PATH):
+        raise FileNotFoundError(f'File Excel tiến trình SHC trong ngày không tồn tại: {SHC_CTS_INTRADAY_REPORT_PATH}')
+
+    summary_df = read_excel_sheet_cached(SHC_CTS_REPORT_PATH, SHC_CTS_SUMMARY_SHEET)
+    detail_df = read_excel_sheet_cached(SHC_CTS_REPORT_PATH, SHC_CTS_DETAIL_SHEET)
+    progress_df = read_excel_sheet_cached(SHC_CTS_INTRADAY_REPORT_PATH, SHC_CTS_INTRADAY_PROGRESS_SHEET)
+
+    don_vi_data = OrderedDict()
+    if 'Đơn vị' in detail_df.columns:
+        for don_vi in detail_df['Đơn vị'].dropna().unique():
+            don_vi_text = str(don_vi).strip()
+            if not don_vi_text:
+                continue
+            don_vi_df = detail_df[detail_df['Đơn vị'] == don_vi].copy()
+            if 'NVKT' in don_vi_df.columns:
+                don_vi_df = don_vi_df.sort_values(by='NVKT', ascending=True, na_position='last')
+            don_vi_data[don_vi_text] = build_sheet_payload(don_vi_df)
+
+    progress_by_unit = OrderedDict()
+    if 'Đơn vị' in progress_df.columns:
+        for don_vi in progress_df['Đơn vị'].dropna().unique():
+            don_vi_text = str(don_vi).strip()
+            if not don_vi_text:
+                continue
+            unit_df = progress_df[progress_df['Đơn vị'] == don_vi].copy()
+            if 'NVKT_DB' in unit_df.columns:
+                unit_df = unit_df.sort_values(by='NVKT_DB', ascending=True, na_position='last')
+            progress_by_unit[don_vi_text] = build_sheet_payload(unit_df)
+
+    return {
+        'file_info': build_file_info(SHC_CTS_REPORT_PATH, include_name=True),
+        'tien_do_file_info': build_file_info(SHC_CTS_INTRADAY_REPORT_PATH, include_name=True),
+        'tong_hop': build_sheet_payload(summary_df),
+        'don_vi': don_vi_data,
+        'tien_do_xu_ly': build_sheet_payload(progress_df),
+        'tien_do_theo_don_vi': progress_by_unit,
+    }
+
+
+def _build_shc_cts_download_workbook_response(payload):
+    buffer = io.BytesIO()
+    used_sheet_names = set()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        _sheet_payload_to_dataframe(payload.get('tong_hop') or {}).to_excel(
+            writer,
+            sheet_name=_safe_excel_sheet_name('Tong_hop_SHC_CTS_theo_to', used_sheet_names),
+            index=False,
+        )
+        for don_vi_name, sheet_payload in (payload.get('don_vi') or {}).items():
+            _sheet_payload_to_dataframe(sheet_payload).to_excel(
+                writer,
+                sheet_name=_safe_excel_sheet_name(f'Chi_tiet_{don_vi_name}', used_sheet_names),
+                index=False,
+            )
+        _sheet_payload_to_dataframe(payload.get('tien_do_xu_ly') or {}).to_excel(
+            writer,
+            sheet_name=_safe_excel_sheet_name('Tien_do_xu_ly_SHC_trong_ngay', used_sheet_names),
+            index=False,
+        )
+    buffer.seek(0)
+
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name='SHC_CTS_theo_ngay_T-1.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+def _parse_shc_cts_nvkt_detail_dir_date(dir_name):
+    prefix = f'{SHC_CTS_NVKT_DETAIL_PREFIX}-'
+    if not str(dir_name).startswith(prefix):
+        return None
+    date_text = str(dir_name)[len(prefix):]
+    try:
+        return datetime.strptime(date_text, '%d-%m-%Y').date()
+    except ValueError:
+        return None
+
+
+def _latest_shc_cts_nvkt_detail_dir():
+    if not os.path.isdir(SHC_CTS_NVKT_DETAIL_ROOT):
+        return None
+
+    candidates = []
+    for name in os.listdir(SHC_CTS_NVKT_DETAIL_ROOT):
+        path = os.path.join(SHC_CTS_NVKT_DETAIL_ROOT, name)
+        if not os.path.isdir(path):
+            continue
+        if name == SHC_CTS_NVKT_DETAIL_PREFIX or name.startswith(f'{SHC_CTS_NVKT_DETAIL_PREFIX}-'):
+            parsed_date = _parse_shc_cts_nvkt_detail_dir_date(name)
+            candidates.append((parsed_date is not None, parsed_date, os.path.getmtime(path), path))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda item: (item[0], item[1] or datetime.min.date(), item[2]), reverse=True)
+    return candidates[0][3]
+
+
+def _list_shc_cts_nvkt_detail_teams():
+    source_dir = _latest_shc_cts_nvkt_detail_dir()
+    if not source_dir:
+        return None, []
+
+    teams = []
+    for name in sorted(os.listdir(source_dir), key=lambda value: _normalize_text_key(value)):
+        path = os.path.join(source_dir, name)
+        if os.path.isdir(path):
+            teams.append({'key': name, 'label': name})
+    return source_dir, teams
+
+
+def _resolve_shc_cts_nvkt_detail_team(team):
+    source_dir = _latest_shc_cts_nvkt_detail_dir()
+    if not source_dir:
+        return None, None, 'Không tìm thấy thư mục chi tiết SHC NVKT K1'
+
+    team_name = str(team or '').strip()
+    if not team_name or os.path.basename(team_name) != team_name:
+        return None, None, 'Tổ không hợp lệ'
+
+    team_dir = os.path.abspath(os.path.join(source_dir, team_name))
+    source_abs = os.path.abspath(source_dir)
+    try:
+        if os.path.commonpath([team_dir, source_abs]) != source_abs:
+            return None, None, 'Đường dẫn tổ không hợp lệ'
+    except ValueError:
+        return None, None, 'Đường dẫn tổ không hợp lệ'
+
+    if not os.path.isdir(team_dir):
+        return None, None, 'Tổ không tồn tại'
+
+    return source_dir, team_dir, None
+
+
+def _list_shc_cts_nvkt_detail_files(team):
+    source_dir, team_dir, error = _resolve_shc_cts_nvkt_detail_team(team)
+    if error:
+        return source_dir, None, [], error
+
+    file_items = []
+    for file_name in sorted(os.listdir(team_dir), key=lambda value: _normalize_text_key(os.path.splitext(value)[0])):
+        file_path = os.path.join(team_dir, file_name)
+        if not os.path.isfile(file_path) or not file_name.lower().endswith(('.xlsx', '.xls')):
+            continue
+        file_items.append(
+            {
+                'name': file_name,
+                'display_name': os.path.splitext(file_name)[0],
+                'size': os.path.getsize(file_path),
+                'modified': build_file_info(file_path)['modified'],
+            }
+        )
+
+    return source_dir, team_dir, file_items, None
+
+
+def _resolve_shc_cts_nvkt_detail_file(team, filename):
+    source_dir, team_dir, error = _resolve_shc_cts_nvkt_detail_team(team)
+    if error:
+        return source_dir, None, None, error
+
+    normalized_filename = os.path.basename(filename)
+    if not normalized_filename or normalized_filename != filename:
+        return source_dir, team_dir, None, 'Tên file không hợp lệ'
+    if not normalized_filename.lower().endswith(('.xlsx', '.xls')):
+        return source_dir, team_dir, None, 'Định dạng file không được hỗ trợ'
+
+    file_path = os.path.abspath(os.path.join(team_dir, normalized_filename))
+    try:
+        if os.path.commonpath([file_path, team_dir]) != team_dir:
+            return source_dir, team_dir, None, 'Đường dẫn file không hợp lệ'
+    except ValueError:
+        return source_dir, team_dir, None, 'Đường dẫn file không hợp lệ'
+
+    if not os.path.isfile(file_path):
+        return source_dir, team_dir, None, 'File không tồn tại'
+
+    return source_dir, team_dir, file_path, None
+
+
 def _i15_k1_payload_from_tables():
     date_context = resolve_date_context(
         request.args.get('date'),
@@ -875,6 +1070,12 @@ def page_i15k2():
     return render_template('pages/i15k2.html', current_user=_current_user(), active_page='i15k2')
 
 
+@quality_bp.route('/shc-cts')
+@login_required
+def page_shc_cts():
+    return render_template('pages/shc_cts.html', current_user=_current_user(), active_page='shc_cts')
+
+
 @quality_bp.route('/shc-processing')
 @login_required
 def page_shc_processing():
@@ -897,6 +1098,17 @@ def download_excel_i15k2():
         return _build_i15_download_workbook_response(payload, 'I1.5_k2_report')
     except Exception as exc:
         return jsonify({'error': f'Lỗi khi kết xuất file I1.5 K2 từ SQLite: {exc}'}), 500
+
+
+@quality_bp.route('/download/excel-shc-cts')
+def download_excel_shc_cts():
+    try:
+        payload = _shc_cts_payload_from_excel()
+        return _build_shc_cts_download_workbook_response(payload)
+    except FileNotFoundError as exc:
+        return jsonify({'error': str(exc)}), 404
+    except Exception as exc:
+        return jsonify({'error': f'Lỗi khi kết xuất file SHC CTS từ Excel: {exc}'}), 500
 
 
 @quality_bp.route('/download/excel-chatluong/<file_type>')
@@ -1131,6 +1343,93 @@ def get_i15k2_data():
         return jsonify(data)
     except Exception as exc:
         return jsonify({'error': f'Lỗi khi đọc dữ liệu I1.5 K2 từ SQLite: {exc}'}), 500
+
+
+@quality_bp.route('/api/shc-cts-data')
+def get_shc_cts_data():
+    try:
+        return jsonify(_shc_cts_payload_from_excel())
+    except FileNotFoundError as exc:
+        return jsonify({'error': str(exc)}), 404
+    except Exception as exc:
+        return jsonify({'error': f'Lỗi khi đọc dữ liệu SHC CTS từ Excel: {exc}'}), 500
+
+
+@quality_bp.route('/api/shc-cts-nvkt-detail/options')
+@login_required
+def get_shc_cts_nvkt_detail_options():
+    source_dir, teams = _list_shc_cts_nvkt_detail_teams()
+    if not source_dir:
+        return jsonify({'error': 'Không tìm thấy thư mục chi tiết SHC NVKT K1'}), 404
+
+    return jsonify(
+        {
+            'source_dir': source_dir,
+            'source_name': os.path.basename(source_dir),
+            'teams': teams,
+        }
+    )
+
+
+@quality_bp.route('/api/shc-cts-nvkt-detail/files')
+@login_required
+def get_shc_cts_nvkt_detail_files():
+    team = request.args.get('team', '').strip()
+    source_dir, team_dir, files, error = _list_shc_cts_nvkt_detail_files(team)
+    if error:
+        status = 404 if error in {'Không tìm thấy thư mục chi tiết SHC NVKT K1', 'Tổ không tồn tại'} else 400
+        return jsonify({'error': error}), status
+
+    return jsonify(
+        {
+            'source_dir': source_dir,
+            'source_name': os.path.basename(source_dir),
+            'team': {'key': os.path.basename(team_dir), 'label': os.path.basename(team_dir)},
+            'files': files,
+        }
+    )
+
+
+@quality_bp.route('/api/shc-cts-nvkt-detail/preview')
+@login_required
+def preview_shc_cts_nvkt_detail_file():
+    team = request.args.get('team', '').strip()
+    filename = request.args.get('file_name', '').strip()
+    source_dir, team_dir, file_path, error = _resolve_shc_cts_nvkt_detail_file(team, filename)
+    if error:
+        status = 404 if error in {'Không tìm thấy thư mục chi tiết SHC NVKT K1', 'Tổ không tồn tại', 'File không tồn tại'} else 400
+        return jsonify({'error': error}), status
+
+    try:
+        payload = build_multi_sheet_payload(
+            file_path,
+            include_file_name=True,
+            include_sheet_errors=True,
+        )
+        payload['source_dir'] = source_dir
+        payload['source_name'] = os.path.basename(source_dir)
+        payload['team'] = {'key': os.path.basename(team_dir), 'label': os.path.basename(team_dir)}
+        payload['selected_file'] = os.path.basename(file_path)
+        return jsonify(payload)
+    except Exception as exc:
+        return jsonify({'error': f'Lỗi khi đọc file Excel chi tiết SHC CTS: {exc}'}), 500
+
+
+@quality_bp.route('/download/shc-cts-nvkt-detail/<team>/<path:filename>')
+@login_required
+def download_shc_cts_nvkt_detail_file(team, filename):
+    _, _, file_path, error = _resolve_shc_cts_nvkt_detail_file(team, filename)
+    if error:
+        status = 404 if error in {'Không tìm thấy thư mục chi tiết SHC NVKT K1', 'Tổ không tồn tại', 'File không tồn tại'} else 400
+        return jsonify({'error': error}), status
+
+    normalized_filename = os.path.basename(file_path)
+    return safe_file_response(
+        file_path,
+        as_attachment=True,
+        download_name=normalized_filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
 
 
 @quality_bp.route('/api/shc-variation-k2-data')

@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}SHC CTS - Tổng hợp theo ngày T-1{% endblock %}
+
+{% block extra_css %}
+<style>
+    .shc-cts-progress-chart-card {
+        background: linear-gradient(180deg, #ffffff 0%, #f7faf8 100%);
+        border: 1px solid #dce8df;
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(31, 76, 48, 0.08);
+        margin-bottom: 18px;
+        overflow: hidden;
+    }
+
+    .shc-cts-progress-chart-head {
+        align-items: flex-start;
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 18px 8px;
+    }
+
+    .shc-cts-progress-chart-title {
+        color: #173d2b;
+        font-size: 1rem;
+        font-weight: 700;
+    }
+
+    .shc-cts-progress-chart-subtitle {
+        color: #607568;
+        font-size: 0.84rem;
+        margin-top: 4px;
+    }
+
+    .shc-cts-progress-chart-legend {
+        color: #4c6254;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.82rem;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+
+    .shc-cts-progress-chart-dot {
+        border-radius: 999px;
+        display: inline-block;
+        height: 10px;
+        margin-right: 5px;
+        width: 10px;
+    }
+
+    .shc-cts-progress-chart-canvas {
+        height: 360px;
+        padding: 4px 14px 16px;
+    }
+
+    .shc-cts-progress-chart-canvas canvas {
+        height: 100% !important;
+        width: 100% !important;
+    }
+
+    @media (max-width: 768px) {
+        .shc-cts-progress-chart-head {
+            display: block;
+        }
+
+        .shc-cts-progress-chart-legend {
+            justify-content: flex-start;
+            margin-top: 8px;
+        }
+
+        .shc-cts-progress-chart-canvas {
+            height: 420px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="shc-cts-section">
+    <div class="dashboard-header">
+        <h2 class="dashboard-title">SHC CTS - Tổng hợp theo ngày T-1</h2>
+        <p class="dashboard-subtitle">Dữ liệu đọc từ file So_sanh_SHC_theo_ngay_T-1.xlsx</p>
+        <div class="breadcrumb">
+            <i class="fas fa-home"></i>
+            <span>Dashboard</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>SHC CTS</span>
+        </div>
+    </div>
+
+    <div class="excel-download-section" style="text-align: left; margin-bottom: 20px;">
+        <button class="download-btn" onclick="downloadExcelSHCCTS()">
+            <i class="fas fa-download"></i>
+            Tải về
+        </button>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-file-download"></i>
+            Tải file chi tiết suy hao cao theo cá nhân
+        </h3>
+        <div class="filter-row">
+            <div class="filter-group">
+                <label class="filter-label" for="shc-cts-detail-team">Tổ</label>
+                <select id="shc-cts-detail-team" class="filter-select"></select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label" for="shc-cts-detail-file">Cá nhân</label>
+                <select id="shc-cts-detail-file" class="filter-select"></select>
+            </div>
+        </div>
+        <div class="excel-download-section shc-detail-action-row" style="text-align: left; margin-bottom: 0;">
+            <button id="download-shc-cts-detail-btn" class="download-btn" type="button" disabled>
+                <i class="fas fa-download"></i>
+                Tải file đã chọn
+            </button>
+            <button id="preview-shc-cts-detail-btn" class="download-btn preview-btn" type="button" disabled>
+                <i class="fas fa-eye"></i>
+                Xem chi tiết
+            </button>
+        </div>
+        <div id="shc-cts-detail-status" style="margin-top: 10px; font-size: 13px; color: #495057;"></div>
+    </div>
+
+    <div class="section" id="shc-cts-detail-preview-section" style="display: none;">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Xem trực tiếp file chi tiết cá nhân
+        </h3>
+        <div id="shc-cts-detail-preview-meta" class="shc-detail-preview-meta"></div>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="shc-cts-detail-preview-tabs"></ul>
+            <div id="shc-cts-detail-preview-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-table"></i>
+            Bảng 1: Tổng hợp SHC CTS theo tổ
+        </h3>
+        <div id="shc-cts-summary-container">
+            <div class="loading">
+                <i class="fas fa-spinner"></i>
+                <br>Đang tải dữ liệu...
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-list-alt"></i>
+            Bảng 2: Tổng hợp SHC CTS các tổ
+        </h3>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="shc-cts-don-vi-tabs"></ul>
+            <div id="shc-cts-detail-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-tasks"></i>
+            Tiến độ xử lý shc trong ngày
+        </h3>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="shc-cts-progress-tabs"></ul>
+            <div id="shc-cts-progress-container">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/shc_cts.js') }}?v={{ range(10000, 99999) | random }}"></script>
+{% endblock %}

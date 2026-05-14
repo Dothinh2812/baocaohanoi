@@ -178,11 +178,19 @@
         </a>
         {% endif %}
 
+        {% if is_endpoint_enabled('quality.page_shc_cts') %}
+        <a href="{{ url_for('quality.page_shc_cts') }}" class="menu-item {% if active_page == 'shc_cts' %}active{% endif %}"
+            data-tooltip="Tổng hợp SHC CTS theo ngày T-1">
+            <i class="fas fa-table"></i>
+            <span>7.3 - SHC CTS</span>
+        </a>
+        {% endif %}
+
         {% if is_endpoint_enabled('auth.redirect_sh_portal') %}
         <a href="{{ url_for('auth.redirect_sh_portal') }}" class="menu-item" target="_blank" rel="noopener noreferrer"
             data-tooltip="Mở hệ thống SH theo username đang đăng nhập">
             <i class="fas fa-right-to-bracket"></i>
-            <span>7.3 - Cập nhật kết quả xử lý phiếu shc</span>
+            <span>7.4 - Cập nhật kết quả xử lý phiếu shc</span>
         </a>
         {% endif %}
 
@@ -190,7 +198,7 @@
         <a href="{{ url_for('quality.page_shc_processing') }}" class="menu-item {% if active_page == 'shc_processing' %}active{% endif %}"
             data-tooltip="Báo cáo kết quả xử lý SHC">
             <i class="fas fa-clipboard-check"></i>
-            <span>7.4 - Kết quả xử lý SHC</span>
+            <span>7.5 - Kết quả xử lý SHC</span>
         </a>
         {% endif %}
 

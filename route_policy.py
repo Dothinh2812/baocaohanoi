@@ -25,8 +25,10 @@ PAGE_ACTIVE_KEYS = {
     'quality.page_chatluong': 'chatluong',
     'quality.page_i15': 'i15',
     'quality.page_i15k2': 'i15k2',
+    'quality.page_shc_cts': 'shc_cts',
     'quality.page_shc_processing': 'shc_processing',
     'quangchudong.page_quangchudong': 'quangchudong',
+    'quangchudong.page_quangchudong_nvkt': 'quangchudong',
     'retention.page_giahan': 'giahan',
     'sa_outage.page_su_co_sa': 'su_co_sa',
 }

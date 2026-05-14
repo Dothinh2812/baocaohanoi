@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cảnh báo DOWN NVKT</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --bg: #f3f5f7;
+            --panel: #ffffff;
+            --text: #17202a;
+            --muted: #62707f;
+            --line: #d9e0e7;
+            --danger: #c62828;
+            --danger-soft: #fdecec;
+            --primary: #0f766e;
+            --primary-soft: #e7f6f4;
+            --shadow: 0 6px 18px rgba(23, 32, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 15px;
+            line-height: 1.35;
+        }
+
+        .page {
+            min-height: 100vh;
+            padding: 10px 10px 80px;
+        }
+
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+            margin: -10px -10px 10px;
+            padding: 10px;
+            background: rgba(243, 245, 247, 0.96);
+            border-bottom: 1px solid var(--line);
+            backdrop-filter: blur(8px);
+        }
+
+        .title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 18px;
+            line-height: 1.2;
+        }
+
+        .count-pill {
+            min-width: 42px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            background: var(--danger);
+            color: #fff;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .meta span {
+            padding: 3px 7px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--panel);
+        }
+
+        .status {
+            padding: 14px;
+            border-radius: 8px;
+            background: var(--panel);
+            color: var(--muted);
+            box-shadow: var(--shadow);
+        }
+
+        .list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .alert-card {
+            border: 1px solid var(--line);
+            border-left: 4px solid var(--danger);
+            border-radius: 8px;
+            background: var(--panel);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .card-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 8px;
+            padding: 9px 10px 7px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .ma-tb {
+            font-size: 16px;
+            font-weight: 700;
+            overflow-wrap: anywhere;
+        }
+
+        .duration {
+            align-self: start;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: var(--danger-soft);
+            color: var(--danger);
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .name {
+            grid-column: 1 / -1;
+            color: var(--muted);
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+        .card-body {
+            display: grid;
+            gap: 6px;
+            padding: 9px 10px 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .field {
+            min-width: 0;
+            padding: 7px;
+            border-radius: 6px;
+            background: #f8fafb;
+        }
+
+        .field.wide {
+            grid-column: 1 / -1;
+        }
+
+        .label {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .value {
+            display: block;
+            font-size: 13px;
+            overflow-wrap: anywhere;
+        }
+
+        .value.strong {
+            color: var(--danger);
+            font-weight: 700;
+        }
+
+        .phone-link {
+            color: var(--primary);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .phone-link:active,
+        .phone-link:focus {
+            text-decoration: underline;
+        }
+
+        .refresh {
+            position: fixed;
+            right: 14px;
+            bottom: 14px;
+            width: 52px;
+            height: 52px;
+            border: 0;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(15, 118, 110, 0.28);
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .refresh.loading {
+            background: #5f6f7d;
+        }
+
+        @media (min-width: 720px) {
+            .page {
+                max-width: 720px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page" data-nvkt-slug="{{ nvkt_slug }}">
+        <section class="topbar">
+            <div class="title-row">
+                <h1 id="page-title">Cảnh báo DOWN</h1>
+                <div class="count-pill" id="alert-count">-</div>
+            </div>
+            <div class="meta">
+                <span id="cutoff-label">Từ 06:00 hôm nay</span>
+                <span id="updated-label">Đang tải</span>
+            </div>
+        </section>
+
+        <section id="status" class="status">Đang tải dữ liệu...</section>
+        <section id="alert-list" class="list" aria-live="polite"></section>
+    </main>
+
+    <button class="refresh" id="refresh-btn" type="button" title="Làm mới">↻</button>
+
+    <script>
+        const NVKT_SLUG = {{ nvkt_slug | tojson }};
+        const API_URL = {{ url_for('quangchudong.get_nvkt_alerts', nvkt_slug=nvkt_slug) | tojson }};
+        const REFRESH_INTERVAL = 120000;
+        const EMPTY_TEXT = '-';
+
+        function text(value) {
+            if (value === null || value === undefined || value === '') return EMPTY_TEXT;
+            return String(value);
+        }
+
+        function escapeHtml(value) {
+            return text(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function formatDateTime(value) {
+            if (!value) return EMPTY_TEXT;
+            const date = new Date(String(value).replace(' ', 'T'));
+            if (Number.isNaN(date.getTime())) return text(value);
+            return date.toLocaleString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        }
+
+        function formatDuration(value) {
+            if (!value) return EMPTY_TEXT;
+            const start = new Date(String(value).replace(' ', 'T'));
+            if (Number.isNaN(start.getTime())) return EMPTY_TEXT;
+            const diff = Math.floor((Date.now() - start.getTime()) / 60000);
+            if (diff < 0) return EMPTY_TEXT;
+            if (diff < 60) return `${diff} phút`;
+            if (diff < 1440) return `${Math.floor(diff / 60)} giờ ${diff % 60} phút`;
+            return `${Math.floor(diff / 1440)} ngày ${Math.floor((diff % 1440) / 60)} giờ`;
+        }
+
+        function formatPhoneHref(value) {
+            const raw = text(value);
+            if (raw === EMPTY_TEXT) return '';
+            const normalized = raw.replace(/[^\d+]/g, '');
+            if (!normalized || normalized === '+') return '';
+            return normalized;
+        }
+
+        function renderPhone(value) {
+            const href = formatPhoneHref(value);
+            if (!href) return `<span class="value">${escapeHtml(value)}</span>`;
+            return `<a class="value phone-link" href="tel:${escapeHtml(href)}">${escapeHtml(value)}</a>`;
+        }
+
+        function renderCard(row) {
+            const downTime = row.first_off_time || row.alert_time || '';
+            return `
+                <article class="alert-card">
+                    <div class="card-head">
+                        <div class="ma-tb">${escapeHtml(row.ma_tb)}</div>
+                        <div class="duration">${escapeHtml(formatDuration(downTime))}</div>
+                        <div class="name">${escapeHtml(row.ten_tb)}</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-grid">
+                            <div class="field">
+                                <span class="label">SĐT</span>
+                                ${renderPhone(row.dienthoai_lh)}
+                            </div>
+                            <div class="field">
+                                <span class="label">SA</span>
+                                <span class="value">${escapeHtml(row.sa)}</span>
+                            </div>
+                            <div class="field wide">
+                                <span class="label">Địa chỉ</span>
+                                <span class="value">${escapeHtml(row.diachi_ld)}</span>
+                            </div>
+                            <div class="field wide">
+                                <span class="label">OLT</span>
+                                <span class="value">${escapeHtml(row.olt_name)}</span>
+                            </div>
+                            <div class="field">
+                                <span class="label">Thời gian DOWN</span>
+                                <span class="value strong">${escapeHtml(formatDateTime(downTime))}</span>
+                            </div>
+                            <div class="field">
+                                <span class="label">Phiếu BH lúc</span>
+                                <span class="value">${escapeHtml(row.ngay_bh)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        async function loadAlerts() {
+            const status = document.getElementById('status');
+            const list = document.getElementById('alert-list');
+            const refreshBtn = document.getElementById('refresh-btn');
+            refreshBtn.classList.add('loading');
+
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const payload = await response.json();
+                const alerts = payload.alerts || [];
+
+                document.getElementById('page-title').textContent =
+                    payload.nvkt_name ? `DOWN - ${payload.nvkt_name}` : `DOWN - ${NVKT_SLUG}`;
+                document.getElementById('alert-count').textContent = payload.count ?? alerts.length;
+                document.getElementById('cutoff-label').textContent = `Từ ${formatDateTime(payload.cutoff_time)}`;
+                document.getElementById('updated-label').textContent =
+                    payload.cache && payload.cache.refreshed_at ? `Cập nhật ${payload.cache.refreshed_at}` : 'Đã tải';
+
+                if (alerts.length === 0) {
+                    status.style.display = '';
+                    status.textContent = 'Không có cảnh báo DOWN từ 06:00 hôm nay cho nhân viên này.';
+                    list.innerHTML = '';
+                    return;
+                }
+
+                status.style.display = 'none';
+                list.innerHTML = alerts.map(renderCard).join('');
+            } catch (error) {
+                status.style.display = '';
+                status.textContent = 'Không thể tải dữ liệu cảnh báo. Vui lòng thử lại.';
+                list.innerHTML = '';
+            } finally {
+                refreshBtn.classList.remove('loading');
+            }
+        }
+
+        document.getElementById('refresh-btn').addEventListener('click', loadAlerts);
+        loadAlerts();
+        setInterval(loadAlerts, REFRESH_INTERVAL);
+    </script>
+</body>
+
+</html>
