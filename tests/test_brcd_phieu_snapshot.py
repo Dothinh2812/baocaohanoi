@@ -185,3 +185,36 @@ def test_sync_updates_field_changes(tmp_path, monkeypatch):
     ).fetchone()[0]
     conn.close()
     assert nvkt == 'NV_NEW'
+
+
+# ---------------------------------------------------------------------------
+# Task 2: on-load sync
+# ---------------------------------------------------------------------------
+
+
+def test_load_brcd_kiemsoat_df_triggers_sync(tmp_path, monkeypatch):
+    """Khi detail endpoint load, brcd_phieu tự sync từ Excel."""
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    _write_fake_brcd_detail(tmp_path, monkeypatch, _detail_rows())
+
+    # Trước khi gọi endpoint: brcd_phieu rỗng
+    conn = sqlite3.connect(db_path)
+    assert conn.execute('SELECT COUNT(*) FROM brcd_phieu').fetchone()[0] == 0
+    conn.close()
+
+    response = _logged_in_client().get('/api/brcd-kiemsoat/detail')
+
+    assert response.status_code == 200
+    conn = sqlite3.connect(db_path)
+    assert conn.execute('SELECT COUNT(*) FROM brcd_phieu').fetchone()[0] == 2
+    conn.close()
+
+
+def test_load_brcd_kiemsoat_df_does_not_crash_when_excel_missing(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    monkeypatch.setattr(operations_routes, 'BRCD_DETAIL_MAIN_FILE',
+                        str(tmp_path / 'khong_co.xlsx'))
+
+    # Detail endpoint trả 404 (Excel thiếu) — không crash
+    response = _logged_in_client().get('/api/brcd-kiemsoat/detail')
+    assert response.status_code == 404

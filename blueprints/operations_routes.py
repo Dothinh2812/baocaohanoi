@@ -845,6 +845,11 @@ def _load_brcd_kiemsoat_df():
     if not os.path.exists(BRCD_DETAIL_MAIN_FILE):
         return None
     _ensure_brcd_kiemsoat_schema()
+    # Snapshot Vũ trụ tổng hiện tại vào brcd_phieu (best-effort, không raise).
+    try:
+        _sync_brcd_phieu_to_db()
+    except Exception:
+        app.logger.warning('brcd_phieu sync thất bại trong _load', exc_info=True)
 
     all_sheets = pd.ExcelFile(BRCD_DETAIL_MAIN_FILE).sheet_names
     team_sheets = [s for s in all_sheets if s.startswith('ToKT_') and not s.endswith('_rut_gon')]
