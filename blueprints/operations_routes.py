@@ -235,7 +235,7 @@ def _phieu_row_to_params(row, sheet, now_iso):
         _val('giờ còn lại thực'),
         _val('SA'),
         sheet,
-        now_iso,  # first_seen (chỉ tác dụng khi INSERT; UPSORT bỏ qua trên UPDATE)
+        now_iso,  # first_seen (chỉ tác dụng khi INSERT; UPSERT bỏ qua trên UPDATE)
         now_iso,  # last_seen (luôn update)
     )
 

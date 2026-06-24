@@ -1,8 +1,5 @@
-import io
-import os
 import sqlite3
 import sys
-from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
