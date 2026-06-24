@@ -482,7 +482,7 @@ function renderPttbKiemSoatDetail(data) {
                 ${cells}
                 <td class="pttb-ks-cell">
                     <textarea class="pttb-ks-input" rows="2" data-ma_tb="${maTb}"
-                        data-loai="${row.loaihinh_tb || ''}" data-doi="${row.DOI_VT || ''}" data-nvtt="${row.nhanvien_tiepthi || ''}">${noiDung}</textarea>
+                        data-loai="${row.loaihinh_tb || ''}" data-doi="${row.doi_vt || ''}" data-nvtt="${row.nhanvien_tiepthi || ''}">${noiDung}</textarea>
                     <button class="pttb-ks-save-btn" onclick="savePttbKiemSoat('${maTb}')">Lưu</button>
                     <span class="pttb-ks-status" id="pttb-ks-status-${maTb}">${_buildPttbKsBadge(row)}</span>
                 </td>
