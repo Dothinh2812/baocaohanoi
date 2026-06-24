@@ -3,7 +3,7 @@ import os
 import re
 import sqlite3
 import unicodedata
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from threading import Lock
 
 import pandas as pd
@@ -849,7 +849,7 @@ def _load_brcd_kiemsoat_df():
     try:
         _sync_brcd_phieu_to_db()
     except Exception:
-        app.logger.warning('brcd_phieu sync thất bại trong _load', exc_info=True)
+        current_app.logger.warning('brcd_phieu sync thất bại trong _load', exc_info=True)
 
     all_sheets = pd.ExcelFile(BRCD_DETAIL_MAIN_FILE).sheet_names
     team_sheets = [s for s in all_sheets if s.startswith('ToKT_') and not s.endswith('_rut_gon')]
@@ -924,8 +924,6 @@ def _compute_lich_su(filtered_df, args):
     "Rời tồn" = có trong brcd_phieu (trong khoảng) nhưng KHÔNG có trong
     current universe (filtered_df). Filter doi/loaihinh áp dụng cho snapshot.
     """
-    from datetime import date, timedelta
-
     khoang = (args.get('khoang') or 'thang_nay').strip()
     today = date.today()
     if khoang == 'tuan_nay':
@@ -966,14 +964,17 @@ def _compute_lich_su(filtered_df, args):
 
         ks_ids = set()
         if snap_ids:
-            placeholders = ', '.join('?' for _ in snap_ids)
-            ks_rows = conn.execute(
-                f"SELECT baohong_id FROM brcd_kiemsoat "
-                f"WHERE baohong_id IN ({placeholders}) "
-                f"AND COALESCE(noi_dung_kiem_soat, '') != ''",
-                list(snap_ids),
-            ).fetchall()
-            ks_ids = {r['baohong_id'] for r in ks_rows}
+            snap_list = list(snap_ids)
+            for i in range(0, len(snap_list), 500):
+                batch = snap_list[i:i+500]
+                placeholders = ', '.join('?' for _ in batch)
+                ks_rows = conn.execute(
+                    f"SELECT baohong_id FROM brcd_kiemsoat "
+                    f"WHERE baohong_id IN ({placeholders}) "
+                    f"AND COALESCE(noi_dung_kiem_soat, '') != ''",
+                    batch,
+                ).fetchall()
+                ks_ids.update(r['baohong_id'] for r in ks_rows)
 
     roi_ids = snap_ids - current_ids
     roi_da_ks = len(roi_ids & ks_ids)
