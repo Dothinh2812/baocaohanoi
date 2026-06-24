@@ -366,3 +366,30 @@ def test_thongke_lich_su_filter_doi_applies(tmp_path, monkeypatch):
     response2 = _logged_in_client().get('/api/brcd-kiemsoat/thongke?doi=ToKT_PhucTho')
     ls2 = response2.get_json()['lich_su']
     assert ls2['roi_da_ks'] + ls2['roi_chua_ks'] == 0
+
+
+# ---------------------------------------------------------------------------
+# Task 5: UI
+# ---------------------------------------------------------------------------
+
+
+def test_brcd_page_has_khoang_dropdown_and_lich_su_cards():
+    response = _logged_in_client().get('/brcd')
+
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+    # Dropdown khoảng thời gian
+    assert 'id="kiemsoat-filter-khoang"' in html
+    assert 'value="thang_nay"' in html
+    assert 'value="tuan_nay"' in html
+    assert 'value="nam_nay"' in html
+    assert 'value="tat_ca"' in html
+
+    # JS render 2 thẻ mới
+    brcd_js = Path(__file__).resolve().parents[1].joinpath(
+        'static', 'js', 'pages', 'brcd.js').read_text('utf-8')
+    assert 'roi_da_ks' in brcd_js
+    assert 'roi_chua_ks' in brcd_js
+    assert 'Rời tồn' in brcd_js
+    # _kiemSoatQuery gửi param khoang
+    assert "'khoang'" in brcd_js or '"khoang"' in brcd_js

@@ -387,9 +387,11 @@ function _kiemSoatQuery() {
     const nhom = document.getElementById('kiemsoat-filter-nhom');
     const trangthai = document.getElementById('kiemsoat-filter-trangthai');
     const doi = document.getElementById('kiemsoat-filter-doi');
+    const khoang = document.getElementById('kiemsoat-filter-khoang');
     if (nhom && nhom.value) params.set('nhom', nhom.value);
     if (trangthai && trangthai.value) params.set('trangthai', trangthai.value);
     if (doi && doi.value) params.set('doi', doi.value);
+    if (khoang && khoang.value) params.set('khoang', khoang.value);
     return params.toString();
 }
 
@@ -409,6 +411,7 @@ async function loadKiemSoatThongKe() {
 function renderKiemSoatStats(data, statsEl, byDoiEl) {
     if (!statsEl) return;
     const s = data.summary || {};
+    const ls = data.lich_su || {};
     const card = (num, label, cls) => `<div class="ks-card ${cls || ''}"><div class="ks-num">${num}</div><div class="ks-label">${label}</div></div>`;
     statsEl.innerHTML = `
         <div class="kiemsoat-stats-cards">
@@ -416,6 +419,8 @@ function renderKiemSoatStats(data, statsEl, byDoiEl) {
             ${card(s.da_kiem_soat ?? 0, 'Đã kiểm soát', 'ks-da-card')}
             ${card(s.chua ?? 0, 'Chưa kiểm soát', 'ks-chua-card')}
             ${card((s.ty_le ?? 0) + '%', 'Tỉ lệ', 'ks-ty-le')}
+            ${card(ls.roi_da_ks ?? 0, 'Rời tồn đã KS', 'ks-roi-da')}
+            ${card(ls.roi_chua_ks ?? 0, 'Rời tồn chưa KS', 'ks-roi-chua')}
         </div>`;
 
     if (byDoiEl) {

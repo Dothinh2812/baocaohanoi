@@ -29,6 +29,8 @@
     .ks-badge.ks-chua { background: #fdece3; color: #b3411b; }
     .kiemsoat-filters label { font-size: 0.85rem; color: #3a4a5e; }
     .kiemsoat-filters select { padding: 4px 8px; border: 1px solid #c4d0e0; border-radius: 4px; }
+    .ks-card.ks-roi-da { background: #e8f5e9; border-left: 4px solid #2e7d32; }
+    .ks-card.ks-roi-chua { background: #ffebee; border-left: 4px solid #c62828; }
 </style>
 <!-- BRCD Section (Điều hành sửa chữa) -->
 <div id="brcd-section">
@@ -93,6 +95,14 @@
             <label>Đội:
                 <select id="kiemsoat-filter-doi" onchange="reloadKiemSoatThongKe()">
                     <option value="">Tất cả</option>
+                </select>
+            </label>
+            <label>Khoảng thời gian (lịch sử):
+                <select id="kiemsoat-filter-khoang" onchange="reloadKiemSoatThongKe()">
+                    <option value="tuan_nay">Tuần này</option>
+                    <option value="thang_nay" selected>Tháng này</option>
+                    <option value="nam_nay">Năm nay</option>
+                    <option value="tat_ca">Tất cả</option>
                 </select>
             </label>
             <button class="download-btn" onclick="exportBrcdKiemSoat()">
