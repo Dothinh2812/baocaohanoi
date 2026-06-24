@@ -119,6 +119,38 @@ const API = {
     },
 
     /**
+     * Get PTTB kiem soat detail (join annotation, full ToKT_ sheets)
+     */
+    getPttbKiemSoatDetail(query = '') {
+        const suffix = query ? `?${query}` : '';
+        return this.fetchData(`/api/pttb-kiemsoat/detail${suffix}`);
+    },
+
+    /**
+     * Get PTTB kiem soat thong ke (filter + aggregate)
+     */
+    getPttbKiemSoatThongKe(query = '') {
+        const suffix = query ? `?${query}` : '';
+        return this.fetchData(`/api/pttb-kiemsoat/thongke${suffix}`);
+    },
+
+    /**
+     * Save PTTB kiem soat note (POST JSON)
+     */
+    async savePttbKiemSoat(payload) {
+        const response = await fetch('/api/pttb-kiemsoat/luu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (response.status === 401) {
+            window.location.href = '/login';
+            throw new Error('Phiên đăng nhập đã hết hạn');
+        }
+        return response.json();
+    },
+
+    /**
      * Get auto-configuration detail data for TTVT Son Tay
      */
     getCauHinhTuDongSonTay() {

@@ -17,7 +17,9 @@ async function initPTTBPage() {
         loadPTTBSummaryData(),
         loadPTTBDetailData(),
         loadPTTBPendingData(),
-        loadPTTBChitietToData()
+        loadPTTBChitietToData(),
+        loadPttbKiemSoatThongKe(),
+        loadPttbKiemSoatDetail(),
     ]);
 
     // Initialize detail tabs after data is loaded
@@ -364,3 +366,205 @@ function initPTTBChitietToTabs() {
         });
     });
 }
+
+/* ========================================
+   KIỂM SOÁT TỔ TRƯỞNG PTTB
+   - Inline edit nội dung kiểm soát / phiếu
+   - Thống kê đã/chưa + thời điểm nhập
+   ======================================== */
+
+const PTTB_KS_DISPLAY_COLS = [
+    'ma_thue_bao', 'ten_thuebao', 'diachi_lapdat', 'loaihinh_tb',
+    'nhanvien_tiepthi', 'doi_vt', 'ten_kv', 'ngayhen_den',
+    'noidung_hen', 'chitieu_tg', 'gio_conlai', 'trang_thai',
+];
+const PTTB_KS_DISPLAY_LABELS = {
+    'ma_thue_bao': 'Mã TB', 'ten_thuebao': 'Khách hàng', 'diachi_lapdat': 'Địa chỉ',
+    'loaihinh_tb': 'Loại', 'nhanvien_tiepthi': 'NVTT', 'doi_vt': 'Tổ',
+    'ten_kv': 'Khu vực', 'ngayhen_den': 'Ngày hẹn', 'noidung_hen': 'Nội dung hẹn',
+    'chitieu_tg': 'Chỉ tiêu', 'gio_conlai': 'Giờ còn lại', 'trang_thai': 'Trạng thái',
+};
+const PTTB_KS_COL_WIDTHS = {
+    'ma_thue_bao': '7%', 'ten_thuebao': '10%', 'diachi_lapdat': '12%',
+    'loaihinh_tb': '6%', 'nhanvien_tiepthi': '7%', 'doi_vt': '7%',
+    'ten_kv': '7%', 'ngayhen_den': '8%', 'noidung_hen': '10%',
+    'chitieu_tg': '5%', 'gio_conlai': '6%', 'trang_thai': '7%',
+};
+
+function _formatPttbKsThoiDiem(value) {
+    if (!value) return '';
+    const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
+    if (!m) return value;
+    return `${m[4]}:${m[5]} ${m[3]}/${m[2]}`;
+}
+
+function _buildPttbKsBadge(row) {
+    if (row.kiemsoat_da_nhap) {
+        const when = _formatPttbKsThoiDiem(row.kiemsoat_thoi_diem);
+        const who = row.kiemsoat_nguoi_nhap || '';
+        return `<span class="pttb-ks-badge pttb-ks-da">Đã kiểm soát${when ? ' ' + when : ''}${who ? ' &mdash; ' + who : ''}</span>`;
+    }
+    return `<span class="pttb-ks-badge pttb-ks-chua">Chưa</span>`;
+}
+
+function _pttbKiemSoatQuery() {
+    const params = new URLSearchParams();
+    const nhom = document.getElementById('pttb-kiemsoat-filter-nhom');
+    const trangthai = document.getElementById('pttb-kiemsoat-filter-trangthai');
+    const to = document.getElementById('pttb-kiemsoat-filter-to');
+    const khoang = document.getElementById('pttb-kiemsoat-filter-khoang');
+    if (nhom && nhom.value) params.set('nhom', nhom.value);
+    if (trangthai && trangthai.value) params.set('trangthai', trangthai.value);
+    if (to && to.value) params.set('doi', to.value);
+    if (khoang && khoang.value) params.set('khoang', khoang.value);
+    return params.toString();
+}
+
+async function loadPttbKiemSoatDetail() {
+    try {
+        const data = await API.getPttbKiemSoatDetail();
+        renderPttbKiemSoatDetail(data);
+    } catch (error) {
+        const container = document.getElementById('pttb-kiemsoat-chitiet-container');
+        if (container) container.innerHTML = '<p>Không thể tải dữ liệu kiểm soát PTTB.</p>';
+    }
+}
+
+function renderPttbKiemSoatDetail(data) {
+    const container = document.getElementById('pttb-kiemsoat-chitiet-container');
+    if (!container) return;
+    if (!data || !data.sheets) {
+        container.innerHTML = '<p>Không có dữ liệu phiếu tồn.</p>';
+        return;
+    }
+
+    const teamNames = Object.keys(data.sheets);
+    const toSelect = document.getElementById('pttb-kiemsoat-filter-to');
+    if (toSelect) {
+        const current = toSelect.value;
+        const displayNameMap = { 'PhucTho': 'Phúc Thọ', 'SonTay': 'Sơn Tây', 'QuangOai': 'Quảng Oai', 'SuoiHai': 'Suối Hai' };
+        toSelect.innerHTML = '<option value="">Tất cả</option>' +
+            teamNames.map(t => {
+                const m = t.match(/ToKT_(\w+?)(?:_rut_gon)?$/);
+                const key = m ? m[1] : t;
+                const display = displayNameMap[key] || key;
+                return `<option value="${t}">${display}</option>`;
+            }).join('');
+        if (current && teamNames.includes(current)) toSelect.value = current;
+    }
+
+    let allRows = [];
+    teamNames.forEach(name => {
+        const sheet = data.sheets[name];
+        if (sheet && sheet.data) {
+            allRows = allRows.concat(sheet.data);
+        }
+    });
+
+    if (!allRows.length) {
+        container.innerHTML = '<p>Không có phiếu tồn.</p>';
+        return;
+    }
+
+    const colgroup = '<colgroup>' +
+        PTTB_KS_DISPLAY_COLS.map(c => `<col style="width:${PTTB_KS_COL_WIDTHS[c] || 'auto'}">`).join('') +
+        '<col style="width:18%">' +
+        '</colgroup>';
+
+    const headers = PTTB_KS_DISPLAY_COLS.map(c => `<th>${PTTB_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
+    const body = allRows.map(row => {
+        const cells = PTTB_KS_DISPLAY_COLS.map(c => `<td>${row[c] != null ? row[c] : ''}</td>`).join('');
+        const maTb = row.ma_thue_bao;
+        const noiDung = (row.kiemsoat_noi_dung || '').toString()
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `
+            <tr>
+                ${cells}
+                <td class="pttb-ks-cell">
+                    <textarea class="pttb-ks-input" rows="2" data-ma_tb="${maTb}"
+                        data-loai="${row.loaihinh_tb || ''}" data-doi="${row.DOI_VT || ''}" data-nvtt="${row.nhanvien_tiepthi || ''}">${noiDung}</textarea>
+                    <button class="pttb-ks-save-btn" onclick="savePttbKiemSoat('${maTb}')">Lưu</button>
+                    <span class="pttb-ks-status" id="pttb-ks-status-${maTb}">${_buildPttbKsBadge(row)}</span>
+                </td>
+            </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="excel-table-card">
+            <div class="excel-table-body" style="max-height:600px;overflow:auto;">
+                <table class="excel-table pttb-ks-detail-table">
+                    ${colgroup}
+                    <thead><tr>${headers}<th>Nội dung kiểm soát</th></tr></thead>
+                    <tbody>${body}</tbody>
+                </table>
+            </div>
+        </div>`;
+}
+
+async function savePttbKiemSoat(maTb) {
+    const textarea = document.querySelector(`.pttb-ks-input[data-ma_tb="${maTb}"]`);
+    if (!textarea) return;
+    const statusEl = document.getElementById(`pttb-ks-status-${maTb}`);
+    try {
+        const result = await API.savePttbKiemSoat({
+            ma_thue_bao: maTb,
+            loaihinh_tb: textarea.dataset.loai,
+            doi_vt: textarea.dataset.doi,
+            nhanvien_tiepthi: textarea.dataset.nvtt,
+            noi_dung: textarea.value,
+        });
+        if (!result || result.ok === false) {
+            throw new Error((result && result.error) || 'Lỗi không xác định');
+        }
+        if (statusEl) {
+            const fakeRow = {
+                kiemsoat_da_nhap: !!result.noi_dung,
+                kiemsoat_thoi_diem: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                kiemsoat_nguoi_nhap: result.nguoi_nhap,
+            };
+            statusEl.innerHTML = _buildPttbKsBadge(fakeRow);
+        }
+        await loadPttbKiemSoatThongKe();
+    } catch (error) {
+        alert('Không lưu được: ' + error.message);
+    }
+}
+window.savePttbKiemSoat = savePttbKiemSoat;
+
+async function loadPttbKiemSoatThongKe() {
+    const statsEl = document.getElementById('pttb-kiemsoat-stats');
+    try {
+        const data = await API.getPttbKiemSoatThongKe(_pttbKiemSoatQuery());
+        renderPttbKiemSoatStats(data, statsEl);
+    } catch (error) {
+        if (statsEl) statsEl.innerHTML = '<p class="error">Không tải được thống kê.</p>';
+    }
+}
+
+function renderPttbKiemSoatStats(data, statsEl) {
+    if (!statsEl) return;
+    const s = data.summary || {};
+    const ls = data.lich_su || {};
+    const card = (num, label, cls) => `<div class="pttb-ks-card ${cls || ''}"><div class="pttb-ks-num">${num}</div><div class="pttb-ks-label">${label}</div></div>`;
+    statsEl.innerHTML = `
+        <div class="pttb-ks-cards">
+            ${card(s.total ?? 0, 'Tổng tồn', 'pttb-ks-total')}
+            ${card(s.da_kiem_soat ?? 0, 'Đã KS', 'pttb-ks-da-card')}
+            ${card(s.chua ?? 0, 'Chưa KS', 'pttb-ks-chua-card')}
+            ${card((s.ty_le ?? 0) + '%', 'Tỉ lệ', 'pttb-ks-ty-le')}
+            ${card(ls.roi_da_ks ?? 0, 'Rời tồn đã KS', 'pttb-ks-roi-da')}
+            ${card(ls.roi_chua_ks ?? 0, 'Rời tồn chưa KS', 'pttb-ks-roi-chua')}
+        </div>`;
+}
+
+async function reloadPttbKiemSoatThongKe() {
+    await loadPttbKiemSoatThongKe();
+    await loadPttbKiemSoatDetail();
+}
+window.reloadPttbKiemSoatThongKe = reloadPttbKiemSoatThongKe;
+
+function exportPttbKiemSoat() {
+    const q = _pttbKiemSoatQuery();
+    window.location.href = '/download/pttb-kiemsoat-report' + (q ? '?' + q : '');
+}
+window.exportPttbKiemSoat = exportPttbKiemSoat;

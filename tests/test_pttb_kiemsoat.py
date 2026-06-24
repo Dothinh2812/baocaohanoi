@@ -382,3 +382,50 @@ def test_pttb_report_download_returns_404_when_excel_missing(tmp_path, monkeypat
 
     response = _logged_in_client().get('/download/pttb-kiemsoat-report')
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Task 5: Cron script
+# ---------------------------------------------------------------------------
+
+
+def test_sync_pttb_script_runs(tmp_path, monkeypatch):
+    import subprocess, os
+    db_path = tmp_path / 'brcd_kiemsoat.db'
+    excel_path = tmp_path / 'baoCaoPTTB.xlsx'
+    df = pd.DataFrame(_pttb_rows(), columns=_PTTB_COLUMNS)
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='ToKT_SonTay', index=False)
+
+    wrapper = tmp_path / 'run_sync.py'
+    wrapper.write_text(f'''
+import sys
+sys.path.insert(0, {repr(str(Path(__file__).resolve().parents[1]))})
+import runtime_limits
+from blueprints import operations_routes
+operations_routes.PTTB_SUMMARY_FILE = {repr(str(excel_path))}
+operations_routes._brcd_kiemsoat_schema_ready_path = None
+result = operations_routes._sync_pttb_phieu_to_db()
+print(result)
+''')
+    env = {**os.environ, 'DASHV4_BRCD_KIEMSOAT_DB_PATH': str(db_path)}
+    completed = subprocess.run(['python3', str(wrapper)], env=env,
+                               capture_output=True, text=True, timeout=30)
+    assert completed.returncode == 0, completed.stderr
+    assert "'synced': 2" in completed.stdout
+
+
+# ---------------------------------------------------------------------------
+# Task 6: UI — HTML section + JS handlers
+# ---------------------------------------------------------------------------
+
+
+def test_pttb_page_has_kiemsoat_section():
+    response = _logged_in_client().get('/pttb')
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+    assert 'id="pttb-kiemsoat-section"' in html
+    assert 'id="pttb-kiemsoat-filter-khoang"' in html
+    brcd_js = Path(__file__).resolve().parents[1].joinpath(
+        'static', 'js', 'pages', 'pttb.js').read_text('utf-8')
+    assert 'pttb_kiemsoat' in brcd_js or 'pttb-kiemsoat' in brcd_js
