@@ -1,3 +1,4 @@
+import os
 import sqlite3
 import sys
 from pathlib import Path
@@ -218,3 +219,52 @@ def test_load_brcd_kiemsoat_df_does_not_crash_when_excel_missing(tmp_path, monke
     # Detail endpoint trả 404 (Excel thiếu) — không crash
     response = _logged_in_client().get('/api/brcd-kiemsoat/detail')
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Task 3: cron script
+# ---------------------------------------------------------------------------
+
+
+def test_sync_script_runs_via_subprocess(tmp_path, monkeypatch):
+    """Script scripts/sync_brcd_phieu.py chạy được với env DASHV4_*."""
+    import subprocess
+
+    db_path = tmp_path / 'brcd_kiemsoat.db'
+    excel_path = tmp_path / 'chiTietBrcd5Doi.xlsx'
+
+    df = pd.DataFrame(_detail_rows(), columns=_DETAIL_COLUMNS)
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='ToKT_SonTay', index=False)
+
+    env = {
+        **os.environ,
+        'DASHV4_BRCD_KIEMSOAT_DB_PATH': str(db_path),
+    }
+    wrapper = tmp_path / 'run_sync.py'
+    wrapper.write_text(f'''
+import sys
+sys.path.insert(0, {repr(str(Path(__file__).resolve().parents[1]))})
+import runtime_limits
+from blueprints import operations_routes
+operations_routes.BRCD_DETAIL_MAIN_FILE = {repr(str(excel_path))}
+operations_routes.BRCD_KIEMSOAT_DB_PATH = {repr(str(db_path))}
+operations_routes._brcd_kiemsoat_schema_ready_path = None
+result = operations_routes._sync_brcd_phieu_to_db()
+print(result)
+''')
+
+    completed = subprocess.run(
+        ['python3', str(wrapper)],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "'synced': 2" in completed.stdout
+
+    conn = sqlite3.connect(db_path)
+    assert conn.execute('SELECT COUNT(*) FROM brcd_phieu').fetchone()[0] == 2
+    conn.close()
