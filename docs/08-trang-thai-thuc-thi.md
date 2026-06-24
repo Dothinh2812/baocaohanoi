@@ -132,6 +132,33 @@ Page HTML đã bật filter ngày tương ứng:
       >> /home/vtst/dashv4/logs/brcd_phieu_sync.log 2>&1
   ```
 
+## 7. Kiểm soát tổ trưởng tại `/pttb`
+
+Đã thêm lớp "kiểm soát tổ trưởng" cho phiếu tồn PTTB (mã `ma_thue_bao`):
+
+- tổ trưởng nhập "nội dung kiểm soát" (1 ô tự do) trực tiếp trên bảng chi tiết phiếu tồn PTTB
+- dữ liệu lưu trong SQLite per-instance `INSTANCE_RUNTIME_DIR/brcd_kiemsoat.db` (cùng DB với BRCD kiêm soát), bảng `pttb_kiemsoat`
+- tồn live vẫn đọc Excel read-only từ `1bss` (`baoCaoPTTB.xlsx`); annotation lưu riêng (write-aside) để không bị `1bss` refresh ghi đè
+- endpoint mới:
+  - `POST /api/pttb-kiemsoat/luu` (upsert theo `ma_thue_bao`; xóa khi nội dung rỗng; ghi `nguoi_nhap` từ session)
+  - `GET /api/pttb-kiemsoat/detail` (sheet `ToKT_<to>` + JOIN annotation)
+  - `GET /api/pttb-kiemsoat/thongke` (lọc theo quá giờ / trạng thái / tổ; trả summary + by_doi + by_nvkt + chi_tiet + lich_su)
+  - `GET /download/pttb-kiemsoat-report` (xuất Excel theo bộ lọc hiện hành)
+- không thuộc `report_history.db` nên không áp dụng date-contract của tài liệu 09
+
+### 7.1. Snapshot lịch sử phiếu PTTB (`pttb_phieu`)
+
+- **Mục đích:** Tra cứu phiếu PTTB đã rời tồn; đánh giá kiểm soát tổ trưởng trên phiếu đã xử lý xong.
+- **Cơ chế:** Upsert Vũ trụ tổng (Excel) vào bảng `pttb_phieu` mỗi lần load `/pttb` + mỗi giờ qua cron `scripts/sync_pttb_phieu.py`.
+- **Schema:** 1 dòng mỗi `ma_thue_bao`. `first_seen` giữ nguyên qua sync, `last_seen` update mỗi lần. Phiếu rời tồn → dòng giữ lại với `last_seen` cũ.
+- **Metric mới trong `/api/pttb-kiemsoat/thongke`:** section `lich_su` với `roi_da_ks` (rời tồn + đã KS) và `roi_chua_ks` (rời tồn + chưa KS). Filter `khoang` ∈ tuan_nay/thang_nay/nam_nay/tat_ca.
+- **Cron setup (per-instance):**
+  ```
+  0 * * * * DASHV4_UNIT_CODE=<unit> /home/vtst/dashv4/venv/bin/python3 \
+      /home/vtst/dashv4/scripts/sync_pttb_phieu.py \
+      >> /home/vtst/dashv4/logs/pttb_phieu_sync.log 2>&1
+  ```
+
 ## 5. Route chưa hỗ trợ đã bị chặn ở mức page/API
 
 Đã thêm page chung:
