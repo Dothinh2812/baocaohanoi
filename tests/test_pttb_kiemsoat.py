@@ -200,3 +200,185 @@ def test_pttb_kiemsoat_luu_empty_deletes(tmp_path, monkeypatch):
     ).fetchone()[0]
     conn.close()
     assert count == 0
+
+
+# ---------------------------------------------------------------------------
+# Task 2: Detail endpoint + on-load sync
+# ---------------------------------------------------------------------------
+
+
+def test_pttb_detail_joins_annotation(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_fake_pttb(tmp_path, monkeypatch, _pttb_rows())
+
+    _logged_in_client().post(
+        '/api/pttb-kiemsoat/luu',
+        json={'ma_thue_bao': 'fbr00ec1h', 'doi_vt': 'ToKT_SonTay',
+              'nhanvien_tiepthi': 'NV1', 'noi_dung': 'Đã liên hệ'},
+    )
+
+    response = _logged_in_client().get('/api/pttb-kiemsoat/detail')
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert 'ToKT_SonTay' in payload['sheets']
+    rows = payload['sheets']['ToKT_SonTay']['data']
+    by_id = {r['ma_thue_bao']: r for r in rows}
+    assert by_id['fbr00ec1h']['kiemsoat_da_nhap'] is True
+    assert by_id['fbr00ec1h']['kiemsoat_noi_dung'] == 'Đã liên hệ'
+    assert by_id['cam00ai4o']['kiemsoat_da_nhap'] is False
+
+
+def test_pttb_load_triggers_sync(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    _write_fake_pttb(tmp_path, monkeypatch, _pttb_rows())
+
+    conn = sqlite3.connect(db_path)
+    assert conn.execute('SELECT COUNT(*) FROM pttb_phieu').fetchone()[0] == 0
+    conn.close()
+
+    _logged_in_client().get('/api/pttb-kiemsoat/detail')
+    conn = sqlite3.connect(db_path)
+    assert conn.execute('SELECT COUNT(*) FROM pttb_phieu').fetchone()[0] == 2
+    conn.close()
+
+
+def test_pttb_detail_returns_404_when_excel_missing(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    monkeypatch.setattr(operations_routes, 'PTTB_SUMMARY_FILE',
+                        str(tmp_path / 'khong_co.xlsx'))
+
+    response = _logged_in_client().get('/api/pttb-kiemsoat/detail')
+    assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Task 3: Thongke + lich_su
+# ---------------------------------------------------------------------------
+
+
+def test_pttb_thongke_returns_summary(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_fake_pttb(tmp_path, monkeypatch, _pttb_rows())
+    _logged_in_client().post(
+        '/api/pttb-kiemsoat/luu',
+        json={'ma_thue_bao': 'fbr00ec1h', 'doi_vt': 'ToKT_SonTay',
+              'nhanvien_tiepthi': 'NV1', 'noi_dung': 'done'},
+    )
+
+    response = _logged_in_client().get('/api/pttb-kiemsoat/thongke')
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload['summary'] == {'total': 2, 'da_kiem_soat': 1, 'chua': 1, 'ty_le': 50.0}
+    assert 'lich_su' in payload
+
+
+def test_pttb_thongke_by_doi_and_by_nvkt(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    rows = _pttb_rows() + [
+        {
+            'ma_thue_bao': 'ext00zz99', 'ten_thuebao': 'Lê Văn C',
+            'diachi_lapdat': 'DC3', 'loaihinh_tb': 'Fiber',
+            'nhanvien_tiepthi': 'NV1', 'doi_vt': 'ToKT_SuoiHai',
+            'ten_kv': 'KV3', 'ngayhen_den': '2026-06-27',
+            'noidung_hen': 'Hẹn mới', 'chitieu_tg': 48,
+            'gio_conlai': 10.0, 'trang_thai': 'Bình thường',
+        },
+    ]
+    _write_fake_pttb(tmp_path, monkeypatch, rows)
+
+    response = _logged_in_client().get('/api/pttb-kiemsoat/thongke')
+    payload = response.get_json()
+
+    doi_names = [d['doi_vt'] for d in payload['by_doi']]
+    assert 'ToKT_SonTay' in doi_names
+    assert 'ToKT_SuoiHai' in doi_names
+
+    nvkt_names = [d['nhanvien_tiepthi'] for d in payload['by_nvkt']]
+    assert 'NV1' in nvkt_names
+    assert 'NV2' in nvkt_names
+
+
+def test_pttb_thongke_filter_by_doi(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    rows = _pttb_rows() + [
+        {
+            'ma_thue_bao': 'ext00zz99', 'ten_thuebao': 'Lê Văn C',
+            'diachi_lapdat': 'DC3', 'loaihinh_tb': 'Fiber',
+            'nhanvien_tiepthi': 'NV3', 'doi_vt': 'ToKT_SuoiHai',
+            'ten_kv': 'KV3', 'ngayhen_den': '2026-06-27',
+            'noidung_hen': 'Hẹn mới', 'chitieu_tg': 48,
+            'gio_conlai': 10.0, 'trang_thai': 'Bình thường',
+        },
+    ]
+    _write_fake_pttb(tmp_path, monkeypatch, rows)
+
+    response = _logged_in_client().get('/api/pttb-kiemsoat/thongke?doi=ToKT_SonTay')
+    payload = response.get_json()
+    assert payload['summary']['total'] == 2
+
+
+def test_pttb_thongke_filter_nhom_qua_gio(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_fake_pttb(tmp_path, monkeypatch, _pttb_rows())
+
+    response = _logged_in_client().get('/api/pttb-kiemsoat/thongke?nhom=qua_gio')
+    payload = response.get_json()
+    assert payload['summary']['total'] == 1
+
+
+def test_pttb_thongke_lich_su_present(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_fake_pttb(tmp_path, monkeypatch, _pttb_rows())
+    _logged_in_client().get('/api/pttb-kiemsoat/detail')
+
+    conn = sqlite3.connect(str(tmp_path / 'brcd_kiemsoat.db'))
+    conn.execute(
+        "UPDATE pttb_phieu SET last_seen = '2020-01-01 00:00:00' WHERE ma_thue_bao = 'fbr00ec1h'"
+    )
+    conn.commit()
+    conn.close()
+
+    response = _logged_in_client().get('/api/pttb-kiemsoat/thongke?khoang=nam_nay')
+    payload = response.get_json()
+    lich_su = payload['lich_su']
+    assert 'tu_ngay' in lich_su
+    assert 'den_ngay' in lich_su
+    assert isinstance(lich_su['roi_da_ks'], int)
+    assert isinstance(lich_su['roi_chua_ks'], int)
+
+
+def test_pttb_thongke_returns_404_when_excel_missing(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    monkeypatch.setattr(operations_routes, 'PTTB_SUMMARY_FILE',
+                        str(tmp_path / 'khong_co.xlsx'))
+
+    response = _logged_in_client().get('/api/pttb-kiemsoat/thongke')
+    assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Task 4: Excel report download
+# ---------------------------------------------------------------------------
+
+
+def test_pttb_report_download_returns_xlsx(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_fake_pttb(tmp_path, monkeypatch, _pttb_rows())
+    _logged_in_client().post(
+        '/api/pttb-kiemsoat/luu',
+        json={'ma_thue_bao': 'fbr00ec1h', 'doi_vt': 'ToKT_SonTay',
+              'nhanvien_tiepthi': 'NV1', 'noi_dung': 'done'},
+    )
+
+    response = _logged_in_client().get('/download/pttb-kiemsoat-report')
+    assert response.status_code == 200
+    assert 'spreadsheetml' in response.headers['Content-Type']
+
+
+def test_pttb_report_download_returns_404_when_excel_missing(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    monkeypatch.setattr(operations_routes, 'PTTB_SUMMARY_FILE',
+                        str(tmp_path / 'khong_co.xlsx'))
+
+    response = _logged_in_client().get('/download/pttb-kiemsoat-report')
+    assert response.status_code == 404

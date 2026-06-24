@@ -1098,6 +1098,241 @@ def api_pttb_kiemsoat_luu():
     return jsonify({'ok': True, 'ma_thue_bao': ma_thue_bao, 'noi_dung': noi_dung, 'nguoi_nhap': username})
 
 
+def _load_pttb_kiemsoat_df():
+    """Đọc PTTB sheets + join annotation kiểm soát. Trả DataFrame hoặc None."""
+    if not os.path.exists(PTTB_SUMMARY_FILE):
+        return None
+    _ensure_brcd_kiemsoat_schema()
+    try:
+        _sync_pttb_phieu_to_db()
+    except Exception:
+        current_app.logger.warning('pttb_phieu sync thất bại trong _load', exc_info=True)
+
+    try:
+        all_sheets = pd.ExcelFile(PTTB_SUMMARY_FILE).sheet_names
+        team_sheets = [s for s in all_sheets if s in PTTB_TEAM_SHEETS]
+    except Exception:
+        return None
+
+    frames = []
+    for sheet in team_sheets:
+        df = read_excel_sheet_cached(PTTB_SUMMARY_FILE, sheet)
+        cols = [c for c in PTTB_KIEMSOAT_DISPLAY_COLUMNS if c in df.columns]
+        df = df[cols].copy()
+        df['_sheet'] = sheet
+        df['ma_thue_bao'] = df['ma_thue_bao'].astype(str)
+        frames.append(df)
+
+    if not frames:
+        return None
+
+    combined = pd.concat(frames, ignore_index=True).dropna(subset=['ma_thue_bao']).copy()
+    combined['ma_thue_bao'] = combined['ma_thue_bao'].astype(str)
+
+    kiemsoat_map = get_pttb_kiemsoat_map(combined['ma_thue_bao'].unique().tolist())
+    ks_keys = set(kiemsoat_map.keys())
+    combined['kiemsoat_noi_dung'] = combined['ma_thue_bao'].map(
+        lambda i: kiemsoat_map.get(i, {}).get('noi_dung_kiem_soat', '')
+    )
+    combined['kiemsoat_nguoi_nhap'] = combined['ma_thue_bao'].map(
+        lambda i: kiemsoat_map.get(i, {}).get('nguoi_nhap', '')
+    )
+    combined['kiemsoat_thoi_diem'] = combined['ma_thue_bao'].map(
+        lambda i: kiemsoat_map.get(i, {}).get('thoi_diem_cap_nhat')
+        or kiemsoat_map.get(i, {}).get('thoi_diem_nhap', '')
+    )
+    combined['kiemsoat_da_nhap'] = combined['ma_thue_bao'].isin(ks_keys)
+
+    for col in ('chitieu_tg', 'gio_conlai'):
+        if col in combined.columns:
+            combined[col] = pd.to_numeric(combined[col], errors='coerce')
+
+    return combined
+
+
+def _apply_pttb_kiemsoat_filters(df, args):
+    """Lọc DataFrame PTTB theo query args."""
+    filtered = df
+    doi = args.get('doi')
+    if doi and 'doi_vt' in filtered.columns:
+        filtered = filtered[filtered['doi_vt'].astype(str) == doi]
+
+    loaihinh = args.get('loaihinh')
+    if loaihinh and 'loaihinh_tb' in filtered.columns:
+        filtered = filtered[filtered['loaihinh_tb'].astype(str) == loaihinh]
+
+    nhom = args.get('nhom')
+    if nhom and 'gio_conlai' in filtered.columns:
+        remaining = filtered['gio_conlai']
+        if nhom == 'qua_gio':
+            filtered = filtered[remaining.fillna(0) <= 0]
+        elif nhom == 'trong_gio':
+            filtered = filtered[remaining.fillna(0) > 0]
+
+    trangthai = args.get('trangthai')
+    if trangthai == 'da':
+        filtered = filtered[filtered['kiemsoat_da_nhap']]
+    elif trangthai == 'chua':
+        filtered = filtered[~filtered['kiemsoat_da_nhap']]
+
+    return filtered
+
+
+def _compute_pttb_lich_su(filtered_df, args):
+    """Tính 'phiếu đã rời tồn' từ snapshot pttb_phieu trong khoảng thời gian.
+
+    "Rời tồn" = có trong pttb_phieu (trong khoảng) nhưng KHÔNG có trong
+    current universe (filtered_df).
+    """
+    khoang = (args.get('khoang') or 'thang_nay').strip()
+    today = date.today()
+    if khoang == 'tuan_nay':
+        tu_ngay = today - timedelta(days=today.weekday())
+        den_ngay = today
+    elif khoang == 'nam_nay':
+        tu_ngay = today.replace(month=1, day=1)
+        den_ngay = today
+    elif khoang == 'tat_ca':
+        tu_ngay = date(1970, 1, 1)
+        den_ngay = today
+    else:  # thang_nay (default)
+        tu_ngay = today.replace(day=1)
+        den_ngay = today
+
+    current_ids = set()
+    if filtered_df is not None and 'ma_thue_bao' in filtered_df.columns:
+        current_ids = set(filtered_df['ma_thue_bao'].astype(str).tolist())
+
+    sql = ("SELECT ma_thue_bao FROM pttb_phieu "
+           "WHERE DATE(last_seen) >= ? AND DATE(last_seen) <= ?")
+    params = [tu_ngay.isoformat(), den_ngay.isoformat()]
+
+    doi = args.get('doi')
+    if doi:
+        sql += " AND doi_vt = ?"
+        params.append(doi)
+    loaihinh = args.get('loaihinh')
+    if loaihinh:
+        sql += " AND loaihinh_tb = ?"
+        params.append(loaihinh)
+
+    _ensure_brcd_kiemsoat_schema()
+    with _brcd_kiemsoat_read_connection() as conn:
+        snap_rows = conn.execute(sql, params).fetchall()
+        snap_ids = {r['ma_thue_bao'] for r in snap_rows}
+
+        ks_ids = set()
+        if snap_ids:
+            snap_list = list(snap_ids)
+            for i in range(0, len(snap_list), 500):
+                batch = snap_list[i:i+500]
+                placeholders = ', '.join('?' for _ in batch)
+                ks_rows = conn.execute(
+                    f"SELECT ma_thue_bao FROM pttb_kiemsoat "
+                    f"WHERE ma_thue_bao IN ({placeholders}) "
+                    f"AND COALESCE(noi_dung_kiem_soat, '') != ''",
+                    batch,
+                ).fetchall()
+                ks_ids.update(r['ma_thue_bao'] for r in ks_rows)
+
+    roi_ids = snap_ids - current_ids
+    roi_da_ks = len(roi_ids & ks_ids)
+    roi_chua_ks = len(roi_ids - ks_ids)
+
+    return {
+        'tu_ngay': tu_ngay.isoformat(),
+        'den_ngay': den_ngay.isoformat(),
+        'roi_da_ks': roi_da_ks,
+        'roi_chua_ks': roi_chua_ks,
+    }
+
+
+@operations_bp.route('/api/pttb-kiemsoat/detail')
+@login_required
+def api_pttb_kiemsoat_detail():
+    df = _load_pttb_kiemsoat_df()
+    if df is None:
+        return jsonify({'error': 'File Excel PTTB không tồn tại'}), 404
+
+    sheets = {}
+    for sheet, group in df.groupby('_sheet'):
+        group = group.drop(columns=['_sheet'])
+        sheets[str(sheet)] = build_sheet_payload(group)
+
+    return jsonify({'sheets': sheets, 'file_info': build_file_info(PTTB_SUMMARY_FILE)})
+
+
+@operations_bp.route('/api/pttb-kiemsoat/thongke')
+@login_required
+def api_pttb_kiemsoat_thongke():
+    df = _load_pttb_kiemsoat_df()
+    if df is None:
+        return jsonify({'error': 'File Excel PTTB không tồn tại'}), 404
+
+    filtered = _apply_pttb_kiemsoat_filters(df, request.args)
+
+    total = len(filtered)
+    da = int(filtered['kiemsoat_da_nhap'].sum()) if total else 0
+    chua = total - da
+    ty_le = round(da * 100.0 / total, 1) if total else 0.0
+
+    def _agg(group_col):
+        if group_col not in filtered.columns:
+            return []
+        result = []
+        for key, group in filtered.dropna(subset=[group_col]).groupby(group_col):
+            g_total = len(group)
+            g_da = int(group['kiemsoat_da_nhap'].sum())
+            result.append({
+                group_col: '' if key is None else str(key),
+                'total': g_total,
+                'da_kiem_soat': g_da,
+                'chua': g_total - g_da,
+                'ty_le': round(g_da * 100.0 / g_total, 1) if g_total else 0.0,
+            })
+        result.sort(key=lambda r: r['total'], reverse=True)
+        return result
+
+    chi_tiet = serialize_dataframe(filtered.drop(columns=['_sheet'])).to_dict('records')
+
+    return jsonify({
+        'summary': {
+            'total': total,
+            'da_kiem_soat': da,
+            'chua': chua,
+            'ty_le': ty_le,
+        },
+        'by_doi': _agg('doi_vt'),
+        'by_nvkt': _agg('nhanvien_tiepthi'),
+        'chi_tiet': chi_tiet,
+        'lich_su': _compute_pttb_lich_su(filtered, request.args),
+    })
+
+
+@operations_bp.route('/download/pttb-kiemsoat-report')
+@login_required
+def download_pttb_kiemsoat_report():
+    df = _load_pttb_kiemsoat_df()
+    if df is None:
+        return jsonify({'error': 'File Excel PTTB không tồn tại'}), 404
+
+    filtered = _apply_pttb_kiemsoat_filters(df, request.args)
+    export_df = serialize_dataframe(filtered.drop(columns=['_sheet']))
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        export_df.to_excel(writer, index=False, sheet_name='Kiem_soat_PTTB')
+    output.seek(0)
+
+    download_name = f'pttb_kiemsoat_{datetime.now():%Y%m%d_%H%M}.xlsx'
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
 def _load_brcd_kiemsoat_df():
     """Đọc sheet đầy đủ ToKT_<doi> + join annotation kiểm soát. Trả DataFrame hoặc None."""
     if not os.path.exists(BRCD_DETAIL_MAIN_FILE):
