@@ -99,6 +99,9 @@ REPORT_HISTORY_DB_PATH = _first_existing_path(
     os.path.join(BAOCAO_HANOI_PATH, 'api_transition', 'report_history.db'),
     os.path.join(BAOCAO_HANOI_PATH, 'report_history.db'),
 )
+TIEP_THI_DB_PATH = _first_existing_path(
+    _env_value('DASH_TIEP_THI_DB_PATH', 'DASHV4_TIEP_THI_DB_PATH'),
+)
 SHC_PROCESSING_RESULTS_DB_PATH = _first_existing_path(
     os.getenv('DASH_SHC_PROCESSING_RESULTS_DB'),
     os.path.abspath(os.path.join(BASE_DIR, '..', 'thong-ke-xly-shc', 'data', 'nvkt_results.db')),
@@ -110,6 +113,10 @@ SHC_SOURCE_K1_DB_PATH = _first_existing_path(
 SHC_SOURCE_K2_DB_PATH = _first_existing_path(
     os.getenv('DASH_SHC_SOURCE_K2_DB'),
     os.path.join(BAOCAO_HANOI_PATH, 'suy_hao_history_k2.db'),
+)
+BRCD_KIEMSOAT_DB_PATH = _first_existing_path(
+    os.getenv('DASHV4_BRCD_KIEMSOAT_DB_PATH'),
+    os.path.join(INSTANCE_RUNTIME_DIR, 'brcd_kiemsoat.db'),
 )
 
 SESSION_FILE_DIR = os.path.abspath(
@@ -242,6 +249,8 @@ class DashboardConfig:
     SH_PORTAL_URL = SH_PORTAL_URL
     SH_PORTAL_USERNAME_PARAM = SH_PORTAL_USERNAME_PARAM
     REPORT_HISTORY_DB_PATH = REPORT_HISTORY_DB_PATH
+    TIEP_THI_DB_PATH = TIEP_THI_DB_PATH
+    BRCD_KIEMSOAT_DB_PATH = BRCD_KIEMSOAT_DB_PATH
     UNIT_CODE = UNIT_CODE
     UNIT_NAME = UNIT_NAME
     APP_DISPLAY_NAME = APP_DISPLAY_NAME

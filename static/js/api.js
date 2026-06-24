@@ -62,6 +62,37 @@ const API = {
         return this.fetchData('/api/excel-data-pending');
     },
 
+    /**
+     * Get BRCD kiem soat detail (join annotation, full ToKT_ sheets)
+     */
+    getBrcdKiemSoatDetail() {
+        return this.fetchData('/api/brcd-kiemsoat/detail');
+    },
+
+    /**
+     * Get BRCD kiem soat thong ke (filter + aggregate)
+     */
+    getBrcdKiemSoatThongKe(query = '') {
+        const suffix = query ? `?${query}` : '';
+        return this.fetchData(`/api/brcd-kiemsoat/thongke${suffix}`);
+    },
+
+    /**
+     * Save BRCD kiem soat note (POST JSON)
+     */
+    async saveBrcdKiemSoat(payload) {
+        const response = await fetch('/api/brcd-kiemsoat/luu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (response.status === 401) {
+            window.location.href = '/login';
+            throw new Error('Phiên đăng nhập đã hết hạn');
+        }
+        return response.json();
+    },
+
     /* ========================================
        PTTB APIs (Phát triển thuê bao)
        ======================================== */

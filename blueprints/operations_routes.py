@@ -1,10 +1,13 @@
+import io
 import os
 import re
 import sqlite3
 import unicodedata
+from datetime import datetime
+from threading import Lock
 
 import pandas as pd
-from flask import Blueprint, abort, current_app, jsonify, render_template, request, session
+from flask import Blueprint, abort, current_app, jsonify, render_template, request, send_file, session
 
 from app_helpers import (
     build_file_info,
@@ -13,12 +16,14 @@ from app_helpers import (
     read_excel_sheet_cached,
     safe_directory_response,
     safe_file_response,
+    serialize_dataframe,
 )
 from auth import get_user_by_username, login_required
 from config import (
     BASE_DATA_PATH,
     BAOCAO_HANOI_KPI_DIR,
     BAOCAO_HANOI_PATH,
+    BRCD_KIEMSOAT_DB_PATH,
     KPI_TONGHOP_NVKT_FILE,
     REPORT_HISTORY_DB_PATH,
     UNIT_NAME,
@@ -44,6 +49,263 @@ BRCD_DETAIL_MAIN_FILE = os.path.join(BRCD_RUNTIME_DOWNLOADS_DIR, 'chiaTheoDoi', 
 BRCD_DETAIL_OFF_FILE = os.path.join(BRCD_RUNTIME_DOWNLOADS_DIR, 'chiaTheoDoi', 'chiTietBrcd5Doi_OFF.xlsx')
 PTTB_RUNTIME_DOWNLOADS_DIR = '/home/vtst/1bss/runtime/default/downloads'
 PTTB_SUMMARY_FILE = os.path.join(PTTB_RUNTIME_DOWNLOADS_DIR, 'ton_pttb', 'baoCaoPTTB.xlsx')
+
+
+# ---------------------------------------------------------------------------
+# Kiểm soát tổ trưởng (BRCD)
+# Lớp annotation ghi được, per-instance, keyed bằng baohong_id.
+# Tồn live vẫn đọc Excel read-only; annotation lưu riêng để không bị 1bss ghi đè.
+# ---------------------------------------------------------------------------
+BRCD_KIEMSOAT_DISPLAY_COLUMNS = [
+    'baohong_id',
+    'ma_tb',
+    'TEN_TB',
+    'DIACHI_LD',
+    'LOAIHINH_TB',
+    'GHICHU_HONG',
+    'NVKT',
+    'DOI_VT',
+    'ngay_bh',
+    'Trạng thái cổng',
+    'ttvt_ton',
+    'chitieu_tg',
+    'thời gian tồn thực',
+    'giờ còn lại thực',
+    'SA',
+]
+BRCD_KIEMSOAT_NOI_DUNG_MAX = 2000
+
+_brcd_kiemsoat_schema_lock = Lock()
+_brcd_kiemsoat_schema_ready_path = None
+
+
+def _brcd_kiemsoat_write_connection():
+    conn = sqlite3.connect(BRCD_KIEMSOAT_DB_PATH, timeout=5)
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=5000')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _brcd_kiemsoat_read_connection():
+    conn = sqlite3.connect(
+        f'file:{os.path.abspath(BRCD_KIEMSOAT_DB_PATH)}?mode=ro',
+        uri=True,
+        timeout=5,
+    )
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _ensure_brcd_kiemsoat_schema():
+    global _brcd_kiemsoat_schema_ready_path
+    db_path = os.path.abspath(BRCD_KIEMSOAT_DB_PATH)
+    with _brcd_kiemsoat_schema_lock:
+        if _brcd_kiemsoat_schema_ready_path == db_path:
+            return
+        db_dir = os.path.dirname(db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+        with _brcd_kiemsoat_write_connection() as conn:
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS brcd_kiemsoat (
+                    baohong_id INTEGER PRIMARY KEY,
+                    ma_tb TEXT,
+                    doi_vt TEXT,
+                    nvkt TEXT,
+                    noi_dung_kiem_soat TEXT NOT NULL DEFAULT '',
+                    nguoi_nhap TEXT,
+                    thoi_diem_nhap TEXT,
+                    thoi_diem_cap_nhat TEXT
+                )
+                '''
+            )
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS brcd_phieu (
+                    baohong_id         INTEGER PRIMARY KEY,
+                    ma_tb              TEXT,
+                    ten_tb             TEXT,
+                    diachi_ld          TEXT,
+                    loaihinh_tb        TEXT,
+                    ghichu_hong        TEXT,
+                    nvkt               TEXT,
+                    doi_vt             TEXT,
+                    ngay_bh            TEXT,
+                    trang_thai_cong    TEXT,
+                    ttvt_ton           TEXT,
+                    chitieu_tg         REAL,
+                    thoi_gian_ton_thuc REAL,
+                    gio_con_lai_thuc   REAL,
+                    sa                 TEXT,
+                    sheet              TEXT,
+                    first_seen         TEXT,
+                    last_seen          TEXT
+                )
+                '''
+            )
+            conn.execute(
+                'CREATE INDEX IF NOT EXISTS idx_brcd_phieu_last_seen ON brcd_phieu(last_seen)'
+            )
+            conn.execute(
+                'CREATE INDEX IF NOT EXISTS idx_brcd_phieu_doi_vt ON brcd_phieu(doi_vt)'
+            )
+        _brcd_kiemsoat_schema_ready_path = db_path
+
+
+def get_brcd_kiemsoat_map(baohong_ids):
+    """Trả dict {baohong_id(int): row(dict)} cho danh sách id đang tồn."""
+    _ensure_brcd_kiemsoat_schema()
+    ids = [int(i) for i in baohong_ids if i is not None]
+    if not ids:
+        return {}
+    placeholders = ', '.join('?' for _ in ids)
+    with _brcd_kiemsoat_read_connection() as conn:
+        rows = conn.execute(
+            f'''
+            SELECT baohong_id, ma_tb, doi_vt, nvkt, noi_dung_kiem_soat,
+                   nguoi_nhap, thoi_diem_nhap, thoi_diem_cap_nhat
+            FROM brcd_kiemsoat
+            WHERE baohong_id IN ({placeholders})
+            ''',
+            ids,
+        ).fetchall()
+    return {row['baohong_id']: dict(row) for row in rows}
+
+
+# ---------------------------------------------------------------------------
+# Snapshot Vũ trụ tổng vào brcd_phieu (lịch sử phiếu tồn)
+# ---------------------------------------------------------------------------
+
+_BRCD_PHIEU_UPSERT_SQL = """
+    INSERT INTO brcd_phieu (
+        baohong_id, ma_tb, ten_tb, diachi_ld, loaihinh_tb, ghichu_hong,
+        nvkt, doi_vt, ngay_bh, trang_thai_cong, ttvt_ton,
+        chitieu_tg, thoi_gian_ton_thuc, gio_con_lai_thuc, sa,
+        sheet, first_seen, last_seen
+    )
+    VALUES (
+        ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?
+    )
+    ON CONFLICT(baohong_id) DO UPDATE SET
+        ma_tb = excluded.ma_tb,
+        ten_tb = excluded.ten_tb,
+        diachi_ld = excluded.diachi_ld,
+        loaihinh_tb = excluded.loaihinh_tb,
+        ghichu_hong = excluded.ghichu_hong,
+        nvkt = excluded.nvkt,
+        doi_vt = excluded.doi_vt,
+        ngay_bh = excluded.ngay_bh,
+        trang_thai_cong = excluded.trang_thai_cong,
+        ttvt_ton = excluded.ttvt_ton,
+        chitieu_tg = excluded.chitieu_tg,
+        thoi_gian_ton_thuc = excluded.thoi_gian_ton_thuc,
+        gio_con_lai_thuc = excluded.gio_con_lai_thuc,
+        sa = excluded.sa,
+        sheet = excluded.sheet,
+        last_seen = excluded.last_seen
+"""
+
+
+def _phieu_row_to_params(row, sheet, now_iso):
+    """Map 1 dòng Excel (Series) sang tuple params cho UPSERT."""
+    def _val(col):
+        v = row.get(col)
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return None
+        return v
+    return (
+        int(row['baohong_id']),
+        _val('ma_tb'),
+        _val('TEN_TB'),
+        _val('DIACHI_LD'),
+        _val('LOAIHINH_TB'),
+        _val('GHICHU_HONG'),
+        _val('NVKT'),
+        _val('DOI_VT'),
+        _val('ngay_bh'),
+        _val('Trạng thái cổng'),
+        _val('ttvt_ton'),
+        _val('chitieu_tg'),
+        _val('thời gian tồn thực'),
+        _val('giờ còn lại thực'),
+        _val('SA'),
+        sheet,
+        now_iso,  # first_seen (chỉ tác dụng khi INSERT; UPSORT bỏ qua trên UPDATE)
+        now_iso,  # last_seen (luôn update)
+    )
+
+
+def _sync_brcd_phieu_to_db():
+    """Đọc Vũ trụ tổng hiện tại (Excel), upsert vào brcd_phieu.
+
+    Idempotent. Không raise khi Excel thiếu hoặc DB lock — trả dict với skipped=1.
+    Trả: {'synced': N, 'new': M, 'updated': K, 'skipped': 0|1, 'reason': str}
+    """
+    if not os.path.exists(BRCD_DETAIL_MAIN_FILE):
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1, 'reason': 'excel_missing'}
+    _ensure_brcd_kiemsoat_schema()
+
+    try:
+        all_sheets = pd.ExcelFile(BRCD_DETAIL_MAIN_FILE).sheet_names
+        team_sheets = [s for s in all_sheets
+                       if s.startswith('ToKT_') and not s.endswith('_rut_gon')]
+    except Exception:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1, 'reason': 'excel_unreadable'}
+
+    incoming = []  # list[tuple[sheet_name, DataFrame]]
+    for sheet in team_sheets:
+        df = read_excel_sheet_cached(BRCD_DETAIL_MAIN_FILE, sheet)
+        cols = [c for c in BRCD_KIEMSOAT_DISPLAY_COLUMNS if c in df.columns]
+        df = df[cols].copy()
+        df['baohong_id'] = pd.to_numeric(df['baohong_id'], errors='coerce')
+        df = df.dropna(subset=['baohong_id']).copy()
+        df['baohong_id'] = df['baohong_id'].astype(int)
+        if len(df):
+            incoming.append((sheet, df))
+
+    if not incoming:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 0, 'reason': ''}
+
+    all_ids = set()
+    for _, df in incoming:
+        all_ids.update(df['baohong_id'].astype(int).tolist())
+
+    now_iso = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        with _brcd_kiemsoat_write_connection() as conn:
+            # Tính new vs updated trước bằng 1 query IN
+            placeholders = ', '.join('?' for _ in all_ids)
+            existing_rows = conn.execute(
+                f'SELECT baohong_id FROM brcd_phieu WHERE baohong_id IN ({placeholders})',
+                list(all_ids),
+            ).fetchall()
+            existing_ids = {r['baohong_id'] for r in existing_rows}
+
+            for sheet, df in incoming:
+                for _, row in df.iterrows():
+                    params = _phieu_row_to_params(row, sheet, now_iso)
+                    conn.execute(_BRCD_PHIEU_UPSERT_SQL, params)
+
+        new_count = len(all_ids - existing_ids)
+        updated_count = len(all_ids & existing_ids)
+        return {
+            'synced': len(all_ids),
+            'new': new_count,
+            'updated': updated_count,
+            'skipped': 0,
+            'reason': '',
+        }
+    except sqlite3.OperationalError as e:
+        msg = str(e).lower()
+        if 'locked' in msg or 'busy' in msg:
+            return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1, 'reason': 'db_locked'}
+        raise
 
 
 CAU_HINH_TU_DONG_DATE_BINDINGS = [
@@ -521,6 +783,217 @@ def download_bc_brcd():
         BRCD_SUMMARY_FILE,
         as_attachment=True,
         download_name='bc_BRCD.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
+@operations_bp.route('/api/brcd-kiemsoat/luu', methods=['POST'])
+@login_required
+def api_brcd_kiemsoat_luu():
+    payload = request.get_json(silent=True) or {}
+    try:
+        baohong_id = int(payload.get('baohong_id'))
+    except (TypeError, ValueError):
+        return jsonify({'ok': False, 'error': 'baohong_id không hợp lệ'}), 400
+
+    noi_dung = str(payload.get('noi_dung') or '').strip()
+    if len(noi_dung) > BRCD_KIEMSOAT_NOI_DUNG_MAX:
+        return jsonify({'ok': False, 'error': 'Nội dung không được vượt quá 2000 ký tự'}), 400
+
+    ma_tb = str(payload.get('ma_tb') or '')
+    doi_vt = str(payload.get('doi_vt') or '')
+    nvkt = str(payload.get('nvkt') or '')
+    username = session.get('username') or ''
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    _ensure_brcd_kiemsoat_schema()
+    try:
+        with _brcd_kiemsoat_write_connection() as conn:
+            if not noi_dung:
+                conn.execute('DELETE FROM brcd_kiemsoat WHERE baohong_id = ?', (baohong_id,))
+                return jsonify({'ok': True, 'baohong_id': baohong_id, 'noi_dung': '', 'nguoi_nhap': ''})
+
+            existing = conn.execute(
+                'SELECT thoi_diem_nhap FROM brcd_kiemsoat WHERE baohong_id = ?',
+                (baohong_id,),
+            ).fetchone()
+            thoi_diem_nhap = existing['thoi_diem_nhap'] if existing else now
+            conn.execute(
+                '''
+                INSERT INTO brcd_kiemsoat
+                    (baohong_id, ma_tb, doi_vt, nvkt, noi_dung_kiem_soat,
+                     nguoi_nhap, thoi_diem_nhap, thoi_diem_cap_nhat)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(baohong_id) DO UPDATE SET
+                    ma_tb = excluded.ma_tb,
+                    doi_vt = excluded.doi_vt,
+                    nvkt = excluded.nvkt,
+                    noi_dung_kiem_soat = excluded.noi_dung_kiem_soat,
+                    nguoi_nhap = excluded.nguoi_nhap,
+                    thoi_diem_cap_nhat = excluded.thoi_diem_cap_nhat
+                ''',
+                (baohong_id, ma_tb, doi_vt, nvkt, noi_dung, username, thoi_diem_nhap, now),
+            )
+    except sqlite3.Error as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 500
+
+    return jsonify({'ok': True, 'baohong_id': baohong_id, 'noi_dung': noi_dung, 'nguoi_nhap': username})
+
+
+def _load_brcd_kiemsoat_df():
+    """Đọc sheet đầy đủ ToKT_<doi> + join annotation kiểm soát. Trả DataFrame hoặc None."""
+    if not os.path.exists(BRCD_DETAIL_MAIN_FILE):
+        return None
+    _ensure_brcd_kiemsoat_schema()
+
+    all_sheets = pd.ExcelFile(BRCD_DETAIL_MAIN_FILE).sheet_names
+    team_sheets = [s for s in all_sheets if s.startswith('ToKT_') and not s.endswith('_rut_gon')]
+
+    frames = []
+    for sheet in team_sheets:
+        df = read_excel_sheet_cached(BRCD_DETAIL_MAIN_FILE, sheet)
+        cols = [c for c in BRCD_KIEMSOAT_DISPLAY_COLUMNS if c in df.columns]
+        df = df[cols].copy()
+        df['_sheet'] = sheet
+        df['baohong_id'] = pd.to_numeric(df['baohong_id'], errors='coerce')
+        frames.append(df)
+
+    if not frames:
+        return None
+
+    combined = pd.concat(frames, ignore_index=True).dropna(subset=['baohong_id']).copy()
+    combined['baohong_id'] = combined['baohong_id'].astype(int)
+
+    kiemsoat_map = get_brcd_kiemsoat_map(combined['baohong_id'].unique().tolist())
+    ks_keys = set(kiemsoat_map.keys())
+    combined['kiemsoat_noi_dung'] = combined['baohong_id'].map(
+        lambda i: kiemsoat_map.get(i, {}).get('noi_dung_kiem_soat', '')
+    )
+    combined['kiemsoat_nguoi_nhap'] = combined['baohong_id'].map(
+        lambda i: kiemsoat_map.get(i, {}).get('nguoi_nhap', '')
+    )
+    combined['kiemsoat_thoi_diem'] = combined['baohong_id'].map(
+        lambda i: kiemsoat_map.get(i, {}).get('thoi_diem_cap_nhat')
+        or kiemsoat_map.get(i, {}).get('thoi_diem_nhap', '')
+    )
+    combined['kiemsoat_da_nhap'] = combined['baohong_id'].isin(ks_keys)
+
+    for col in ('giờ còn lại thực', 'thời gian tồn thực', 'chitieu_tg'):
+        if col in combined.columns:
+            combined[col] = pd.to_numeric(combined[col], errors='coerce')
+
+    return combined
+
+
+def _apply_brcd_kiemsoat_filters(df, args):
+    """Lọc DataFrame tồn+kiemsoat theo query args. df đã numeric."""
+    filtered = df
+    doi = args.get('doi')
+    if doi and 'DOI_VT' in filtered.columns:
+        filtered = filtered[filtered['DOI_VT'].astype(str) == doi]
+
+    loaihinh = args.get('loaihinh')
+    if loaihinh and 'LOAIHINH_TB' in filtered.columns:
+        filtered = filtered[filtered['LOAIHINH_TB'].astype(str) == loaihinh]
+
+    nhom = args.get('nhom')
+    if nhom and 'giờ còn lại thực' in filtered.columns:
+        remaining = filtered['giờ còn lại thực']
+        if nhom == 'qua_gio':
+            filtered = filtered[remaining.fillna(0) <= 0]
+        elif nhom == 'trong_gio':
+            filtered = filtered[remaining.fillna(0) > 0]
+
+    trangthai = args.get('trangthai')
+    if trangthai == 'da':
+        filtered = filtered[filtered['kiemsoat_da_nhap']]
+    elif trangthai == 'chua':
+        filtered = filtered[~filtered['kiemsoat_da_nhap']]
+
+    return filtered
+
+
+@operations_bp.route('/api/brcd-kiemsoat/detail')
+@login_required
+def api_brcd_kiemsoat_detail():
+    df = _load_brcd_kiemsoat_df()
+    if df is None:
+        return jsonify({'error': 'File Excel chi tiết BRCD không tồn tại'}), 404
+
+    sheets = {}
+    for sheet, group in df.groupby('_sheet'):
+        group = group.drop(columns=['_sheet'])
+        sheets[str(sheet)] = build_sheet_payload(group)
+
+    return jsonify({'sheets': sheets, 'file_info': build_file_info(BRCD_DETAIL_MAIN_FILE)})
+
+
+@operations_bp.route('/api/brcd-kiemsoat/thongke')
+@login_required
+def api_brcd_kiemsoat_thongke():
+    df = _load_brcd_kiemsoat_df()
+    if df is None:
+        return jsonify({'error': 'File Excel chi tiết BRCD không tồn tại'}), 404
+
+    filtered = _apply_brcd_kiemsoat_filters(df, request.args)
+
+    total = len(filtered)
+    da = int(filtered['kiemsoat_da_nhap'].sum()) if total else 0
+    chua = total - da
+    ty_le = round(da * 100.0 / total, 1) if total else 0.0
+
+    def _agg(group_col):
+        if group_col not in filtered.columns:
+            return []
+        result = []
+        for key, group in filtered.dropna(subset=[group_col]).groupby(group_col):
+            g_total = len(group)
+            g_da = int(group['kiemsoat_da_nhap'].sum())
+            result.append({
+                group_col: '' if key is None else str(key),
+                'total': g_total,
+                'da_kiem_soat': g_da,
+                'chua': g_total - g_da,
+                'ty_le': round(g_da * 100.0 / g_total, 1) if g_total else 0.0,
+            })
+        result.sort(key=lambda r: r['total'], reverse=True)
+        return result
+
+    chi_tiet = serialize_dataframe(filtered.drop(columns=['_sheet'])).to_dict('records')
+
+    return jsonify({
+        'summary': {
+            'total': total,
+            'da_kiem_soat': da,
+            'chua': chua,
+            'ty_le': ty_le,
+        },
+        'by_doi': _agg('DOI_VT'),
+        'by_nvkt': _agg('NVKT'),
+        'chi_tiet': chi_tiet,
+    })
+
+
+@operations_bp.route('/download/brcd-kiemsoat-report')
+@login_required
+def download_brcd_kiemsoat_report():
+    df = _load_brcd_kiemsoat_df()
+    if df is None:
+        return jsonify({'error': 'File Excel chi tiết BRCD không tồn tại'}), 404
+
+    filtered = _apply_brcd_kiemsoat_filters(df, request.args)
+    export_df = serialize_dataframe(filtered.drop(columns=['_sheet']))
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        export_df.to_excel(writer, index=False, sheet_name='Kiem_soat_BRCD')
+    output.seek(0)
+
+    download_name = f'brcd_kiemsoat_{datetime.now():%Y%m%d_%H%M}.xlsx'
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=download_name,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
 
