@@ -2,8 +2,8 @@
 
 ## Mốc cập nhật
 
-- Ngày cập nhật: `2026-04-23`
-- Trạng thái: đã chuyển phần lớn route có dữ liệu phù hợp sang DB mới; các route chưa đủ contract đã bắt đầu bị ngắt khỏi nguồn Excel/file cũ
+- Ngày cập nhật: `2026-06-24`
+- Trạng thái: đã chuyển phần lớn route có dữ liệu phù hợp sang DB mới; các route chưa đủ contract đã bắt đầu bị ngắt khỏi nguồn Excel/file cũ; `/brcd` đã có lớp kiểm soát tổ trưởng (write-aside)
 
 ## Những gì đã làm
 
@@ -104,6 +104,33 @@ Page HTML đã bật filter ngày tương ứng:
 - riêng `ngungpsc` đang ở hai mức:
   - Fiber dùng `v_dashboard_thuc_tang_moi_nhat`
   - MyTV đang fallback tổng hợp từ `v_dashboard_dich_vu_theo_to_moi_nhat` vì runtime hiện chưa có hàng dữ liệu tương ứng trong `v_thuc_tang_mytv_moi_nhat`
+
+## 6. Kiểm soát tổ trưởng tại `/brcd`
+
+Đã thêm lớp "kiểm soát tổ trưởng" cho phiếu tồn BRCD (mã `baohong_id`):
+
+- tổ trưởng nhập "nội dung kiểm soát" (1 ô tự do) trực tiếp trên bảng chi tiết phiếu tồn
+- dữ liệu lưu trong SQLite ghi được per-instance `INSTANCE_RUNTIME_DIR/brcd_kiemsoat.db` (env `DASHV4_BRCD_KIEMSOAT_DB_PATH`), bảng `brcd_kiemsoat`
+- tồn live vẫn đọc Excel read-only từ `1bss`; annotation lưu riêng (write-aside) để không bị `1bss` refresh ghi đè; annotation giữ lại làm lịch sử khi phiếu rời tồn
+- endpoint mới:
+  - `POST /api/brcd-kiemsoat/luu` (upsert theo `baohong_id`; xóa khi nội dung rỗng; ghi `nguoi_nhap` từ session)
+  - `GET /api/brcd-kiemsoat/detail` (sheet đầy đủ `ToKT_<doi>` + JOIN annotation)
+  - `GET /api/brcd-kiemsoat/thongke` (lọc theo quá giờ / trạng thái / đội; trả summary + by_doi + by_nvkt + chi_tiet + lich_su)
+  - `GET /download/brcd-kiemsoat-report` (xuất Excel theo bộ lọc hiện hành)
+- không thuộc `report_history.db` nên không áp dụng date-contract của tài liệu 09
+
+### 6.1. Snapshot lịch sử phiếu (`brcd_phieu`)
+
+- **Mục đích:** Tra cứu phiếu đã rời tồn; đánh giá kiểm soát tổ trưởng trên phiếu đã xử lý xong.
+- **Cơ chế:** Upsert Vũ trụ tổng (Excel) vào bảng `brcd_phieu` mỗi lần load `/brcd` + mỗi giờ qua cron `scripts/sync_brcd_phieu.py`.
+- **Schema:** 1 dòng mỗi `baohong_id`. `first_seen` giữ nguyên qua sync, `last_seen` update mỗi lần. Phiếu rời tồn → dòng giữ lại với `last_seen` cũ.
+- **Metric mới trong `/api/brcd-kiemsoat/thongke`:** section `lich_su` với `roi_da_ks` (rời tồn + đã KS) và `roi_chua_ks` (rời tồn + chưa KS). Filter `khoang` ∈ tuan_nay/thang_nay/nam_nay/tat_ca.
+- **Cron setup (per-instance):**
+  ```
+  0 * * * * DASHV4_UNIT_CODE=<unit> /home/vtst/dashv4/venv/bin/python3 \
+      /home/vtst/dashv4/scripts/sync_brcd_phieu.py \
+      >> /home/vtst/dashv4/logs/brcd_phieu_sync.log 2>&1
+  ```
 
 ## 5. Route chưa hỗ trợ đã bị chặn ở mức page/API
 
