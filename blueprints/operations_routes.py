@@ -75,6 +75,26 @@ BRCD_KIEMSOAT_DISPLAY_COLUMNS = [
 ]
 BRCD_KIEMSOAT_NOI_DUNG_MAX = 2000
 
+# ---------------------------------------------------------------------------
+# Kiểm soát tổ trưởng (PTTB) — logic hệt BRCD, nguồn PTTB
+# ---------------------------------------------------------------------------
+PTTB_TEAM_SHEETS = ['ToKT_SonTay', 'ToKT_SuoiHai', 'ToKT_QuangOai', 'ToKT_PhucTho']
+PTTB_KIEMSOAT_DISPLAY_COLUMNS = [
+    'ma_thue_bao',
+    'ten_thuebao',
+    'diachi_lapdat',
+    'loaihinh_tb',
+    'nhanvien_tiepthi',
+    'doi_vt',
+    'ten_kv',
+    'ngayhen_den',
+    'noidung_hen',
+    'chitieu_tg',
+    'gio_conlai',
+    'trang_thai',
+]
+PTTB_KIEMSOAT_NOI_DUNG_MAX = 2000
+
 _brcd_kiemsoat_schema_lock = Lock()
 _brcd_kiemsoat_schema_ready_path = None
 
@@ -151,6 +171,47 @@ def _ensure_brcd_kiemsoat_schema():
             conn.execute(
                 'CREATE INDEX IF NOT EXISTS idx_brcd_phieu_doi_vt ON brcd_phieu(doi_vt)'
             )
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS pttb_kiemsoat (
+                    ma_thue_bao TEXT PRIMARY KEY,
+                    loaihinh_tb TEXT,
+                    doi_vt TEXT,
+                    nhanvien_tiepthi TEXT,
+                    noi_dung_kiem_soat TEXT NOT NULL DEFAULT '',
+                    nguoi_nhap TEXT,
+                    thoi_diem_nhap TEXT,
+                    thoi_diem_cap_nhat TEXT
+                )
+                '''
+            )
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS pttb_phieu (
+                    ma_thue_bao        TEXT PRIMARY KEY,
+                    ten_thuebao        TEXT,
+                    diachi_lapdat       TEXT,
+                    loaihinh_tb        TEXT,
+                    nhanvien_tiepthi   TEXT,
+                    doi_vt             TEXT,
+                    ten_kv             TEXT,
+                    ngayhen_den        TEXT,
+                    noidung_hen        TEXT,
+                    chitieu_tg         REAL,
+                    gio_conlai         REAL,
+                    trang_thai         TEXT,
+                    sheet              TEXT,
+                    first_seen         TEXT,
+                    last_seen          TEXT
+                )
+                '''
+            )
+            conn.execute(
+                'CREATE INDEX IF NOT EXISTS idx_pttb_phieu_last_seen ON pttb_phieu(last_seen)'
+            )
+            conn.execute(
+                'CREATE INDEX IF NOT EXISTS idx_pttb_phieu_doi_vt ON pttb_phieu(doi_vt)'
+            )
         _brcd_kiemsoat_schema_ready_path = db_path
 
 
@@ -172,6 +233,26 @@ def get_brcd_kiemsoat_map(baohong_ids):
             ids,
         ).fetchall()
     return {row['baohong_id']: dict(row) for row in rows}
+
+
+def get_pttb_kiemsoat_map(ma_thue_bao_list):
+    """Trả dict {ma_thue_bao(str): row(dict)} cho danh sách mã thuê bao đang tồn."""
+    _ensure_brcd_kiemsoat_schema()
+    ids = [str(i) for i in ma_thue_bao_list if i is not None]
+    if not ids:
+        return {}
+    placeholders = ', '.join('?' for _ in ids)
+    with _brcd_kiemsoat_read_connection() as conn:
+        rows = conn.execute(
+            f'''
+            SELECT ma_thue_bao, loaihinh_tb, doi_vt, nhanvien_tiepthi,
+                   noi_dung_kiem_soat, nguoi_nhap, thoi_diem_nhap, thoi_diem_cap_nhat
+            FROM pttb_kiemsoat
+            WHERE ma_thue_bao IN ({placeholders})
+            ''',
+            ids,
+        ).fetchall()
+    return {row['ma_thue_bao']: dict(row) for row in rows}
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +372,131 @@ def _sync_brcd_phieu_to_db():
                 for _, row in df.iterrows():
                     params = _phieu_row_to_params(row, sheet, now_iso)
                     conn.execute(_BRCD_PHIEU_UPSERT_SQL, params)
+
+        new_count = len(all_ids - existing_ids)
+        updated_count = len(all_ids & existing_ids)
+        return {
+            'synced': len(all_ids),
+            'new': new_count,
+            'updated': updated_count,
+            'skipped': 0,
+            'reason': '',
+        }
+    except sqlite3.OperationalError as e:
+        msg = str(e).lower()
+        if 'locked' in msg or 'busy' in msg:
+            return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1, 'reason': 'db_locked'}
+        raise
+
+
+# ---------------------------------------------------------------------------
+# Snapshot PTTB vào pttb_phieu (lịch sử phiếu PTTB)
+# ---------------------------------------------------------------------------
+
+_PTTB_PHIEU_UPSERT_SQL = """
+    INSERT INTO pttb_phieu (
+        ma_thue_bao, ten_thuebao, diachi_lapdat, loaihinh_tb,
+        nhanvien_tiepthi, doi_vt, ten_kv, ngayhen_den,
+        noidung_hen, chitieu_tg, gio_conlai, trang_thai,
+        sheet, first_seen, last_seen
+    )
+    VALUES (
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?, ?,
+        ?, ?, ?
+    )
+    ON CONFLICT(ma_thue_bao) DO UPDATE SET
+        ten_thuebao = excluded.ten_thuebao,
+        diachi_lapdat = excluded.diachi_lapdat,
+        loaihinh_tb = excluded.loaihinh_tb,
+        nhanvien_tiepthi = excluded.nhanvien_tiepthi,
+        doi_vt = excluded.doi_vt,
+        ten_kv = excluded.ten_kv,
+        ngayhen_den = excluded.ngayhen_den,
+        noidung_hen = excluded.noidung_hen,
+        chitieu_tg = excluded.chitieu_tg,
+        gio_conlai = excluded.gio_conlai,
+        trang_thai = excluded.trang_thai,
+        sheet = excluded.sheet,
+        last_seen = excluded.last_seen
+"""
+
+
+def _pttb_phieu_row_to_params(row, sheet, now_iso):
+    """Map 1 dòng Excel (Series) sang tuple params cho UPSERT PTTB."""
+    def _val(col):
+        v = row.get(col)
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return None
+        return v
+    return (
+        str(row['ma_thue_bao']),
+        _val('ten_thuebao'),
+        _val('diachi_lapdat'),
+        _val('loaihinh_tb'),
+        _val('nhanvien_tiepthi'),
+        _val('doi_vt'),
+        _val('ten_kv'),
+        _val('ngayhen_den'),
+        _val('noidung_hen'),
+        _val('chitieu_tg'),
+        _val('gio_conlai'),
+        _val('trang_thai'),
+        sheet,
+        now_iso,
+        now_iso,
+    )
+
+
+def _sync_pttb_phieu_to_db():
+    """Đọc PTTB hiện tại (Excel), upsert vào pttb_phieu.
+
+    Idempotent. Không raise khi Excel thiếu hoặc DB lock — trả dict với skipped=1.
+    Trả: {'synced': N, 'new': M, 'updated': K, 'skipped': 0|1, 'reason': str}
+    """
+    if not os.path.exists(PTTB_SUMMARY_FILE):
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1, 'reason': 'excel_missing'}
+    _ensure_brcd_kiemsoat_schema()
+
+    try:
+        all_sheets = pd.ExcelFile(PTTB_SUMMARY_FILE).sheet_names
+        team_sheets = [s for s in all_sheets if s in PTTB_TEAM_SHEETS]
+    except Exception:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1, 'reason': 'excel_unreadable'}
+
+    incoming = []
+    for sheet in team_sheets:
+        df = read_excel_sheet_cached(PTTB_SUMMARY_FILE, sheet)
+        cols = [c for c in PTTB_KIEMSOAT_DISPLAY_COLUMNS if c in df.columns]
+        df = df[cols].copy()
+        df = df.dropna(subset=['ma_thue_bao']).copy()
+        df['ma_thue_bao'] = df['ma_thue_bao'].astype(str)
+        if len(df):
+            incoming.append((sheet, df))
+
+    if not incoming:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 0, 'reason': ''}
+
+    all_ids = set()
+    for _, df in incoming:
+        all_ids.update(df['ma_thue_bao'].tolist())
+
+    now_iso = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        with _brcd_kiemsoat_write_connection() as conn:
+            placeholders = ', '.join('?' for _ in all_ids)
+            existing_rows = conn.execute(
+                f'SELECT ma_thue_bao FROM pttb_phieu WHERE ma_thue_bao IN ({placeholders})',
+                list(all_ids),
+            ).fetchall()
+            existing_ids = {r['ma_thue_bao'] for r in existing_rows}
+
+            for sheet, df in incoming:
+                for _, row in df.iterrows():
+                    params = _pttb_phieu_row_to_params(row, sheet, now_iso)
+                    conn.execute(_PTTB_PHIEU_UPSERT_SQL, params)
 
         new_count = len(all_ids - existing_ids)
         updated_count = len(all_ids & existing_ids)
@@ -838,6 +1044,58 @@ def api_brcd_kiemsoat_luu():
         return jsonify({'ok': False, 'error': str(exc)}), 500
 
     return jsonify({'ok': True, 'baohong_id': baohong_id, 'noi_dung': noi_dung, 'nguoi_nhap': username})
+
+
+@operations_bp.route('/api/pttb-kiemsoat/luu', methods=['POST'])
+@login_required
+def api_pttb_kiemsoat_luu():
+    payload = request.get_json(silent=True) or {}
+    ma_thue_bao = str(payload.get('ma_thue_bao') or '').strip()
+    if not ma_thue_bao:
+        return jsonify({'ok': False, 'error': 'ma_thue_bao không hợp lệ'}), 400
+
+    noi_dung = str(payload.get('noi_dung') or '').strip()
+    if len(noi_dung) > PTTB_KIEMSOAT_NOI_DUNG_MAX:
+        return jsonify({'ok': False, 'error': 'Nội dung không được vượt quá 2000 ký tự'}), 400
+
+    loaihinh_tb = str(payload.get('loaihinh_tb') or '')
+    doi_vt = str(payload.get('doi_vt') or '')
+    nhanvien_tiepthi = str(payload.get('nhanvien_tiepthi') or '')
+    username = session.get('username') or ''
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    _ensure_brcd_kiemsoat_schema()
+    try:
+        with _brcd_kiemsoat_write_connection() as conn:
+            if not noi_dung:
+                conn.execute('DELETE FROM pttb_kiemsoat WHERE ma_thue_bao = ?', (ma_thue_bao,))
+                return jsonify({'ok': True, 'ma_thue_bao': ma_thue_bao, 'noi_dung': '', 'nguoi_nhap': ''})
+
+            existing = conn.execute(
+                'SELECT thoi_diem_nhap FROM pttb_kiemsoat WHERE ma_thue_bao = ?',
+                (ma_thue_bao,),
+            ).fetchone()
+            thoi_diem_nhap = existing['thoi_diem_nhap'] if existing else now
+            conn.execute(
+                '''
+                INSERT INTO pttb_kiemsoat
+                    (ma_thue_bao, loaihinh_tb, doi_vt, nhanvien_tiepthi, noi_dung_kiem_soat,
+                     nguoi_nhap, thoi_diem_nhap, thoi_diem_cap_nhat)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(ma_thue_bao) DO UPDATE SET
+                    loaihinh_tb = excluded.loaihinh_tb,
+                    doi_vt = excluded.doi_vt,
+                    nhanvien_tiepthi = excluded.nhanvien_tiepthi,
+                    noi_dung_kiem_soat = excluded.noi_dung_kiem_soat,
+                    nguoi_nhap = excluded.nguoi_nhap,
+                    thoi_diem_cap_nhat = excluded.thoi_diem_cap_nhat
+                ''',
+                (ma_thue_bao, loaihinh_tb, doi_vt, nhanvien_tiepthi, noi_dung, username, thoi_diem_nhap, now),
+            )
+    except sqlite3.Error as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 500
+
+    return jsonify({'ok': True, 'ma_thue_bao': ma_thue_bao, 'noi_dung': noi_dung, 'nguoi_nhap': username})
 
 
 def _load_brcd_kiemsoat_df():
