@@ -918,6 +918,75 @@ def _apply_brcd_kiemsoat_filters(df, args):
     return filtered
 
 
+def _compute_lich_su(filtered_df, args):
+    """Tính 'phiếu đã rời tồn' từ snapshot brcd_phieu trong khoảng thời gian.
+
+    "Rời tồn" = có trong brcd_phieu (trong khoảng) nhưng KHÔNG có trong
+    current universe (filtered_df). Filter doi/loaihinh áp dụng cho snapshot.
+    """
+    from datetime import date, timedelta
+
+    khoang = (args.get('khoang') or 'thang_nay').strip()
+    today = date.today()
+    if khoang == 'tuan_nay':
+        tu_ngay = today - timedelta(days=today.weekday())  # thứ 2
+        den_ngay = today
+    elif khoang == 'nam_nay':
+        tu_ngay = today.replace(month=1, day=1)
+        den_ngay = today
+    elif khoang == 'tat_ca':
+        tu_ngay = date(1970, 1, 1)
+        den_ngay = today
+    else:  # thang_nay (default)
+        tu_ngay = today.replace(day=1)
+        den_ngay = today
+
+    # Current universe IDs (sau filter doi/loaihinh/nhom)
+    current_ids = set()
+    if filtered_df is not None and 'baohong_id' in filtered_df.columns:
+        current_ids = set(filtered_df['baohong_id'].astype(int).tolist())
+
+    sql = ("SELECT baohong_id FROM brcd_phieu "
+           "WHERE DATE(last_seen) >= ? AND DATE(last_seen) <= ?")
+    params = [tu_ngay.isoformat(), den_ngay.isoformat()]
+
+    doi = args.get('doi')
+    if doi:
+        sql += " AND doi_vt = ?"
+        params.append(doi)
+    loaihinh = args.get('loaihinh')
+    if loaihinh:
+        sql += " AND loaihinh_tb = ?"
+        params.append(loaihinh)
+
+    _ensure_brcd_kiemsoat_schema()
+    with _brcd_kiemsoat_read_connection() as conn:
+        snap_rows = conn.execute(sql, params).fetchall()
+        snap_ids = {r['baohong_id'] for r in snap_rows}
+
+        ks_ids = set()
+        if snap_ids:
+            placeholders = ', '.join('?' for _ in snap_ids)
+            ks_rows = conn.execute(
+                f"SELECT baohong_id FROM brcd_kiemsoat "
+                f"WHERE baohong_id IN ({placeholders}) "
+                f"AND COALESCE(noi_dung_kiem_soat, '') != ''",
+                list(snap_ids),
+            ).fetchall()
+            ks_ids = {r['baohong_id'] for r in ks_rows}
+
+    roi_ids = snap_ids - current_ids
+    roi_da_ks = len(roi_ids & ks_ids)
+    roi_chua_ks = len(roi_ids - ks_ids)
+
+    return {
+        'tu_ngay': tu_ngay.isoformat(),
+        'den_ngay': den_ngay.isoformat(),
+        'roi_da_ks': roi_da_ks,
+        'roi_chua_ks': roi_chua_ks,
+    }
+
+
 @operations_bp.route('/api/brcd-kiemsoat/detail')
 @login_required
 def api_brcd_kiemsoat_detail():
@@ -976,6 +1045,7 @@ def api_brcd_kiemsoat_thongke():
         'by_doi': _agg('DOI_VT'),
         'by_nvkt': _agg('NVKT'),
         'chi_tiet': chi_tiet,
+        'lich_su': _compute_lich_su(filtered, request.args),
     })
 
 

@@ -1,6 +1,7 @@
 import os
 import sqlite3
 import sys
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -268,3 +269,100 @@ print(result)
     conn = sqlite3.connect(db_path)
     assert conn.execute('SELECT COUNT(*) FROM brcd_phieu').fetchone()[0] == 2
     conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Task 4: thongke lich_su
+# ---------------------------------------------------------------------------
+
+
+def _seed_phieu_with_history(tmp_path, monkeypatch, db_path):
+    """Tạo kịch bản:
+    - Phiếu 11795318: rời tồn trong tháng này, ĐÃ kiểm soát
+    - Phiếu 11796115: rời tồn trong tháng này, CHƯA kiểm soát
+    - Phiếu 11797000: vẫn còn trong tồn (current universe)
+    """
+    rows = _detail_rows() + [{
+        'baohong_id': 11797000, 'ma_tb': 'tb3', 'TEN_TB': 'NV C', 'DIACHI_LD': 'DC3',
+        'LOAIHINH_TB': 'Fiber', 'GHICHU_HONG': 'h3', 'NVKT': 'NV3', 'DOI_VT': 'ToKT_SonTay',
+        'ngay_bh': '2026-06-24 08:00', 'Trạng thái cổng': 'ON', 'ttvt_ton': 'x',
+        'chitieu_tg': 8, 'thời gian tồn thực': 1.0, 'giờ còn lại thực': 7.0,
+    }]
+    _write_fake_brcd_detail(tmp_path, monkeypatch, rows)
+
+    # Trigger sync (tất cả 3 phiếu có first_seen=last_seen=now)
+    operations_routes._sync_brcd_phieu_to_db()
+
+    # Fake last_seen của 2 phiếu "rời tồn" về quá khứ (trong tháng này)
+    today = date.today()
+    past_iso = today.replace(day=max(1, today.day - 3)).strftime('%Y-%m-%d 10:00:00')
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "UPDATE brcd_phieu SET last_seen = ? WHERE baohong_id IN (?, ?)",
+        (past_iso, 11795318, 11796115),
+    )
+    conn.commit()
+    conn.close()
+
+    # Excel "hiện tại" giờ chỉ còn phiếu 11797000 — mô phỏng 2 phiếu kia đã xử lý xong
+    _write_fake_brcd_detail(tmp_path, monkeypatch, [rows[2]])
+
+    # Trigger sync lại để cập nhật last_seen của 11797000 = now
+    operations_routes._sync_brcd_phieu_to_db()
+
+    # Add kiemsoat cho phiếu 11795318 (đã kiểm soát trước khi rời)
+    _logged_in_client().post(
+        '/api/brcd-kiemsoat/luu',
+        json={'baohong_id': 11795318, 'doi_vt': 'ToKT_SonTay', 'nvkt': 'NV1', 'noi_dung': 'done'},
+    )
+    # Excel cần chứa 11795318 để POST luu ghi annotation được — viết lại Excel với cả 3
+    _write_fake_brcd_detail(tmp_path, monkeypatch, rows)
+    _logged_in_client().post(
+        '/api/brcd-kiemsoat/luu',
+        json={'baohong_id': 11795318, 'doi_vt': 'ToKT_SonTay', 'nvkt': 'NV1', 'noi_dung': 'done'},
+    )
+
+    # Cuối cùng: Excel chỉ còn 11797000 (mô phỏng real state)
+    _write_fake_brcd_detail(tmp_path, monkeypatch, [rows[2]])
+
+
+def test_thongke_returns_lich_su_default_thang_nay(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    _seed_phieu_with_history(tmp_path, monkeypatch, db_path)
+
+    response = _logged_in_client().get('/api/brcd-kiemsoat/thongke')
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert 'lich_su' in payload
+    ls = payload['lich_su']
+    assert ls['roi_da_ks'] == 1   # 11795318 đã KS rồi rời
+    assert ls['roi_chua_ks'] == 1  # 11796115 rời mà chưa KS
+
+
+def test_thongke_lich_su_filter_khoang_tat_ca(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    _seed_phieu_with_history(tmp_path, monkeypatch, db_path)
+
+    response = _logged_in_client().get('/api/brcd-kiemsoat/thongke?khoang=tat_ca')
+
+    payload = response.get_json()
+    ls = payload['lich_su']
+    # tat_ca không giới hạn date → 2 phiếu rời tồn vẫn đếm
+    assert ls['roi_da_ks'] + ls['roi_chua_ks'] == 2
+
+
+def test_thongke_lich_su_filter_doi_applies(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    _seed_phieu_with_history(tmp_path, monkeypatch, db_path)
+
+    response = _logged_in_client().get('/api/brcd-kiemsoat/thongke?doi=ToKT_SonTay')
+
+    payload = response.get_json()
+    ls = payload['lich_su']
+    assert ls['roi_da_ks'] + ls['roi_chua_ks'] == 2
+
+    # Đội khác → 0
+    response2 = _logged_in_client().get('/api/brcd-kiemsoat/thongke?doi=ToKT_PhucTho')
+    ls2 = response2.get_json()['lich_su']
+    assert ls2['roi_da_ks'] + ls2['roi_chua_ks'] == 0
