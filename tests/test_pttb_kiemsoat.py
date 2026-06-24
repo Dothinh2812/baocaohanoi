@@ -26,9 +26,9 @@ def _logged_in_client():
 
 
 _PTTB_COLUMNS = [
-    'ma_thue_bao', 'ten_thuebao', 'diachi_lapdat', 'loaihinh_tb',
-    'nhanvien_tiepthi', 'doi_vt', 'ten_kv', 'ngayhen_den',
-    'noidung_hen', 'chitieu_tg', 'gio_conlai', 'trang_thai',
+    'MA_THUE_BAO', 'TEN_THUEBAO', 'DIACHI_LAPDAT', 'LOAIHINH_TB',
+    'NHANVIEN_TIEPTHI', 'DOI_VT', 'TEN_KV', 'NGAYHEN_DEN',
+    'NOIDUNG_HEN', 'chitieu_tg', 'gio_conlai', 'trang_thai',
 ]
 
 
@@ -45,19 +45,19 @@ def _write_fake_pttb(tmp_path, monkeypatch, rows):
 def _pttb_rows():
     return [
         {
-            'ma_thue_bao': 'fbr00ec1h', 'ten_thuebao': 'Nguyễn Văn A',
-            'diachi_lapdat': 'DC1', 'loaihinh_tb': 'Fiber',
-            'nhanvien_tiepthi': 'NV1', 'doi_vt': 'ToKT_SonTay',
-            'ten_kv': 'KV1', 'ngayhen_den': '2026-06-25',
-            'noidung_hen': 'Hẹn lắp', 'chitieu_tg': 24,
+            'MA_THUE_BAO': 'fbr00ec1h', 'TEN_THUEBAO': 'Nguyễn Văn A',
+            'DIACHI_LAPDAT': 'DC1', 'LOAIHINH_TB': 'Fiber',
+            'NHANVIEN_TIEPTHI': 'NV1', 'DOI_VT': 'ToKT_SonTay',
+            'TEN_KV': 'KV1', 'NGAYHEN_DEN': '2026-06-25',
+            'NOIDUNG_HEN': 'Hẹn lắp', 'chitieu_tg': 24,
             'gio_conlai': -50.0, 'trang_thai': 'Quá giờ',
         },
         {
-            'ma_thue_bao': 'cam00ai4o', 'ten_thuebao': 'Trần Văn B',
-            'diachi_lapdat': 'DC2', 'loaihinh_tb': 'MyTV',
-            'nhanvien_tiepthi': 'NV2', 'doi_vt': 'ToKT_SonTay',
-            'ten_kv': 'KV2', 'ngayhen_den': '2026-06-26',
-            'noidung_hen': 'Hẹn sửa', 'chitieu_tg': 24,
+            'MA_THUE_BAO': 'cam00ai4o', 'TEN_THUEBAO': 'Trần Văn B',
+            'DIACHI_LAPDAT': 'DC2', 'LOAIHINH_TB': 'MyTV',
+            'NHANVIEN_TIEPTHI': 'NV2', 'DOI_VT': 'ToKT_SonTay',
+            'TEN_KV': 'KV2', 'NGAYHEN_DEN': '2026-06-26',
+            'NOIDUNG_HEN': 'Hẹn sửa', 'chitieu_tg': 24,
             'gio_conlai': 5.0, 'trang_thai': 'Bình thường',
         },
     ]
@@ -222,7 +222,7 @@ def test_pttb_detail_joins_annotation(tmp_path, monkeypatch):
     payload = response.get_json()
     assert 'ToKT_SonTay' in payload['sheets']
     rows = payload['sheets']['ToKT_SonTay']['data']
-    by_id = {r['ma_thue_bao']: r for r in rows}
+    by_id = {r['MA_THUE_BAO']: r for r in rows}
     assert by_id['fbr00ec1h']['kiemsoat_da_nhap'] is True
     assert by_id['fbr00ec1h']['kiemsoat_noi_dung'] == 'Đã liên hệ'
     assert by_id['cam00ai4o']['kiemsoat_da_nhap'] is False
@@ -276,11 +276,11 @@ def test_pttb_thongke_by_doi_and_by_nvkt(tmp_path, monkeypatch):
     _prepare_db(tmp_path, monkeypatch)
     rows = _pttb_rows() + [
         {
-            'ma_thue_bao': 'ext00zz99', 'ten_thuebao': 'Lê Văn C',
-            'diachi_lapdat': 'DC3', 'loaihinh_tb': 'Fiber',
-            'nhanvien_tiepthi': 'NV1', 'doi_vt': 'ToKT_SuoiHai',
-            'ten_kv': 'KV3', 'ngayhen_den': '2026-06-27',
-            'noidung_hen': 'Hẹn mới', 'chitieu_tg': 48,
+            'MA_THUE_BAO': 'ext00zz99', 'TEN_THUEBAO': 'Lê Văn C',
+            'DIACHI_LAPDAT': 'DC3', 'LOAIHINH_TB': 'Fiber',
+            'NHANVIEN_TIEPTHI': 'NV1', 'DOI_VT': 'ToKT_SuoiHai',
+            'TEN_KV': 'KV3', 'NGAYHEN_DEN': '2026-06-27',
+            'NOIDUNG_HEN': 'Hẹn mới', 'chitieu_tg': 48,
             'gio_conlai': 10.0, 'trang_thai': 'Bình thường',
         },
     ]
@@ -289,11 +289,11 @@ def test_pttb_thongke_by_doi_and_by_nvkt(tmp_path, monkeypatch):
     response = _logged_in_client().get('/api/pttb-kiemsoat/thongke')
     payload = response.get_json()
 
-    doi_names = [d['doi_vt'] for d in payload['by_doi']]
+    doi_names = [d['DOI_VT'] for d in payload['by_doi']]
     assert 'ToKT_SonTay' in doi_names
     assert 'ToKT_SuoiHai' in doi_names
 
-    nvkt_names = [d['nhanvien_tiepthi'] for d in payload['by_nvkt']]
+    nvkt_names = [d['NHANVIEN_TIEPTHI'] for d in payload['by_nvkt']]
     assert 'NV1' in nvkt_names
     assert 'NV2' in nvkt_names
 
@@ -302,11 +302,11 @@ def test_pttb_thongke_filter_by_doi(tmp_path, monkeypatch):
     _prepare_db(tmp_path, monkeypatch)
     rows = _pttb_rows() + [
         {
-            'ma_thue_bao': 'ext00zz99', 'ten_thuebao': 'Lê Văn C',
-            'diachi_lapdat': 'DC3', 'loaihinh_tb': 'Fiber',
-            'nhanvien_tiepthi': 'NV3', 'doi_vt': 'ToKT_SuoiHai',
-            'ten_kv': 'KV3', 'ngayhen_den': '2026-06-27',
-            'noidung_hen': 'Hẹn mới', 'chitieu_tg': 48,
+            'MA_THUE_BAO': 'ext00zz99', 'TEN_THUEBAO': 'Lê Văn C',
+            'DIACHI_LAPDAT': 'DC3', 'LOAIHINH_TB': 'Fiber',
+            'NHANVIEN_TIEPTHI': 'NV3', 'DOI_VT': 'ToKT_SuoiHai',
+            'TEN_KV': 'KV3', 'NGAYHEN_DEN': '2026-06-27',
+            'NOIDUNG_HEN': 'Hẹn mới', 'chitieu_tg': 48,
             'gio_conlai': 10.0, 'trang_thai': 'Bình thường',
         },
     ]

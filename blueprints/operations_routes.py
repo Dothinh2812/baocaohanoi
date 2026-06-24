@@ -80,15 +80,15 @@ BRCD_KIEMSOAT_NOI_DUNG_MAX = 2000
 # ---------------------------------------------------------------------------
 PTTB_TEAM_SHEETS = ['ToKT_SonTay', 'ToKT_SuoiHai', 'ToKT_QuangOai', 'ToKT_PhucTho']
 PTTB_KIEMSOAT_DISPLAY_COLUMNS = [
-    'ma_thue_bao',
-    'ten_thuebao',
-    'diachi_lapdat',
-    'loaihinh_tb',
-    'nhanvien_tiepthi',
-    'doi_vt',
-    'ten_kv',
-    'ngayhen_den',
-    'noidung_hen',
+    'MA_THUE_BAO',
+    'TEN_THUEBAO',
+    'DIACHI_LAPDAT',
+    'LOAIHINH_TB',
+    'NHANVIEN_TIEPTHI',
+    'DOI_VT',
+    'TEN_KV',
+    'NGAYHEN_DEN',
+    'NOIDUNG_HEN',
     'chitieu_tg',
     'gio_conlai',
     'trang_thai',
@@ -431,15 +431,15 @@ def _pttb_phieu_row_to_params(row, sheet, now_iso):
             return None
         return v
     return (
-        str(row['ma_thue_bao']),
-        _val('ten_thuebao'),
-        _val('diachi_lapdat'),
-        _val('loaihinh_tb'),
-        _val('nhanvien_tiepthi'),
-        _val('doi_vt'),
-        _val('ten_kv'),
-        _val('ngayhen_den'),
-        _val('noidung_hen'),
+        str(row['MA_THUE_BAO']),
+        _val('TEN_THUEBAO'),
+        _val('DIACHI_LAPDAT'),
+        _val('LOAIHINH_TB'),
+        _val('NHANVIEN_TIEPTHI'),
+        _val('DOI_VT'),
+        _val('TEN_KV'),
+        _val('NGAYHEN_DEN'),
+        _val('NOIDUNG_HEN'),
         _val('chitieu_tg'),
         _val('gio_conlai'),
         _val('trang_thai'),
@@ -470,8 +470,8 @@ def _sync_pttb_phieu_to_db():
         df = read_excel_sheet_cached(PTTB_SUMMARY_FILE, sheet)
         cols = [c for c in PTTB_KIEMSOAT_DISPLAY_COLUMNS if c in df.columns]
         df = df[cols].copy()
-        df = df.dropna(subset=['ma_thue_bao']).copy()
-        df['ma_thue_bao'] = df['ma_thue_bao'].astype(str)
+        df = df.dropna(subset=['MA_THUE_BAO']).copy()
+        df['MA_THUE_BAO'] = df['MA_THUE_BAO'].astype(str)
         if len(df):
             incoming.append((sheet, df))
 
@@ -480,7 +480,7 @@ def _sync_pttb_phieu_to_db():
 
     all_ids = set()
     for _, df in incoming:
-        all_ids.update(df['ma_thue_bao'].tolist())
+        all_ids.update(df['MA_THUE_BAO'].tolist())
 
     now_iso = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
@@ -1120,28 +1120,28 @@ def _load_pttb_kiemsoat_df():
         cols = [c for c in PTTB_KIEMSOAT_DISPLAY_COLUMNS if c in df.columns]
         df = df[cols].copy()
         df['_sheet'] = sheet
-        df['ma_thue_bao'] = df['ma_thue_bao'].astype(str)
+        df['MA_THUE_BAO'] = df['MA_THUE_BAO'].astype(str)
         frames.append(df)
 
     if not frames:
         return None
 
-    combined = pd.concat(frames, ignore_index=True).dropna(subset=['ma_thue_bao']).copy()
-    combined['ma_thue_bao'] = combined['ma_thue_bao'].astype(str)
+    combined = pd.concat(frames, ignore_index=True).dropna(subset=['MA_THUE_BAO']).copy()
+    combined['MA_THUE_BAO'] = combined['MA_THUE_BAO'].astype(str)
 
-    kiemsoat_map = get_pttb_kiemsoat_map(combined['ma_thue_bao'].unique().tolist())
+    kiemsoat_map = get_pttb_kiemsoat_map(combined['MA_THUE_BAO'].unique().tolist())
     ks_keys = set(kiemsoat_map.keys())
-    combined['kiemsoat_noi_dung'] = combined['ma_thue_bao'].map(
+    combined['kiemsoat_noi_dung'] = combined['MA_THUE_BAO'].map(
         lambda i: kiemsoat_map.get(i, {}).get('noi_dung_kiem_soat', '')
     )
-    combined['kiemsoat_nguoi_nhap'] = combined['ma_thue_bao'].map(
+    combined['kiemsoat_nguoi_nhap'] = combined['MA_THUE_BAO'].map(
         lambda i: kiemsoat_map.get(i, {}).get('nguoi_nhap', '')
     )
-    combined['kiemsoat_thoi_diem'] = combined['ma_thue_bao'].map(
+    combined['kiemsoat_thoi_diem'] = combined['MA_THUE_BAO'].map(
         lambda i: kiemsoat_map.get(i, {}).get('thoi_diem_cap_nhat')
         or kiemsoat_map.get(i, {}).get('thoi_diem_nhap', '')
     )
-    combined['kiemsoat_da_nhap'] = combined['ma_thue_bao'].isin(ks_keys)
+    combined['kiemsoat_da_nhap'] = combined['MA_THUE_BAO'].isin(ks_keys)
 
     for col in ('chitieu_tg', 'gio_conlai'):
         if col in combined.columns:
@@ -1154,12 +1154,12 @@ def _apply_pttb_kiemsoat_filters(df, args):
     """Lọc DataFrame PTTB theo query args."""
     filtered = df
     doi = args.get('doi')
-    if doi and 'doi_vt' in filtered.columns:
-        filtered = filtered[filtered['doi_vt'].astype(str) == doi]
+    if doi and 'DOI_VT' in filtered.columns:
+        filtered = filtered[filtered['DOI_VT'].astype(str) == doi]
 
     loaihinh = args.get('loaihinh')
-    if loaihinh and 'loaihinh_tb' in filtered.columns:
-        filtered = filtered[filtered['loaihinh_tb'].astype(str) == loaihinh]
+    if loaihinh and 'LOAIHINH_TB' in filtered.columns:
+        filtered = filtered[filtered['LOAIHINH_TB'].astype(str) == loaihinh]
 
     nhom = args.get('nhom')
     if nhom and 'gio_conlai' in filtered.columns:
@@ -1200,8 +1200,8 @@ def _compute_pttb_lich_su(filtered_df, args):
         den_ngay = today
 
     current_ids = set()
-    if filtered_df is not None and 'ma_thue_bao' in filtered_df.columns:
-        current_ids = set(filtered_df['ma_thue_bao'].astype(str).tolist())
+    if filtered_df is not None and 'MA_THUE_BAO' in filtered_df.columns:
+        current_ids = set(filtered_df['MA_THUE_BAO'].astype(str).tolist())
 
     sql = ("SELECT ma_thue_bao FROM pttb_phieu "
            "WHERE DATE(last_seen) >= ? AND DATE(last_seen) <= ?")
@@ -1302,8 +1302,8 @@ def api_pttb_kiemsoat_thongke():
             'chua': chua,
             'ty_le': ty_le,
         },
-        'by_doi': _agg('doi_vt'),
-        'by_nvkt': _agg('nhanvien_tiepthi'),
+        'by_doi': _agg('DOI_VT'),
+        'by_nvkt': _agg('NHANVIEN_TIEPTHI'),
         'chi_tiet': chi_tiet,
         'lich_su': _compute_pttb_lich_su(filtered, request.args),
     })

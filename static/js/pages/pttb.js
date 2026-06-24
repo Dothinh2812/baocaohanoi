@@ -374,20 +374,20 @@ function initPTTBChitietToTabs() {
    ======================================== */
 
 const PTTB_KS_DISPLAY_COLS = [
-    'ma_thue_bao', 'ten_thuebao', 'diachi_lapdat', 'loaihinh_tb',
-    'nhanvien_tiepthi', 'doi_vt', 'ten_kv', 'ngayhen_den',
-    'noidung_hen', 'chitieu_tg', 'gio_conlai', 'trang_thai',
+    'MA_THUE_BAO', 'TEN_THUEBAO', 'DIACHI_LAPDAT', 'LOAIHINH_TB',
+    'NHANVIEN_TIEPTHI', 'DOI_VT', 'TEN_KV', 'NGAYHEN_DEN',
+    'NOIDUNG_HEN', 'chitieu_tg', 'gio_conlai', 'trang_thai',
 ];
 const PTTB_KS_DISPLAY_LABELS = {
-    'ma_thue_bao': 'Mã TB', 'ten_thuebao': 'Khách hàng', 'diachi_lapdat': 'Địa chỉ',
-    'loaihinh_tb': 'Loại', 'nhanvien_tiepthi': 'NVTT', 'doi_vt': 'Tổ',
-    'ten_kv': 'Khu vực', 'ngayhen_den': 'Ngày hẹn', 'noidung_hen': 'Nội dung hẹn',
+    'MA_THUE_BAO': 'Mã TB', 'TEN_THUEBAO': 'Khách hàng', 'DIACHI_LAPDAT': 'Địa chỉ',
+    'LOAIHINH_TB': 'Loại', 'NHANVIEN_TIEPTHI': 'NVTT', 'DOI_VT': 'Tổ',
+    'TEN_KV': 'Khu vực', 'NGAYHEN_DEN': 'Ngày hẹn', 'NOIDUNG_HEN': 'Nội dung hẹn',
     'chitieu_tg': 'Chỉ tiêu', 'gio_conlai': 'Giờ còn lại', 'trang_thai': 'Trạng thái',
 };
 const PTTB_KS_COL_WIDTHS = {
-    'ma_thue_bao': '7%', 'ten_thuebao': '10%', 'diachi_lapdat': '12%',
-    'loaihinh_tb': '6%', 'nhanvien_tiepthi': '7%', 'doi_vt': '7%',
-    'ten_kv': '7%', 'ngayhen_den': '8%', 'noidung_hen': '10%',
+    'MA_THUE_BAO': '7%', 'TEN_THUEBAO': '10%', 'DIACHI_LAPDAT': '12%',
+    'LOAIHINH_TB': '6%', 'NHANVIEN_TIEPTHI': '7%', 'DOI_VT': '7%',
+    'TEN_KV': '7%', 'NGAYHEN_DEN': '8%', 'NOIDUNG_HEN': '10%',
     'chitieu_tg': '5%', 'gio_conlai': '6%', 'trang_thai': '7%',
 };
 
@@ -474,7 +474,7 @@ function renderPttbKiemSoatDetail(data) {
     const headers = PTTB_KS_DISPLAY_COLS.map(c => `<th>${PTTB_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
     const body = allRows.map(row => {
         const cells = PTTB_KS_DISPLAY_COLS.map(c => `<td>${row[c] != null ? row[c] : ''}</td>`).join('');
-        const maTb = row.ma_thue_bao;
+        const maTb = row.MA_THUE_BAO;
         const noiDung = (row.kiemsoat_noi_dung || '').toString()
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `
@@ -482,7 +482,7 @@ function renderPttbKiemSoatDetail(data) {
                 ${cells}
                 <td class="pttb-ks-cell">
                     <textarea class="pttb-ks-input" rows="2" data-ma_tb="${maTb}"
-                        data-loai="${row.loaihinh_tb || ''}" data-doi="${row.doi_vt || ''}" data-nvtt="${row.nhanvien_tiepthi || ''}">${noiDung}</textarea>
+                        data-loai="${row.LOAIHINH_TB || ''}" data-doi="${row.DOI_VT || ''}" data-nvtt="${row.NHANVIEN_TIEPTHI || ''}">${noiDung}</textarea>
                     <button class="pttb-ks-save-btn" onclick="savePttbKiemSoat('${maTb}')">Lưu</button>
                     <span class="pttb-ks-status" id="pttb-ks-status-${maTb}">${_buildPttbKsBadge(row)}</span>
                 </td>
