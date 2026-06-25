@@ -33,6 +33,11 @@
         margin-top: 4px;
     }
 
+    .shc-cts-progress-measured-at {
+        color: #dc3545;
+        font-weight: 700;
+    }
+
     .shc-cts-progress-chart-legend {
         color: #4c6254;
         display: flex;
@@ -74,6 +79,33 @@
             height: 420px;
         }
     }
+    .shc-cts-ks-filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+    .shc-cts-ks-filters label { font-size:0.85rem; color:#3a4a5e; }
+    .shc-cts-ks-filters select, .shc-cts-ks-filters input[type=date] {
+        padding:4px 8px; border:1px solid #c4d0e0; border-radius:4px;
+    }
+    .shc-cts-ks-cards { display:flex; gap:12px; flex-wrap:wrap; }
+    .shc-cts-ks-card {
+        background:#fff; border:1px solid #dce8df; border-radius:10px;
+        padding:12px 16px; min-width:130px; box-shadow:0 2px 8px rgba(31,76,48,0.06);
+    }
+    .shc-cts-ks-card .v { font-size:1.4rem; font-weight:700; color:#173d2b; }
+    .shc-cts-ks-card .l { font-size:0.8rem; color:#607568; }
+    .shc-cts-ks-cell textarea {
+        width:100%; padding:4px; border:1px solid #c4d0e0; border-radius:4px; font-size:0.82rem;
+    }
+    .shc-cts-ks-save-btn {
+        margin-top:3px; padding:2px 10px; font-size:0.78rem; cursor:pointer;
+        background:#198754; color:#fff; border:none; border-radius:4px;
+    }
+    .shc-cts-ks-badge { font-size:0.74rem; }
+    .shc-cts-ks-da { color:#198754; font-weight:600; }
+    .shc-cts-ks-chua { color:#dc3545; }
+    .shc-cts-ks-live-pill {
+        display:inline-block; padding:2px 8px; font-size:0.72rem; border-radius:999px;
+        background:#fff3cd; color:#664d03; margin-left:8px;
+    }
+    .shc-cts-ks-live-pill.db { background:#d1e7dd; color:#0f5132; }
 </style>
 {% endblock %}
 
@@ -185,6 +217,32 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="section" id="shc-cts-kiemsoat-section">
+        <h3 class="section-title">
+            <i class="fas fa-clipboard-check"></i>
+            Lịch sử tiến độ &amp; Kiểm soát tổ trưởng
+        </h3>
+        <div class="shc-cts-ks-filters">
+            <label>Ngày xử lý:
+                <input type="date" id="shc-cts-ks-date">
+            </label>
+            <label>Tổ:
+                <select id="shc-cts-ks-don-vi">
+                    <option value="">Tất cả</option>
+                </select>
+            </label>
+            <button class="download-btn" onclick="exportShcCtsKiemSoat()">
+                <i class="fas fa-file-excel"></i> Xuất Excel
+            </button>
+            <span id="shc-cts-ks-source-pill"></span>
+        </div>
+        <div id="shc-cts-ks-stats" class="shc-cts-ks-cards"></div>
+        <h4 style="margin-top:16px;">Lịch sử theo ngày</h4>
+        <div id="shc-cts-ks-lich-su"></div>
+        <h4 style="margin-top:16px;">Chi tiết theo NVKT (nhập kiểm soát)</h4>
+        <div id="shc-cts-ks-chitiet"></div>
     </div>
 </div>
 {% endblock %}
