@@ -342,3 +342,23 @@ def test_report_download_404_when_no_data(tmp_path, monkeypatch):
     monkeypatch.setattr(quality_routes, 'SHC_CTS_INTRADAY_REPORT_DIR', str(tmp_path))
     response = _logged_in_client().get('/download/shc-cts-kiemsoat-report?date=2099-01-01')
     assert response.status_code == 404
+
+
+# --- Cron script ---
+
+def test_sync_script_runs(tmp_path, monkeypatch):
+    import subprocess
+    _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    env = {
+        **dict(__import__('os').environ),
+        'DASHV4_RUNTIME_DIR': str(tmp_path),
+        'DASHV4_SHC_CTS_HISTORY_DB_PATH': str(tmp_path / 'shc_cts.db'),
+    }
+    result = subprocess.run(
+        [sys.executable, 'scripts/sync_shc_cts_tien_do.py'],
+        cwd=str(Path(__file__).resolve().parents[1]),
+        env=env, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
