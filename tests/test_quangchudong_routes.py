@@ -167,6 +167,109 @@ def test_quangchudong_helpers_split_off_today_and_sleeping_rows():
     assert sleeping[0]['thoi_gian_ngu'] == 3
 
 
+def test_quangchudong_export_returns_xlsx_with_sheets(monkeypatch):
+    monkeypatch.setattr(
+        quangchudong_routes,
+        'get_quangchudong_cache',
+        lambda: _FakeQuangChuDongCache(),
+    )
+
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/api/quangchudong/export')
+
+    assert response.status_code == 200
+    assert response.content_type == 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    assert 'QuangChuDong_' in response.headers.get('Content-Disposition', '')
+
+    import io as _io
+    import openpyxl
+    wb = openpyxl.load_workbook(_io.BytesIO(response.data))
+    sheet_names = wb.sheetnames
+    assert 'OFF_hien_tai' in sheet_names
+    assert 'Quang_vung_lon' in sheet_names
+    assert 'Loai_bo_mau' in sheet_names
+    assert 'Port_down_groups' in sheet_names
+
+    ws = wb['OFF_hien_tai']
+    headers = [cell.value for cell in ws[1]]
+    assert 'ma_tb' in headers
+    assert ws.max_row == 2
+    assert ws.cell(row=2, column=headers.index('ma_tb') + 1).value == 'TB1'
+
+
+def test_quangchudong_export_empty_sheets_not_created(monkeypatch):
+    class _EmptyCache:
+        def get_dashboard_payload(self):
+            return {
+                'active': {'alerts': [], 'excluded': [], 'sources': [], 'cache': {}},
+                'wide_area_groups': [],
+                'pattern_exclusions': [],
+                'port_down_groups': [],
+            }
+
+    monkeypatch.setattr(
+        quangchudong_routes,
+        'get_quangchudong_cache',
+        lambda: _EmptyCache(),
+    )
+
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/api/quangchudong/export')
+
+    assert response.status_code == 200
+    import io as _io
+    import openpyxl
+    wb = openpyxl.load_workbook(_io.BytesIO(response.data))
+    assert wb.sheetnames == ['Sheet1']
+
+
+class _FullPayloadCache:
+    def get_dashboard_payload(self):
+        return {
+            'active': {
+                'alerts': [{'ma_tb': 'A1'}],
+                'excluded': [{'ma_tb': 'E1'}],
+                'sources': [{'source': 'S1'}],
+                'cache': {},
+            },
+            'wide_area_groups': [{'parent_port_key': 'W1'}],
+            'pattern_exclusions': [{'ma_tb': 'P1'}],
+            'port_down_groups': [{'parent_port_key': 'D1'}],
+        }
+
+
+def test_quangchudong_export_all_sheets_present(monkeypatch):
+    monkeypatch.setattr(
+        quangchudong_routes,
+        'get_quangchudong_cache',
+        lambda: _FullPayloadCache(),
+    )
+
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/api/quangchudong/export')
+
+    assert response.status_code == 200
+    import io as _io
+    import openpyxl
+    wb = openpyxl.load_workbook(_io.BytesIO(response.data))
+    assert wb.sheetnames == [
+        'OFF_hien_tai', 'Loai_tru', 'Nguon',
+        'Quang_vung_lon', 'Loai_bo_mau', 'Port_down_groups',
+    ]
+    for name in wb.sheetnames:
+        ws = wb[name]
+        assert ws.max_row >= 2
+
+
 class _FixedDateTime(datetime):
     @classmethod
     def now(cls, tz=None):

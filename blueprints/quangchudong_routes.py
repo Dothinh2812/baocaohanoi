@@ -1,8 +1,10 @@
+import io
 import re
 import unicodedata
 from datetime import datetime
 
-from flask import Blueprint, jsonify, render_template, session
+import pandas as pd
+from flask import Blueprint, jsonify, render_template, send_file, session
 
 from auth import get_user_by_username, login_required
 from services import get_quangchudong_cache
@@ -189,3 +191,45 @@ def get_port_down_groups():
 @login_required
 def get_outage_stats():
     return jsonify(get_quangchudong_cache().get_stats_payload())
+
+
+_SHEET_SPECS = [
+    ('OFF_hien_tai', 'active', 'alerts'),
+    ('Loai_tru', 'active', 'excluded'),
+    ('Nguon', 'active', 'sources'),
+    ('Quang_vung_lon', 'wide_area_groups'),
+    ('Loai_bo_mau', 'pattern_exclusions'),
+    ('Port_down_groups', 'port_down_groups'),
+]
+
+
+def _build_export_workbook():
+    payload = get_quangchudong_cache().get_dashboard_payload()
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        wrote_any = False
+        for sheet_name, *keys in _SHEET_SPECS:
+            data = payload
+            for key in keys:
+                data = (data or {}).get(key) or []
+            df = pd.DataFrame(data)
+            if not df.empty:
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                wrote_any = True
+        if not wrote_any:
+            pd.DataFrame().to_excel(writer, sheet_name='Sheet1', index=False)
+    buffer.seek(0)
+    return buffer
+
+
+@quangchudong_bp.route('/api/quangchudong/export')
+@login_required
+def download_quangchudong_export():
+    buffer = _build_export_workbook()
+    now_str = datetime.now().strftime('%Y%m%d_%H%M')
+    return send_file(
+        buffer,
+        as_attachment=True,
+        download_name=f'QuangChuDong_{now_str}.xlsx',
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
