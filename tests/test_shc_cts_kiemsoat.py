@@ -254,3 +254,72 @@ def test_detail_returns_404_when_no_data(tmp_path, monkeypatch):
     monkeypatch.setattr(quality_routes, 'SHC_CTS_INTRADAY_REPORT_DIR', str(tmp_path))
     response = _logged_in_client().get('/api/shc-cts-kiemsoat/detail?date=2099-01-01')
     assert response.status_code == 404
+
+
+# --- Thong ke ---
+
+def test_thongke_returns_summary_and_by_don_vi(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    response = _logged_in_client().get('/api/shc-cts-kiemsoat/thongke?date=2026-06-25')
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body['selected_date'] == '2026-06-25'
+    assert body['summary']['tong_so'] == 18
+    assert body['summary']['tong_dat'] == 11
+    assert body['summary']['da_ks'] == 0
+    assert len(body['by_don_vi']) == 1
+    assert body['by_don_vi'][0]['don_vi'] == 'Tổ Kỹ thuật Địa bàn Phúc Thọ'
+
+
+def test_thongke_filter_by_don_vi(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    rows = _progress_rows() + [
+        {'Đơn vị': 'Tổ Kỹ thuật Địa bàn Sơn Tây', 'NVKT_DB': 'NV C',
+         'Tổng số': 5, 'Đạt baseline': 2, 'Đã xử lý trong ngày': 1,
+         'Tổng đã đạt': 3, 'Chưa đạt': 2, 'OFF/Lỗi': 0, '% đạt': 60},
+    ]
+    _write_intraday(tmp_path, monkeypatch, rows, 'Bao_cao_tien_trinh_20260625.xlsx')
+    response = _logged_in_client().get(
+        '/api/shc-cts-kiemsoat/thongke?date=2026-06-25&don_vi=Tổ Kỹ thuật Địa bàn Phúc Thọ')
+    body = response.get_json()
+    assert body['summary']['tong_so'] == 18
+    assert len(body['by_don_vi']) == 1
+
+
+def test_thongke_lich_su_multiple_days(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260624.xlsx')
+    quality_routes._sync_shc_cts_tien_do_to_db()
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    quality_routes._sync_shc_cts_tien_do_to_db()
+
+    response = _logged_in_client().get('/api/shc-cts-kiemsoat/thongke?date=2026-06-25')
+    body = response.get_json()
+    days = {item['ngay_xu_ly'] for item in body['lich_su']}
+    assert {'2026-06-24', '2026-06-25'} <= days
+
+
+def test_thongke_counts_kiemsoat(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    _logged_in_client().post(
+        '/api/shc-cts-kiemsoat/luu',
+        json={'ngay_xu_ly': '2026-06-25', 'nvkt_db': 'Nguyễn Văn A',
+              'don_vi': 'Tổ Kỹ thuật Địa bàn Phúc Thọ', 'noi_dung': 'KS xong'},
+    )
+    response = _logged_in_client().get('/api/shc-cts-kiemsoat/thongke?date=2026-06-25')
+    body = response.get_json()
+    assert body['summary']['da_ks'] == 1
+    assert body['summary']['chua_ks'] == 1
+
+
+def test_thongke_404_when_no_data(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    monkeypatch.setattr(quality_routes, 'SHC_CTS_INTRADAY_REPORT_DIR', str(tmp_path))
+    response = _logged_in_client().get('/api/shc-cts-kiemsoat/thongke?date=2099-01-01')
+    assert response.status_code == 404

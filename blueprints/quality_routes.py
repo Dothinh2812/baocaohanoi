@@ -950,6 +950,94 @@ def api_shc_cts_kiemsoat_detail():
     })
 
 
+def _compute_shc_cts_thongke(df, ngay_xu_ly):
+    """df: DataFrame có các cột gốc + kiemsoat_da_nhap."""
+    def _agg(group):
+        return {
+            'tong_so': int(group['Tổng số'].sum()) if 'Tổng số' in group else 0,
+            'tong_dat': int(group['Tổng đã đạt'].sum()) if 'Tổng đã đạt' in group else 0,
+            'chua_dat': int(group['Chưa đạt'].sum()) if 'Chưa đạt' in group else 0,
+            'da_xu_ly_ngay': int(group['Đã xử lý trong ngày'].sum()) if 'Đã xử lý trong ngày' in group else 0,
+            'da_ks': int(group['kiemsoat_da_nhap'].sum()) if 'kiemsoat_da_nhap' in group else 0,
+            'chua_ks': int(len(group) - group['kiemsoat_da_nhap'].sum()) if 'kiemsoat_da_nhap' in group else len(group),
+        }
+
+    summary = _agg(df)
+    tong_so = summary['tong_so']
+    summary['ty_le_dat'] = round(summary['tong_dat'] * 100.0 / tong_so, 1) if tong_so else 0.0
+
+    by_don_vi = []
+    if 'Đơn vị' in df.columns:
+        for don_vi, group in df.groupby('Đơn vị', sort=False):
+            row = {'don_vi': str(don_vi), **_agg(group)}
+            row['ty_le_dat'] = round(row['tong_dat'] * 100.0 / row['tong_so'], 1) if row['tong_so'] else 0.0
+            by_don_vi.append(row)
+        by_don_vi.sort(key=lambda r: r['tong_so'], reverse=True)
+
+    return {'summary': summary, 'by_don_vi': by_don_vi}
+
+
+def _compute_shc_cts_lich_su(ngay_xu_ly):
+    """Trả list trend nhiều ngày."""
+    _ensure_shc_cts_schema()
+    with _shc_cts_read_connection() as conn:
+        rows = conn.execute(
+            '''SELECT ngay_xu_ly,
+                      SUM(COALESCE(tong_so, 0)) AS tong_so,
+                      SUM(COALESCE(tong_dat, 0)) AS tong_dat
+               FROM shc_cts_tien_do
+               GROUP BY ngay_xu_ly
+               ORDER BY ngay_xu_ly DESC
+               LIMIT 60'''
+        ).fetchall()
+        ks_rows = []
+        if rows:
+            dates = [r['ngay_xu_ly'] for r in rows]
+            placeholders = ', '.join('?' for _ in dates)
+            ks_rows = conn.execute(
+                f'''SELECT ngay_xu_ly, COUNT(*) AS da_ks
+                    FROM shc_cts_kiemsoat
+                    WHERE noi_dung_kiem_soat != ''
+                      AND ngay_xu_ly IN ({placeholders})
+                    GROUP BY ngay_xu_ly''',
+                dates,
+            ).fetchall()
+        ks_map = {r['ngay_xu_ly']: r['da_ks'] for r in ks_rows}
+    return [
+        {
+            'ngay_xu_ly': r['ngay_xu_ly'],
+            'tong_so': r['tong_so'],
+            'tong_dat': r['tong_dat'],
+            'da_ks': ks_map.get(r['ngay_xu_ly'], 0),
+        }
+        for r in rows
+    ]
+
+
+@quality_bp.route('/api/shc-cts-kiemsoat/thongke')
+@login_required
+def api_shc_cts_kiemsoat_thongke():
+    selected_date, _ = _resolve_shc_cts_selected_date(request.args.get('date'))
+    if not selected_date:
+        return jsonify({'error': 'Chưa có dữ liệu tiến độ SHC CTS'}), 404
+
+    df = _load_shc_cts_kiemsoat_df(selected_date)
+    if df is None:
+        return jsonify({'error': f'Không có dữ liệu tiến độ ngày {selected_date}'}), 404
+
+    don_vi_filter = (request.args.get('don_vi') or '').strip()
+    if don_vi_filter and 'Đơn vị' in df.columns:
+        df = df[df['Đơn vị'].astype(str) == don_vi_filter]
+
+    thongke = _compute_shc_cts_thongke(df, selected_date)
+    return jsonify({
+        'selected_date': selected_date,
+        'summary': thongke['summary'],
+        'by_don_vi': thongke['by_don_vi'],
+        'lich_su': _compute_shc_cts_lich_su(selected_date),
+    })
+
+
 def _shc_cts_payload_from_excel():
     if not os.path.exists(SHC_CTS_REPORT_PATH):
         raise FileNotFoundError(f'File Excel SHC CTS không tồn tại: {SHC_CTS_REPORT_PATH}')
