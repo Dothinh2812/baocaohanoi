@@ -193,43 +193,73 @@ def get_outage_stats():
     return jsonify(get_quangchudong_cache().get_stats_payload())
 
 
-_SHEET_SPECS = [
-    ('OFF_hien_tai', 'active', 'alerts'),
-    ('Loai_tru', 'active', 'excluded'),
-    ('Nguon', 'active', 'sources'),
-    ('Quang_vung_lon', 'wide_area_groups'),
-    ('Loai_bo_mau', 'pattern_exclusions'),
-    ('Port_down_groups', 'port_down_groups'),
+_SUBSCRIBER_EXPORT_COLUMNS = [
+    ('ma_tb', 'Mã TB'),
+    ('ten_tb', 'Tên TB'),
+    ('diachi_ld', 'Địa chỉ'),
+    ('dienthoai_lh', 'SĐT'),
+    ('ten_nvkt_db', 'NVKT'),
+    ('doi_vt', 'Đội VT'),
+    ('olt_name', 'OLT'),
+    ('sa', 'SA'),
+    ('first_off_time', 'Thời gian OFF'),
+    ('duration_text', 'Thời lượng'),
+    ('ngay_bh', 'Phiếu BH Lúc'),
+]
+
+_GROUP_EXPORT_COLUMNS = [
+    ('parent_port_key', 'Parent port'),
+    ('olt_name', 'OLT'),
+    ('sa', 'SA'),
+    ('down_count', 'Số thuê bao'),
+    ('start_time', 'Thời điểm bắt đầu'),
 ]
 
 
-def _build_export_workbook():
-    payload = get_quangchudong_cache().get_dashboard_payload()
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine='xlsxwriter') as writer:
-        wrote_any = False
-        for sheet_name, *keys in _SHEET_SPECS:
-            data = payload
-            for key in keys:
-                data = (data or {}).get(key) or []
-            df = pd.DataFrame(data)
-            if not df.empty:
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-                wrote_any = True
-        if not wrote_any:
-            pd.DataFrame().to_excel(writer, sheet_name='Sheet1', index=False)
-    buffer.seek(0)
-    return buffer
+def _rows_to_export_frame(rows, columns):
+    records = []
+    for row in rows:
+        records.append({label: row.get(key, '') for key, label in columns})
+    return pd.DataFrame(records, columns=[label for _, label in columns])
 
 
-@quangchudong_bp.route('/api/quangchudong/export')
+def _subscriber_export_frame(rows, *, include_sleep_days=False):
+    columns = list(_SUBSCRIBER_EXPORT_COLUMNS)
+    if include_sleep_days:
+        columns.append(('thoi_gian_ngu', 'Thời gian ngủ'))
+    return _rows_to_export_frame(rows, columns)
+
+
+@quangchudong_bp.route('/download/quangchudong-report')
 @login_required
-def download_quangchudong_export():
-    buffer = _build_export_workbook()
-    now_str = datetime.now().strftime('%Y%m%d_%H%M')
+def download_quangchudong_report():
+    payload = get_quangchudong_cache().get_dashboard_payload()
+    active = payload.get('active') or {}
+    alerts = active.get('alerts') or []
+    cutoff_time = _today_six_am()
+    now = datetime.now()
+
+    sheets = [
+        ('Canh_bao_DOWN', _subscriber_export_frame(alerts)),
+        ('OFF_trong_ngay', _subscriber_export_frame(_filter_off_today_rows(alerts, cutoff_time))),
+        ('Thue_bao_ngu', _subscriber_export_frame(
+            _filter_sleeping_rows(alerts, cutoff_time, now),
+            include_sleep_days=True,
+        )),
+        ('Su_co_dien_rong', _rows_to_export_frame(payload.get('wide_area_groups') or [], _GROUP_EXPORT_COLUMNS)),
+        ('Pattern_exclusion', _subscriber_export_frame(payload.get('pattern_exclusions') or [])),
+        ('Port_OLT_Down', _rows_to_export_frame(payload.get('port_down_groups') or [], _GROUP_EXPORT_COLUMNS)),
+    ]
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        for sheet_name, frame in sheets:
+            frame.to_excel(writer, sheet_name=sheet_name, index=False)
+    output.seek(0)
+
     return send_file(
-        buffer,
+        output,
         as_attachment=True,
-        download_name=f'QuangChuDong_{now_str}.xlsx',
+        download_name=f'quang_chu_dong_{datetime.now():%Y%m%d_%H%M}.xlsx',
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
