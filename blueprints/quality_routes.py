@@ -775,6 +775,60 @@ def _sync_shc_cts_tien_do_to_db():
         raise
 
 
+@quality_bp.route('/api/shc-cts-kiemsoat/luu', methods=['POST'])
+@login_required
+def api_shc_cts_kiemsoat_luu():
+    payload = request.get_json(silent=True) or {}
+    ngay_xu_ly = str(payload.get('ngay_xu_ly') or '').strip()
+    nvkt_db = str(payload.get('nvkt_db') or '').strip()
+    if not ngay_xu_ly or not nvkt_db:
+        return jsonify({'ok': False, 'error': 'ngay_xu_ly và nvkt_db là bắt buộc'}), 400
+
+    noi_dung = str(payload.get('noi_dung') or '').strip()
+    if len(noi_dung) > SHC_CTS_KIEMSOAT_NOI_DUNG_MAX:
+        return jsonify({'ok': False, 'error': 'Nội dung không được vượt quá 2000 ký tự'}), 400
+
+    don_vi = str(payload.get('don_vi') or '')
+    username = session.get('username') or ''
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    _ensure_shc_cts_schema()
+    try:
+        with _shc_cts_write_connection() as conn:
+            if not noi_dung:
+                conn.execute(
+                    'DELETE FROM shc_cts_kiemsoat WHERE ngay_xu_ly = ? AND nvkt_db = ?',
+                    (ngay_xu_ly, nvkt_db),
+                )
+                return jsonify({'ok': True, 'ngay_xu_ly': ngay_xu_ly,
+                                'nvkt_db': nvkt_db, 'noi_dung': '', 'nguoi_nhap': ''})
+
+            existing = conn.execute(
+                'SELECT thoi_diem_nhap FROM shc_cts_kiemsoat WHERE ngay_xu_ly = ? AND nvkt_db = ?',
+                (ngay_xu_ly, nvkt_db),
+            ).fetchone()
+            thoi_diem_nhap = existing['thoi_diem_nhap'] if existing else now
+            conn.execute(
+                '''
+                INSERT INTO shc_cts_kiemsoat
+                    (ngay_xu_ly, nvkt_db, don_vi, noi_dung_kiem_soat,
+                     nguoi_nhap, thoi_diem_nhap, thoi_diem_cap_nhat)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(ngay_xu_ly, nvkt_db) DO UPDATE SET
+                    don_vi = excluded.don_vi,
+                    noi_dung_kiem_soat = excluded.noi_dung_kiem_soat,
+                    nguoi_nhap = excluded.nguoi_nhap,
+                    thoi_diem_cap_nhat = excluded.thoi_diem_cap_nhat
+                ''',
+                (ngay_xu_ly, nvkt_db, don_vi, noi_dung, username, thoi_diem_nhap, now),
+            )
+    except sqlite3.Error as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 500
+
+    return jsonify({'ok': True, 'ngay_xu_ly': ngay_xu_ly, 'nvkt_db': nvkt_db,
+                    'noi_dung': noi_dung, 'nguoi_nhap': username})
+
+
 def _shc_cts_payload_from_excel():
     if not os.path.exists(SHC_CTS_REPORT_PATH):
         raise FileNotFoundError(f'File Excel SHC CTS không tồn tại: {SHC_CTS_REPORT_PATH}')

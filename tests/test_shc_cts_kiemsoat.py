@@ -124,3 +124,72 @@ def test_sync_skips_when_intraday_missing(tmp_path, monkeypatch):
     result = quality_routes._sync_shc_cts_tien_do_to_db()
     assert result['skipped'] == 1
     assert result['reason'] == 'intraday_missing'
+
+
+# --- Luu kiem soat ---
+
+def test_kiemsoat_luu_creates(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    response = _logged_in_client().post(
+        '/api/shc-cts-kiemsoat/luu',
+        json={'ngay_xu_ly': '2026-06-25', 'nvkt_db': 'Nguyễn Văn A',
+              'don_vi': 'Tổ Phúc Thọ', 'noi_dung': 'Đã kiểm tra'},
+    )
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body['ok'] is True
+    assert body['nguoi_nhap'] == 'test-user'
+    assert body['noi_dung'] == 'Đã kiểm tra'
+
+
+def test_kiemsoat_luu_update_keeps_thoi_diem_nhap(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO shc_cts_kiemsoat (ngay_xu_ly, nvkt_db, noi_dung_kiem_soat, "
+            "nguoi_nhap, thoi_diem_nhap, thoi_diem_cap_nhat) "
+            "VALUES ('2026-06-25','NV1','cũ','u','2020-01-01 00:00:00','2020-01-01 00:00:00')"
+        )
+        conn.commit()
+    _logged_in_client().post(
+        '/api/shc-cts-kiemsoat/luu',
+        json={'ngay_xu_ly': '2026-06-25', 'nvkt_db': 'NV1', 'noi_dung': 'mới'},
+    )
+    conn = sqlite3.connect(db_path)
+    row = conn.execute(
+        "SELECT thoi_diem_nhap, noi_dung_kiem_soat FROM shc_cts_kiemsoat "
+        "WHERE ngay_xu_ly='2026-06-25' AND nvkt_db='NV1'"
+    ).fetchone()
+    conn.close()
+    assert row[0] == '2020-01-01 00:00:00'
+    assert row[1] == 'mới'
+
+
+def test_kiemsoat_luu_empty_deletes(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "INSERT INTO shc_cts_kiemsoat (ngay_xu_ly, nvkt_db, noi_dung_kiem_soat) "
+            "VALUES ('2026-06-25','NV1','cũ')"
+        )
+        conn.commit()
+    _logged_in_client().post(
+        '/api/shc-cts-kiemsoat/luu',
+        json={'ngay_xu_ly': '2026-06-25', 'nvkt_db': 'NV1', 'noi_dung': ''},
+    )
+    conn = sqlite3.connect(db_path)
+    count = conn.execute(
+        "SELECT COUNT(*) FROM shc_cts_kiemsoat "
+        "WHERE ngay_xu_ly='2026-06-25' AND nvkt_db='NV1'"
+    ).fetchone()[0]
+    conn.close()
+    assert count == 0
+
+
+def test_kiemsoat_luu_rejects_missing_keys(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    response = _logged_in_client().post(
+        '/api/shc-cts-kiemsoat/luu',
+        json={'ngay_xu_ly': '2026-06-25', 'noi_dung': 'x'},
+    )
+    assert response.status_code == 400
