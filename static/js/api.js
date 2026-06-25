@@ -150,6 +150,33 @@ const API = {
         return response.json();
     },
 
+    /* ========================================
+       SHC CTS APIs (Tiến độ + Kiểm soát)
+       ======================================== */
+
+    getShcCtsKiemSoatDetail(query = '') {
+        const suffix = query ? `?${query}` : '';
+        return this.fetchData(`/api/shc-cts-kiemsoat/detail${suffix}`);
+    },
+
+    getShcCtsKiemSoatThongKe(query = '') {
+        const suffix = query ? `?${query}` : '';
+        return this.fetchData(`/api/shc-cts-kiemsoat/thongke${suffix}`);
+    },
+
+    async saveShcCtsKiemSoat(payload) {
+        const response = await fetch('/api/shc-cts-kiemsoat/luu', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (response.status === 401) {
+            window.location.href = '/login';
+            throw new Error('Phiên đăng nhập đã hết hạn');
+        }
+        return response.json();
+    },
+
     /**
      * Get auto-configuration detail data for TTVT Son Tay
      */

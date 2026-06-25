@@ -118,6 +118,10 @@ BRCD_KIEMSOAT_DB_PATH = _first_existing_path(
     os.getenv('DASHV4_BRCD_KIEMSOAT_DB_PATH'),
     os.path.join(INSTANCE_RUNTIME_DIR, 'brcd_kiemsoat.db'),
 )
+SHC_CTS_HISTORY_DB_PATH = _first_existing_path(
+    os.getenv('DASHV4_SHC_CTS_HISTORY_DB_PATH'),
+    os.path.join(INSTANCE_RUNTIME_DIR, 'shc_cts.db'),
+)
 
 SESSION_FILE_DIR = os.path.abspath(
     _env_value('DASHV4_SESSION_FILE_DIR', default=os.path.join(INSTANCE_RUNTIME_DIR, 'flask_session'))

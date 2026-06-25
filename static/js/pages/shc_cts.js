@@ -9,6 +9,7 @@ let shcCTSProgressChart = null;
 document.addEventListener('DOMContentLoaded', async function () {
     await initSHCCTSDetailDownloader();
     await loadSHCCTSData();
+    initShcCtsKiemSoat();
 });
 
 async function loadSHCCTSData() {
@@ -116,6 +117,7 @@ function renderSHCCTSProgressTable(donViName) {
     if (!container) return;
 
     const chartId = `shc-cts-progress-chart-${Math.random().toString(36).slice(2, 9)}`;
+    const sourceTimestamp = getSHCCTSProgressSourceTimestamp(sheetData);
     const tableHtml = createExcelTable(
         sheetData,
         `Tiến độ xử lý shc trong ngày - ${donViName}`,
@@ -131,11 +133,15 @@ function renderSHCCTSProgressTable(donViName) {
             <div class="shc-cts-progress-chart-head">
                 <div>
                     <div class="shc-cts-progress-chart-title">Biểu đồ tiến độ xử lý - ${escapeSHCCTSHtml(donViName)}</div>
-                    <div class="shc-cts-progress-chart-subtitle">Mỗi NVKT một cột, stacked theo trạng thái đạt/chưa đạt</div>
+                    <div class="shc-cts-progress-chart-subtitle">
+                        Mỗi NVKT một cột, stacked theo trạng thái đạt/chưa đạt
+                        ${sourceTimestamp ? `<br><span class="shc-cts-progress-measured-at">Thời điểm đo: ${escapeSHCCTSHtml(sourceTimestamp)}</span>` : ''}
+                    </div>
                 </div>
                 <div class="shc-cts-progress-chart-legend">
                     <span><span class="shc-cts-progress-chart-dot" style="background:#198754;"></span>Đã đạt</span>
                     <span><span class="shc-cts-progress-chart-dot" style="background:#dc3545;"></span>Chưa đạt</span>
+                    <span><span class="shc-cts-progress-chart-dot" style="background:#fd7e14;"></span>Lỗi đo/OFF</span>
                 </div>
             </div>
             <div class="shc-cts-progress-chart-canvas">
@@ -146,6 +152,16 @@ function renderSHCCTSProgressTable(donViName) {
     `;
 
     renderSHCCTSProgressChart(chartId, sheetData);
+}
+
+function getSHCCTSProgressSourceTimestamp(sheetData) {
+    if (sheetData && Array.isArray(sheetData.data) && sheetData.data.length > 0) {
+        const timestamp = sheetData.data[0].Timestamp;
+        if (timestamp) return String(timestamp);
+    }
+
+    const fileInfo = window.shcCTSProgressFileInfo || null;
+    return fileInfo && fileInfo.modified ? fileInfo.modified : '';
 }
 
 function downloadExcelSHCCTS() {
@@ -176,6 +192,7 @@ function renderSHCCTSProgressChart(canvasId, sheetData) {
     const labels = rows.map(row => String(row['NVKT_DB'] || row['NVKT'] || '').trim());
     const achieved = rows.map(row => parseSHCCTSNumber(row['Tổng đã đạt']));
     const notAchieved = rows.map(row => parseSHCCTSNumber(row['Chưa đạt']));
+    const measurementErrors = rows.map(row => parseSHCCTSNumber(getSHCCTSProgressValue(row, ['OFF/Lỗi', 'ONU OFF/Lỗi đo', 'Lỗi đo/OFF'])));
 
     shcCTSProgressChart = new Chart(canvas.getContext('2d'), {
         type: 'bar',
@@ -199,6 +216,18 @@ function renderSHCCTSProgressChart(canvasId, sheetData) {
                     data: notAchieved,
                     backgroundColor: '#dc3545',
                     borderColor: '#b02a37',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    barPercentage: 0.72,
+                    categoryPercentage: 0.72,
+                    maxBarThickness: 42,
+                    stack: 'progress',
+                },
+                {
+                    label: 'Lỗi đo/OFF',
+                    data: measurementErrors,
+                    backgroundColor: '#fd7e14',
+                    borderColor: '#c85f0d',
                     borderWidth: 1,
                     borderRadius: 5,
                     barPercentage: 0.72,
@@ -492,6 +521,15 @@ function escapeSHCCTSHtml(value) {
         .replace(/>/g, '&gt;');
 }
 
+function getSHCCTSProgressValue(row, candidateColumns) {
+    for (const column of candidateColumns) {
+        if (Object.prototype.hasOwnProperty.call(row, column)) {
+            return row[column];
+        }
+    }
+    return 0;
+}
+
 function parseSHCCTSNumber(value) {
     if (value === null || value === undefined || value === '') {
         return 0;
@@ -508,3 +546,210 @@ function parseSHCCTSNumber(value) {
     const parsed = Number(normalized);
     return Number.isFinite(parsed) ? parsed : 0;
 }
+
+/* ========================================
+   LỊCH SỬ TIẾN ĐỘ & KIỂM SOÁT TỔ TRƯỞNG SHC CTS
+   - Datepicker chọn ngày (hôm nay = live Excel, cũ = DB)
+   - Bảng chi tiết theo NVKT + cột nhập kiểm soát
+   ======================================== */
+
+const SHC_CTS_KS_DISPLAY_COLS = [
+    'NVKT_DB', 'Tổng số', 'Đạt baseline', 'Đã xử lý trong ngày',
+    'Tổng đã đạt', 'Chưa đạt', 'OFF/Lỗi', '% đạt',
+];
+const SHC_CTS_KS_DISPLAY_LABELS = {
+    'NVKT_DB': 'NVKT', 'Tổng số': 'Tổng', 'Đạt baseline': 'Đạt BL',
+    'Đã xử lý trong ngày': 'XL trong ngày', 'Tổng đã đạt': 'Đã đạt',
+    'Chưa đạt': 'Chưa đạt', 'OFF/Lỗi': 'OFF/Lỗi', '% đạt': '%',
+};
+let _shcCtsKsCurrent = { date: '', donVi: '', activeTab: '', sheets: {}, sourcePill: '' };
+
+function _shcCtsKsEscape(v) {
+    return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function _shcCtsKsThoiDiem(value) {
+    if (!value) return '';
+    const m = String(value).match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
+    return m ? `${m[4]}:${m[5]} ${m[3]}/${m[2]}` : value;
+}
+
+function _shcCtsKsBadge(row) {
+    if (row.kiemsoat_da_nhap) {
+        const when = _shcCtsKsThoiDiem(row.kiemsoat_thoi_diem);
+        const who = row.kiemsoat_nguoi_nhap || '';
+        return `<span class="shc-cts-ks-badge shc-cts-ks-da">Đã KS${when ? ' ' + when : ''}${who ? ' — ' + _shcCtsKsEscape(who) : ''}</span>`;
+    }
+    return `<span class="shc-cts-ks-badge shc-cts-ks-chua">Chưa</span>`;
+}
+
+function initShcCtsKiemSoat() {
+    const dateInput = document.getElementById('shc-cts-ks-date');
+    const donViSelect = document.getElementById('shc-cts-ks-don-vi');
+    if (!dateInput) return;
+    dateInput.addEventListener('change', () => { _shcCtsKsCurrent.date = dateInput.value; loadShcCtsKiemSoatDetail(); });
+    donViSelect.addEventListener('change', () => { _shcCtsKsCurrent.donVi = donViSelect.value; loadShcCtsKiemSoatThongKe(); });
+    loadShcCtsKiemSoatDetail();
+}
+window.initShcCtsKiemSoat = initShcCtsKiemSoat;
+
+async function loadShcCtsKiemSoatDetail() {
+    const dateInput = document.getElementById('shc-cts-ks-date');
+    const donViSelect = document.getElementById('shc-cts-ks-don-vi');
+    const chiTietEl = document.getElementById('shc-cts-ks-chitiet');
+    const pillEl = document.getElementById('shc-cts-ks-source-pill');
+    if (!chiTietEl) return;
+    chiTietEl.innerHTML = '<div class="loading"><i class="fas fa-spinner"></i><br>Đang tải...</div>';
+
+    const params = new URLSearchParams();
+    if (_shcCtsKsCurrent.date) params.set('date', _shcCtsKsCurrent.date);
+    try {
+        const data = await API.getShcCtsKiemSoatDetail(params.toString());
+        _shcCtsKsCurrent.sheets = data.sheets || {};
+
+        if (!dateInput.value) dateInput.value = data.selected_date;
+        _shcCtsKsCurrent.date = data.selected_date;
+
+        const donViNames = Object.keys(_shcCtsKsCurrent.sheets);
+        const prevDonVi = donViSelect.value;
+        donViSelect.innerHTML = '<option value="">Tất cả</option>' +
+            donViNames.map(n => `<option value="${_shcCtsKsEscape(n)}"${n === prevDonVi ? ' selected' : ''}>${_shcCtsKsEscape(n)}</option>`).join('');
+        if (prevDonVi && donViNames.includes(prevDonVi)) {
+            donViSelect.value = prevDonVi;
+            _shcCtsKsCurrent.donVi = prevDonVi;
+        }
+
+        pillEl.innerHTML = data.is_today_live
+            ? '<span class="shc-cts-ks-live-pill">Hôm nay (Excel trực tiếp)</span>'
+            : '<span class="shc-cts-ks-live-pill db">Lịch sử (DB)</span>';
+
+        renderShcCtsKiemSoatDetail();
+        loadShcCtsKiemSoatThongKe();
+    } catch (error) {
+        chiTietEl.innerHTML = `<div class="error">Không tải được dữ liệu: ${_shcCtsKsEscape(error.message)}</div>`;
+    }
+}
+
+function renderShcCtsKiemSoatDetail() {
+    const container = document.getElementById('shc-cts-ks-chitiet');
+    if (!container) return;
+    const sheets = _shcCtsKsCurrent.sheets || {};
+    const donViNames = Object.keys(sheets);
+
+    if (donViNames.length === 0) {
+        container.innerHTML = '<div>Không có dữ liệu.</div>';
+        return;
+    }
+
+    if (!_shcCtsKsCurrent.activeTab || !sheets[_shcCtsKsCurrent.activeTab]) {
+        _shcCtsKsCurrent.activeTab = donViNames[0];
+    }
+
+    const shorten = n => n.replace('Tổ Kỹ thuật Địa bàn ', '');
+    const tabsHtml = donViNames.map(n =>
+        `<li class="excel-tab${n === _shcCtsKsCurrent.activeTab ? ' active' : ''}" data-don-vi="${_shcCtsKsEscape(n)}">${_shcCtsKsEscape(shorten(n))}</li>`
+    ).join('');
+
+    container.innerHTML = `<ul class="excel-tabs" id="shc-cts-ks-tabs">${tabsHtml}</ul><div id="shc-cts-ks-chitiet-body"></div>`;
+
+    container.querySelectorAll('.excel-tab').forEach(tab => {
+        tab.addEventListener('click', function () {
+            container.querySelectorAll('.excel-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            _shcCtsKsCurrent.activeTab = this.dataset.donVi;
+            renderShcCtsKiemSoatSheet(this.dataset.donVi);
+        });
+    });
+
+    renderShcCtsKiemSoatSheet(_shcCtsKsCurrent.activeTab);
+}
+
+function renderShcCtsKiemSoatSheet(donVi) {
+    const body = document.getElementById('shc-cts-ks-chitiet-body');
+    if (!body) return;
+    const sheets = _shcCtsKsCurrent.sheets || {};
+    const sheet = sheets[donVi];
+    const rows = (sheet && sheet.data) || [];
+    const headers = SHC_CTS_KS_DISPLAY_COLS.map(c => `<th>${SHC_CTS_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
+    const bodyHtml = rows.map(row => {
+        const cells = SHC_CTS_KS_DISPLAY_COLS.map(c => `<td>${row[c] != null ? row[c] : ''}</td>`).join('');
+        const nvkt = _shcCtsKsEscape(row.NVKT_DB);
+        const noiDung = _shcCtsKsEscape(row.kiemsoat_noi_dung || '');
+        return `<tr>${cells}<td class="shc-cts-ks-cell">
+            <textarea class="shc-cts-ks-input" rows="2" data-nvkt="${nvkt}" data-don_vi="${_shcCtsKsEscape(row['Đơn vị'] || donVi)}">${noiDung}</textarea>
+            <button class="shc-cts-ks-save-btn" onclick="saveShcCtsKiemSoatRow('${nvkt}')">Lưu</button>
+            <span class="shc-cts-ks-badge" id="shc-cts-ks-status-${nvkt}">${_shcCtsKsBadge(row)}</span>
+        </td></tr>`;
+    }).join('');
+    body.innerHTML = `<div class="excel-table-card"><div class="excel-table-body" style="max-height:520px;overflow:auto;">
+        <table class="excel-table"><thead><tr>${headers}<th>Kiểm soát</th></tr></thead>
+        <tbody>${bodyHtml || '<tr><td colspan="99">Không có NVKT.</td></tr>'}</tbody></table>
+        </div></div>`;
+}
+
+async function saveShcCtsKiemSoatRow(nvktDb) {
+    const textarea = document.querySelector(`.shc-cts-ks-input[data-nvkt="${CSS.escape(nvktDb)}"]`);
+    if (!textarea) return;
+    const statusEl = document.getElementById(`shc-cts-ks-status-${nvktDb}`);
+    try {
+        const result = await API.saveShcCtsKiemSoat({
+            ngay_xu_ly: _shcCtsKsCurrent.date,
+            nvkt_db: nvktDb,
+            don_vi: textarea.dataset.don_vi,
+            noi_dung: textarea.value,
+        });
+        if (!result || result.ok === false) throw new Error((result && result.error) || 'Lỗi');
+        if (statusEl) {
+            statusEl.innerHTML = _shcCtsKsBadge({
+                kiemsoat_da_nhap: !!result.noi_dung,
+                kiemsoat_thoi_diem: new Date().toISOString().replace('T', ' ').substring(0, 19),
+                kiemsoat_nguoi_nhap: result.nguoi_nhap,
+            });
+        }
+        loadShcCtsKiemSoatThongKe();
+    } catch (error) {
+        alert('Không lưu được: ' + error.message);
+    }
+}
+window.saveShcCtsKiemSoatRow = saveShcCtsKiemSoatRow;
+
+async function loadShcCtsKiemSoatThongKe() {
+    const statsEl = document.getElementById('shc-cts-ks-stats');
+    const lichSuEl = document.getElementById('shc-cts-ks-lich-su');
+    if (!statsEl) return;
+    const params = new URLSearchParams();
+    if (_shcCtsKsCurrent.date) params.set('date', _shcCtsKsCurrent.date);
+    if (_shcCtsKsCurrent.donVi) params.set('don_vi', _shcCtsKsCurrent.donVi);
+    try {
+        const data = await API.getShcCtsKiemSoatThongKe(params.toString());
+        const s = data.summary || {};
+        const card = (v, l) => `<div class="shc-cts-ks-card"><div class="v">${v}</div><div class="l">${l}</div></div>`;
+        statsEl.innerHTML =
+            card(s.tong_so ?? 0, 'Tổng số') +
+            card(s.tong_dat ?? 0, 'Tổng đã đạt') +
+            card(s.chua_dat ?? 0, 'Chưa đạt') +
+            card((s.ty_le_dat ?? 0) + '%', 'Tỷ lệ đạt') +
+            card(s.da_ks ?? 0, 'Đã kiểm soát') +
+            card(s.chua_ks ?? 0, 'Chưa KS');
+
+        const lichSu = data.lich_su || [];
+        lichSuEl.innerHTML = lichSu.length
+            ? `<div class="excel-table-card"><div class="excel-table-body" style="max-height:320px;overflow:auto;">
+               <table class="excel-table"><thead><tr><th>Ngày</th><th>Tổng số</th><th>Tổng đã đạt</th><th>Đã KS</th></tr></thead>
+               <tbody>${lichSu.map(r => `<tr><td>${r.ngay_xu_ly}</td><td>${r.tong_so}</td><td>${r.tong_dat}</td><td>${r.da_ks}</td></tr>`).join('')}</tbody>
+               </table></div></div>`
+            : '<div>Chưa có lịch sử.</div>';
+    } catch (error) {
+        statsEl.innerHTML = `<div class="error">${_shcCtsKsEscape(error.message)}</div>`;
+    }
+}
+
+function exportShcCtsKiemSoat() {
+    const params = new URLSearchParams();
+    if (_shcCtsKsCurrent.date) params.set('date', _shcCtsKsCurrent.date);
+    if (_shcCtsKsCurrent.donVi) params.set('don_vi', _shcCtsKsCurrent.donVi);
+    window.location.href = '/download/shc-cts-kiemsoat-report' + (params.toString() ? '?' + params.toString() : '');
+}
+window.exportShcCtsKiemSoat = exportShcCtsKiemSoat;

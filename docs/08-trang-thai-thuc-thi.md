@@ -178,6 +178,26 @@ màu đỏ nổi bật:
   qua `static/js/pages/brcd.js` và `static/js/pages/pttb.js`.
 - CSS inline: `color:#d32f2f; font-weight:600`.
 
+## 8. Kiểm soát tổ trưởng tại `/shc-cts`
+
+Đã thêm lớp "kiểm soát tổ trưởng" cho tiến độ xử lý SHC CTS (grain = `ngay_xu_ly × nvkt_db`):
+
+- snapshot lịch sử: file intraday `Bao_cao_tien_trinh_YYYYMMDD.xlsx` được sync vào SQLite per-instance `INSTANCE_RUNTIME_DIR/shc_cts.db` (`DASHV4_SHC_CTS_HISTORY_DB_PATH`), bảng `shc_cts_tien_do`
+- tổ trưởng nhập "nội dung kiểm soát" (1 ô tự do) trực tiếp trên bảng chi tiết NVKT
+- annotation kiểm soát lưu trong cùng DB, bảng `shc_cts_kiemsoat` (keyed `ngay_xu_ly + nvkt_db`)
+- today: đọc Excel intraday trực tiếp + lazy-sync vào DB; quá khứ: đọc snapshot từ DB
+- endpoint mới:
+  - `POST /api/shc-cts-kiemsoat/luu` (upsert theo `ngay_xu_ly + nvkt_db`; xóa khi nội dung rỗng; ghi `nguoi_nhap` từ session)
+  - `GET /api/shc-cts-kiemsoat/detail` (trả `sheets` grouped by `Đơn vị` + `selected_date`, `is_today_live`, `available_dates`)
+  - `GET /api/shc-cts-kiemsoat/thongke` (summary + by_don_vi + lich_su 60 ngày; hỗ trợ filter `don_vi`)
+  - `GET /download/shc-cts-kiemsoat-report` (xuất Excel theo ngày + đơn vị)
+- không thuộc `report_history.db` nên không áp dụng date-contract của tài liệu 09
+- **Cron sync snapshot (per-instance):**
+  ```
+  0 * * * * DASHV4_UNIT_CODE=<unit> python3 /home/vtst/dashv4/scripts/sync_shc_cts_tien_do.py \
+      >> /home/vtst/dashv4/logs/shc_cts_sync.log 2>&1
+  ```
+
 ## 5. Route chưa hỗ trợ đã bị chặn ở mức page/API
 
 Đã thêm page chung:

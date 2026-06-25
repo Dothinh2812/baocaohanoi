@@ -1,8 +1,10 @@
 import io
 import os
+import sqlite3
 import unicodedata
 from collections import OrderedDict
 from datetime import datetime
+from threading import Lock
 
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, render_template, request, send_file, session
@@ -11,12 +13,18 @@ from app_helpers import (
     build_file_info,
     build_multi_sheet_payload,
     build_sheet_payload,
+    latest_matching_file,
     read_excel_sheet_cached,
     safe_file_response,
     serialize_dataframe,
 )
 from auth import get_user_by_username, login_required
-from config import BAOCAO_HANOI_DOWNLOADS_DIR, SHC_NVKT_DETAIL_REPORTS, SHC_NVKT_TEAMS
+from config import (
+    BAOCAO_HANOI_DOWNLOADS_DIR,
+    SHC_CTS_HISTORY_DB_PATH,
+    SHC_NVKT_DETAIL_REPORTS,
+    SHC_NVKT_TEAMS,
+)
 from repositories import (
     load_many_tables_by_date,
     load_c11_nvkt_df,
@@ -38,7 +46,8 @@ quality_bp = Blueprint('quality', __name__)
 SHC_CTS_REPORT_PATH = '/home/vtst/shc/processed/reports/So_sanh_SHC_theo_ngay_T-1.xlsx'
 SHC_CTS_SUMMARY_SHEET = 'Theo_don_vi'
 SHC_CTS_DETAIL_SHEET = 'Chi_tiet_NVKT'
-SHC_CTS_INTRADAY_REPORT_PATH = '/home/vtst/shc/processed/intraday/reports/Bao_cao_tien_trinh_20260514.xlsx'
+SHC_CTS_INTRADAY_REPORT_DIR = '/home/vtst/shc/processed/intraday/reports'
+SHC_CTS_INTRADAY_REPORT_PATTERN = 'Bao_cao_tien_trinh_*.xlsx'
 SHC_CTS_INTRADAY_PROGRESS_SHEET = 'Theo NVKT'
 SHC_CTS_NVKT_DETAIL_ROOT = '/home/vtst/shc/processed'
 SHC_CTS_NVKT_DETAIL_PREFIX = 'shc_NVKT_danh_sach_chi_tiet_K1'
@@ -540,15 +549,541 @@ def _build_i15_download_workbook_response(payload, filename_prefix):
     )
 
 
+def _file_created_timestamp(file_path):
+    stat = os.stat(file_path)
+    created_at = getattr(stat, 'st_birthtime', stat.st_mtime)
+    return datetime.fromtimestamp(created_at).strftime('%d/%m/%Y %H:%M:%S')
+
+
+def _add_progress_timestamp_column(progress_df, timestamp):
+    progress_df = progress_df.copy()
+    if 'Timestamp' in progress_df.columns:
+        progress_df = progress_df.drop(columns=['Timestamp'])
+    insert_at = 1 if 'Đơn vị' in progress_df.columns else 0
+    progress_df.insert(insert_at, 'Timestamp', timestamp)
+    return progress_df
+
+
+SHC_CTS_KIEMSOAT_NOI_DUNG_MAX = 2000
+SHC_CTS_INTRADAY_PROGRESS_COLUMNS = [
+    'Đơn vị',
+    'NVKT_DB',
+    'Tổng số',
+    'Đạt baseline',
+    'Đã xử lý trong ngày',
+    'Tổng đã đạt',
+    'Chưa đạt',
+    'OFF/Lỗi',
+    '% đạt',
+]
+
+_shc_cts_schema_lock = Lock()
+_shc_cts_schema_ready_path = None
+
+
+def _shc_cts_write_connection():
+    conn = sqlite3.connect(SHC_CTS_HISTORY_DB_PATH, timeout=5)
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=5000')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _shc_cts_read_connection():
+    conn = sqlite3.connect(
+        f'file:{os.path.abspath(SHC_CTS_HISTORY_DB_PATH)}?mode=ro',
+        uri=True,
+        timeout=5,
+    )
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _ensure_shc_cts_schema():
+    global _shc_cts_schema_ready_path
+    db_path = os.path.abspath(SHC_CTS_HISTORY_DB_PATH)
+    with _shc_cts_schema_lock:
+        if _shc_cts_schema_ready_path == db_path:
+            return
+        db_dir = os.path.dirname(db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+        with _shc_cts_write_connection() as conn:
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS shc_cts_tien_do (
+                    ngay_xu_ly        TEXT NOT NULL,
+                    don_vi            TEXT,
+                    nvkt_db           TEXT NOT NULL,
+                    tong_so           INTEGER,
+                    dat_baseline      INTEGER,
+                    da_xu_ly_ngay     INTEGER,
+                    tong_dat          INTEGER,
+                    chua_dat          INTEGER,
+                    off_loi           INTEGER,
+                    ty_le_dat         REAL,
+                    captured_at       TEXT,
+                    PRIMARY KEY (ngay_xu_ly, nvkt_db)
+                )
+                '''
+            )
+            conn.execute(
+                'CREATE INDEX IF NOT EXISTS idx_shc_cts_tien_do_ngay ON shc_cts_tien_do(ngay_xu_ly)'
+            )
+            conn.execute(
+                'CREATE INDEX IF NOT EXISTS idx_shc_cts_tien_do_don_vi ON shc_cts_tien_do(don_vi)'
+            )
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS shc_cts_kiemsoat (
+                    ngay_xu_ly         TEXT NOT NULL,
+                    nvkt_db            TEXT NOT NULL,
+                    don_vi             TEXT,
+                    noi_dung_kiem_soat TEXT NOT NULL DEFAULT '',
+                    nguoi_nhap         TEXT,
+                    thoi_diem_nhap     TEXT,
+                    thoi_diem_cap_nhat TEXT,
+                    PRIMARY KEY (ngay_xu_ly, nvkt_db)
+                )
+                '''
+            )
+        _shc_cts_schema_ready_path = db_path
+
+
+def _parse_shc_cts_intraday_date(filename):
+    name = os.path.basename(str(filename))
+    prefix = 'Bao_cao_tien_trinh_'
+    if not name.startswith(prefix) or not name.lower().endswith('.xlsx'):
+        return None
+    date_text = name[len(prefix):-5]
+    try:
+        parsed = datetime.strptime(date_text, '%Y%m%d')
+    except ValueError:
+        return None
+    return parsed.strftime('%Y-%m-%d')
+
+
+def _shc_cts_intraday_row_to_params(row, ngay_xu_ly, now_iso):
+    def _num(col):
+        v = row.get(col)
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return None
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return None
+
+    def _real(col):
+        v = row.get(col)
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    return (
+        ngay_xu_ly,
+        str(row.get('Đơn vị') or '').strip(),
+        str(row.get('NVKT_DB') or '').strip(),
+        _num('Tổng số'),
+        _num('Đạt baseline'),
+        _num('Đã xử lý trong ngày'),
+        _num('Tổng đã đạt'),
+        _num('Chưa đạt'),
+        _num('OFF/Lỗi'),
+        _real('% đạt'),
+        now_iso,
+    )
+
+
+_SHC_CTS_TIEN_DO_UPSERT_SQL = """
+    INSERT INTO shc_cts_tien_do (
+        ngay_xu_ly, don_vi, nvkt_db, tong_so, dat_baseline, da_xu_ly_ngay,
+        tong_dat, chua_dat, off_loi, ty_le_dat, captured_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(ngay_xu_ly, nvkt_db) DO UPDATE SET
+        don_vi = excluded.don_vi,
+        tong_so = excluded.tong_so,
+        dat_baseline = excluded.dat_baseline,
+        da_xu_ly_ngay = excluded.da_xu_ly_ngay,
+        tong_dat = excluded.tong_dat,
+        chua_dat = excluded.chua_dat,
+        off_loi = excluded.off_loi,
+        ty_le_dat = excluded.ty_le_dat,
+        captured_at = excluded.captured_at
+"""
+
+
+def _sync_shc_cts_tien_do_to_db():
+    """Đọc file intraday SHC CTS mới nhất, upsert snapshot vào shc_cts_tien_do.
+
+    Idempotent. Không raise khi file thiếu / DB lock — trả dict với skipped=1.
+    """
+    intraday_pattern = os.path.join(SHC_CTS_INTRADAY_REPORT_DIR, SHC_CTS_INTRADAY_REPORT_PATTERN)
+    intraday_path = latest_matching_file(intraday_pattern)
+    if not intraday_path:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1,
+                'reason': 'intraday_missing', 'ngay_xu_ly': ''}
+    ngay_xu_ly = _parse_shc_cts_intraday_date(os.path.basename(intraday_path))
+    if not ngay_xu_ly:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1,
+                'reason': 'date_unparseable', 'ngay_xu_ly': ''}
+
+    _ensure_shc_cts_schema()
+    try:
+        df = read_excel_sheet_cached(intraday_path, SHC_CTS_INTRADAY_PROGRESS_SHEET)
+    except Exception:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1,
+                'reason': 'excel_unreadable', 'ngay_xu_ly': ngay_xu_ly}
+
+    df = df.copy()
+    df['NVKT_DB'] = df['NVKT_DB'].astype(str).str.strip()
+    df = df[df['NVKT_DB'].str.len() > 0]
+    df = df[~df['NVKT_DB'].str.upper().eq('TỔNG')]
+    if df.empty:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 0,
+                'reason': '', 'ngay_xu_ly': ngay_xu_ly}
+
+    all_keys = [(ngay_xu_ly, nvkt) for nvkt in df['NVKT_DB'].tolist()]
+    now_iso = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        with _shc_cts_write_connection() as conn:
+            placeholders = ', '.join('?' for _ in df['NVKT_DB'])
+            existing_rows = conn.execute(
+                f'SELECT nvkt_db FROM shc_cts_tien_do '
+                f'WHERE ngay_xu_ly = ? AND nvkt_db IN ({placeholders})',
+                [ngay_xu_ly, *df['NVKT_DB'].tolist()],
+            ).fetchall()
+            existing = {r['nvkt_db'] for r in existing_rows}
+
+            for _, row in df.iterrows():
+                params = _shc_cts_intraday_row_to_params(row, ngay_xu_ly, now_iso)
+                conn.execute(_SHC_CTS_TIEN_DO_UPSERT_SQL, params)
+
+        new_count = sum(1 for _, nvkt in all_keys if nvkt not in existing)
+        updated_count = len(all_keys) - new_count
+        return {'synced': len(all_keys), 'new': new_count, 'updated': updated_count,
+                'skipped': 0, 'reason': '', 'ngay_xu_ly': ngay_xu_ly}
+    except sqlite3.OperationalError as exc:
+        msg = str(exc).lower()
+        if 'locked' in msg or 'busy' in msg:
+            return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1,
+                    'reason': 'db_locked', 'ngay_xu_ly': ngay_xu_ly}
+        raise
+
+
+@quality_bp.route('/api/shc-cts-kiemsoat/luu', methods=['POST'])
+@login_required
+def api_shc_cts_kiemsoat_luu():
+    payload = request.get_json(silent=True) or {}
+    ngay_xu_ly = str(payload.get('ngay_xu_ly') or '').strip()
+    nvkt_db = str(payload.get('nvkt_db') or '').strip()
+    if not ngay_xu_ly or not nvkt_db:
+        return jsonify({'ok': False, 'error': 'ngay_xu_ly và nvkt_db là bắt buộc'}), 400
+
+    noi_dung = str(payload.get('noi_dung') or '').strip()
+    if len(noi_dung) > SHC_CTS_KIEMSOAT_NOI_DUNG_MAX:
+        return jsonify({'ok': False, 'error': 'Nội dung không được vượt quá 2000 ký tự'}), 400
+
+    don_vi = str(payload.get('don_vi') or '')
+    username = session.get('username') or ''
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    _ensure_shc_cts_schema()
+    try:
+        with _shc_cts_write_connection() as conn:
+            if not noi_dung:
+                conn.execute(
+                    'DELETE FROM shc_cts_kiemsoat WHERE ngay_xu_ly = ? AND nvkt_db = ?',
+                    (ngay_xu_ly, nvkt_db),
+                )
+                return jsonify({'ok': True, 'ngay_xu_ly': ngay_xu_ly,
+                                'nvkt_db': nvkt_db, 'noi_dung': '', 'nguoi_nhap': ''})
+
+            existing = conn.execute(
+                'SELECT thoi_diem_nhap FROM shc_cts_kiemsoat WHERE ngay_xu_ly = ? AND nvkt_db = ?',
+                (ngay_xu_ly, nvkt_db),
+            ).fetchone()
+            thoi_diem_nhap = existing['thoi_diem_nhap'] if existing else now
+            conn.execute(
+                '''
+                INSERT INTO shc_cts_kiemsoat
+                    (ngay_xu_ly, nvkt_db, don_vi, noi_dung_kiem_soat,
+                     nguoi_nhap, thoi_diem_nhap, thoi_diem_cap_nhat)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(ngay_xu_ly, nvkt_db) DO UPDATE SET
+                    don_vi = excluded.don_vi,
+                    noi_dung_kiem_soat = excluded.noi_dung_kiem_soat,
+                    nguoi_nhap = excluded.nguoi_nhap,
+                    thoi_diem_cap_nhat = excluded.thoi_diem_cap_nhat
+                ''',
+                (ngay_xu_ly, nvkt_db, don_vi, noi_dung, username, thoi_diem_nhap, now),
+            )
+    except sqlite3.Error as exc:
+        return jsonify({'ok': False, 'error': str(exc)}), 500
+
+    return jsonify({'ok': True, 'ngay_xu_ly': ngay_xu_ly, 'nvkt_db': nvkt_db,
+                    'noi_dung': noi_dung, 'nguoi_nhap': username})
+
+
+def _resolve_shc_cts_selected_date(requested_date):
+    """Trả (selected_date, is_today_live). today_live khi date rỗng hoặc == ngày file intraday mới nhất."""
+    intraday_pattern = os.path.join(SHC_CTS_INTRADAY_REPORT_DIR, SHC_CTS_INTRADAY_REPORT_PATTERN)
+    intraday_path = latest_matching_file(intraday_pattern)
+    today_file_date = _parse_shc_cts_intraday_date(os.path.basename(intraday_path)) if intraday_path else None
+    requested = (requested_date or '').strip()
+    if not requested:
+        return today_file_date or '', bool(today_file_date)
+    return requested, (requested == today_file_date)
+
+
+def _get_shc_cts_available_dates():
+    _ensure_shc_cts_schema()
+    with _shc_cts_read_connection() as conn:
+        rows = conn.execute(
+            'SELECT DISTINCT ngay_xu_ly FROM shc_cts_tien_do ORDER BY ngay_xu_ly DESC'
+        ).fetchall()
+    db_dates = [r['ngay_xu_ly'] for r in rows if r['ngay_xu_ly']]
+
+    intraday_pattern = os.path.join(SHC_CTS_INTRADAY_REPORT_DIR, SHC_CTS_INTRADAY_REPORT_PATTERN)
+    intraday_path = latest_matching_file(intraday_pattern)
+    if intraday_path:
+        file_date = _parse_shc_cts_intraday_date(os.path.basename(intraday_path))
+        if file_date and file_date not in db_dates:
+            db_dates.insert(0, file_date)
+    return db_dates
+
+
+def _apply_shc_cts_kiemsoat_annotation(df, ngay_xu_ly):
+    """Join df với shc_cts_kiemsoat."""
+    _ensure_shc_cts_schema()
+    nvkt_list = [str(v).strip() for v in df['NVKT_DB'].tolist()]
+    ks_map = {}
+    if nvkt_list:
+        placeholders = ', '.join('?' for _ in nvkt_list)
+        with _shc_cts_read_connection() as conn:
+            rows = conn.execute(
+                f'''SELECT nvkt_db, noi_dung_kiem_soat, nguoi_nhap,
+                           thoi_diem_cap_nhat, thoi_diem_nhap
+                    FROM shc_cts_kiemsoat
+                    WHERE ngay_xu_ly = ? AND nvkt_db IN ({placeholders})''',
+                [ngay_xu_ly, *nvkt_list],
+            ).fetchall()
+        ks_map = {r['nvkt_db']: dict(r) for r in rows}
+    df = df.copy()
+    df['kiemsoat_noi_dung'] = df['NVKT_DB'].map(lambda k: ks_map.get(k, {}).get('noi_dung_kiem_soat', ''))
+    df['kiemsoat_nguoi_nhap'] = df['NVKT_DB'].map(lambda k: ks_map.get(k, {}).get('nguoi_nhap', ''))
+    df['kiemsoat_thoi_diem'] = df['NVKT_DB'].map(
+        lambda k: ks_map.get(k, {}).get('thoi_diem_cap_nhat') or ks_map.get(k, {}).get('thoi_diem_nhap') or ''
+    )
+    df['kiemsoat_da_nhap'] = df['NVKT_DB'].isin(ks_map.keys())
+    return df
+
+
+def _load_shc_cts_kiemsoat_df(ngay_xu_ly):
+    """Trả DataFrame tiến độ ngày đã chọn + annotation kiểm soát, hoặc None."""
+    intraday_pattern = os.path.join(SHC_CTS_INTRADAY_REPORT_DIR, SHC_CTS_INTRADAY_REPORT_PATTERN)
+    intraday_path = latest_matching_file(intraday_pattern)
+    today_file_date = _parse_shc_cts_intraday_date(os.path.basename(intraday_path)) if intraday_path else None
+
+    if ngay_xu_ly == today_file_date and intraday_path:
+        try:
+            _sync_shc_cts_tien_do_to_db()
+        except Exception:
+            current_app.logger.warning('shc_cts_tien_do sync thất bại trong detail', exc_info=True)
+        try:
+            df = read_excel_sheet_cached(intraday_path, SHC_CTS_INTRADAY_PROGRESS_SHEET)
+        except Exception:
+            return None
+    else:
+        _ensure_shc_cts_schema()
+        with _shc_cts_read_connection() as conn:
+            rows = conn.execute(
+                '''SELECT don_vi AS "Đơn vị", nvkt_db AS "NVKT_DB",
+                          tong_so AS "Tổng số", dat_baseline AS "Đạt baseline",
+                          da_xu_ly_ngay AS "Đã xử lý trong ngày",
+                          tong_dat AS "Tổng đã đạt", chua_dat AS "Chưa đạt",
+                          off_loi AS "OFF/Lỗi", ty_le_dat AS "% đạt"
+                   FROM shc_cts_tien_do WHERE ngay_xu_ly = ?
+                   ORDER BY don_vi, nvkt_db''',
+                (ngay_xu_ly,),
+            ).fetchall()
+        if not rows:
+            return None
+        df = pd.DataFrame([dict(r) for r in rows])
+
+    df['NVKT_DB'] = df['NVKT_DB'].astype(str).str.strip()
+    df = df[df['NVKT_DB'].str.len() > 0]
+    df = df[~df['NVKT_DB'].str.upper().eq('TỔNG')]
+    if df.empty:
+        return None
+    return _apply_shc_cts_kiemsoat_annotation(df, ngay_xu_ly)
+
+
+@quality_bp.route('/api/shc-cts-kiemsoat/detail')
+@login_required
+def api_shc_cts_kiemsoat_detail():
+    selected_date, is_today_live = _resolve_shc_cts_selected_date(request.args.get('date'))
+    if not selected_date:
+        return jsonify({'error': 'Chưa có dữ liệu tiến độ SHC CTS'}), 404
+
+    df = _load_shc_cts_kiemsoat_df(selected_date)
+    if df is None:
+        return jsonify({'error': f'Không có dữ liệu tiến độ ngày {selected_date}'}), 404
+
+    sheets = {}
+    don_vi_col = 'Đơn vị' if 'Đơn vị' in df.columns else None
+    if don_vi_col:
+        for don_vi, group in df.groupby(don_vi_col, sort=False):
+            sheets[str(don_vi)] = build_sheet_payload(group)
+    else:
+        sheets['Tất cả'] = build_sheet_payload(df)
+
+    return jsonify({
+        'selected_date': selected_date,
+        'is_today_live': is_today_live,
+        'available_dates': _get_shc_cts_available_dates(),
+        'sheets': sheets,
+    })
+
+
+def _compute_shc_cts_thongke(df, ngay_xu_ly):
+    """df: DataFrame có các cột gốc + kiemsoat_da_nhap."""
+    def _agg(group):
+        return {
+            'tong_so': int(group['Tổng số'].sum()) if 'Tổng số' in group else 0,
+            'tong_dat': int(group['Tổng đã đạt'].sum()) if 'Tổng đã đạt' in group else 0,
+            'chua_dat': int(group['Chưa đạt'].sum()) if 'Chưa đạt' in group else 0,
+            'da_xu_ly_ngay': int(group['Đã xử lý trong ngày'].sum()) if 'Đã xử lý trong ngày' in group else 0,
+            'da_ks': int(group['kiemsoat_da_nhap'].sum()) if 'kiemsoat_da_nhap' in group else 0,
+            'chua_ks': int(len(group) - group['kiemsoat_da_nhap'].sum()) if 'kiemsoat_da_nhap' in group else len(group),
+        }
+
+    summary = _agg(df)
+    tong_so = summary['tong_so']
+    summary['ty_le_dat'] = round(summary['tong_dat'] * 100.0 / tong_so, 1) if tong_so else 0.0
+
+    by_don_vi = []
+    if 'Đơn vị' in df.columns:
+        for don_vi, group in df.groupby('Đơn vị', sort=False):
+            row = {'don_vi': str(don_vi), **_agg(group)}
+            row['ty_le_dat'] = round(row['tong_dat'] * 100.0 / row['tong_so'], 1) if row['tong_so'] else 0.0
+            by_don_vi.append(row)
+        by_don_vi.sort(key=lambda r: r['tong_so'], reverse=True)
+
+    return {'summary': summary, 'by_don_vi': by_don_vi}
+
+
+def _compute_shc_cts_lich_su(ngay_xu_ly):
+    """Trả list trend nhiều ngày."""
+    _ensure_shc_cts_schema()
+    with _shc_cts_read_connection() as conn:
+        rows = conn.execute(
+            '''SELECT ngay_xu_ly,
+                      SUM(COALESCE(tong_so, 0)) AS tong_so,
+                      SUM(COALESCE(tong_dat, 0)) AS tong_dat
+               FROM shc_cts_tien_do
+               GROUP BY ngay_xu_ly
+               ORDER BY ngay_xu_ly DESC
+               LIMIT 60'''
+        ).fetchall()
+        ks_rows = []
+        if rows:
+            dates = [r['ngay_xu_ly'] for r in rows]
+            placeholders = ', '.join('?' for _ in dates)
+            ks_rows = conn.execute(
+                f'''SELECT ngay_xu_ly, COUNT(*) AS da_ks
+                    FROM shc_cts_kiemsoat
+                    WHERE noi_dung_kiem_soat != ''
+                      AND ngay_xu_ly IN ({placeholders})
+                    GROUP BY ngay_xu_ly''',
+                dates,
+            ).fetchall()
+        ks_map = {r['ngay_xu_ly']: r['da_ks'] for r in ks_rows}
+    return [
+        {
+            'ngay_xu_ly': r['ngay_xu_ly'],
+            'tong_so': r['tong_so'],
+            'tong_dat': r['tong_dat'],
+            'da_ks': ks_map.get(r['ngay_xu_ly'], 0),
+        }
+        for r in rows
+    ]
+
+
+@quality_bp.route('/api/shc-cts-kiemsoat/thongke')
+@login_required
+def api_shc_cts_kiemsoat_thongke():
+    selected_date, _ = _resolve_shc_cts_selected_date(request.args.get('date'))
+    if not selected_date:
+        return jsonify({'error': 'Chưa có dữ liệu tiến độ SHC CTS'}), 404
+
+    df = _load_shc_cts_kiemsoat_df(selected_date)
+    if df is None:
+        return jsonify({'error': f'Không có dữ liệu tiến độ ngày {selected_date}'}), 404
+
+    don_vi_filter = (request.args.get('don_vi') or '').strip()
+    if don_vi_filter and 'Đơn vị' in df.columns:
+        df = df[df['Đơn vị'].astype(str) == don_vi_filter]
+
+    thongke = _compute_shc_cts_thongke(df, selected_date)
+    return jsonify({
+        'selected_date': selected_date,
+        'summary': thongke['summary'],
+        'by_don_vi': thongke['by_don_vi'],
+        'lich_su': _compute_shc_cts_lich_su(selected_date),
+    })
+
+
+@quality_bp.route('/download/shc-cts-kiemsoat-report')
+@login_required
+def download_shc_cts_kiemsoat_report():
+    selected_date, _ = _resolve_shc_cts_selected_date(request.args.get('date'))
+    if not selected_date:
+        return jsonify({'error': 'Chưa có dữ liệu tiến độ SHC CTS'}), 404
+
+    df = _load_shc_cts_kiemsoat_df(selected_date)
+    if df is None:
+        return jsonify({'error': f'Không có dữ liệu tiến độ ngày {selected_date}'}), 404
+
+    don_vi_filter = (request.args.get('don_vi') or '').strip()
+    if don_vi_filter and 'Đơn vị' in df.columns:
+        df = df[df['Đơn vị'].astype(str) == don_vi_filter]
+
+    export_df = serialize_dataframe(df)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        export_df.to_excel(writer, index=False, sheet_name='Kiem_soat_SHC_CTS')
+    output.seek(0)
+
+    suffix = f'_{don_vi_filter}' if don_vi_filter else ''
+    download_name = f'shc_cts_kiemsoat_{selected_date}{suffix}.xlsx'
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
 def _shc_cts_payload_from_excel():
     if not os.path.exists(SHC_CTS_REPORT_PATH):
         raise FileNotFoundError(f'File Excel SHC CTS không tồn tại: {SHC_CTS_REPORT_PATH}')
-    if not os.path.exists(SHC_CTS_INTRADAY_REPORT_PATH):
-        raise FileNotFoundError(f'File Excel tiến trình SHC trong ngày không tồn tại: {SHC_CTS_INTRADAY_REPORT_PATH}')
+
+    intraday_pattern = os.path.join(SHC_CTS_INTRADAY_REPORT_DIR, SHC_CTS_INTRADAY_REPORT_PATTERN)
+    intraday_report_path = latest_matching_file(intraday_pattern)
+    if not intraday_report_path:
+        raise FileNotFoundError(
+            f'Không tìm thấy file Excel tiến trình SHC trong ngày theo mẫu: {intraday_pattern}'
+        )
 
     summary_df = read_excel_sheet_cached(SHC_CTS_REPORT_PATH, SHC_CTS_SUMMARY_SHEET)
     detail_df = read_excel_sheet_cached(SHC_CTS_REPORT_PATH, SHC_CTS_DETAIL_SHEET)
-    progress_df = read_excel_sheet_cached(SHC_CTS_INTRADAY_REPORT_PATH, SHC_CTS_INTRADAY_PROGRESS_SHEET)
+    progress_df = read_excel_sheet_cached(intraday_report_path, SHC_CTS_INTRADAY_PROGRESS_SHEET)
+    progress_df = _add_progress_timestamp_column(progress_df, _file_created_timestamp(intraday_report_path))
 
     don_vi_data = OrderedDict()
     if 'Đơn vị' in detail_df.columns:
@@ -574,7 +1109,7 @@ def _shc_cts_payload_from_excel():
 
     return {
         'file_info': build_file_info(SHC_CTS_REPORT_PATH, include_name=True),
-        'tien_do_file_info': build_file_info(SHC_CTS_INTRADAY_REPORT_PATH, include_name=True),
+        'tien_do_file_info': build_file_info(intraday_report_path, include_name=True),
         'tong_hop': build_sheet_payload(summary_df),
         'don_vi': don_vi_data,
         'tien_do_xu_ly': build_sheet_payload(progress_df),
