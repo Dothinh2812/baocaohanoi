@@ -323,3 +323,22 @@ def test_thongke_404_when_no_data(tmp_path, monkeypatch):
     monkeypatch.setattr(quality_routes, 'SHC_CTS_INTRADAY_REPORT_DIR', str(tmp_path))
     response = _logged_in_client().get('/api/shc-cts-kiemsoat/thongke?date=2099-01-01')
     assert response.status_code == 404
+
+
+# --- Download report ---
+
+def test_report_download_returns_xlsx(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    response = _logged_in_client().get('/download/shc-cts-kiemsoat-report?date=2026-06-25')
+    assert response.status_code == 200
+    assert 'spreadsheetml' in response.mimetype
+    assert 'shc_cts_kiemsoat_2026-06-25' in response.headers['Content-Disposition']
+
+
+def test_report_download_404_when_no_data(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    monkeypatch.setattr(quality_routes, 'SHC_CTS_INTRADAY_REPORT_DIR', str(tmp_path))
+    response = _logged_in_client().get('/download/shc-cts-kiemsoat-report?date=2099-01-01')
+    assert response.status_code == 404

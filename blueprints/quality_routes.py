@@ -1038,6 +1038,37 @@ def api_shc_cts_kiemsoat_thongke():
     })
 
 
+@quality_bp.route('/download/shc-cts-kiemsoat-report')
+@login_required
+def download_shc_cts_kiemsoat_report():
+    selected_date, _ = _resolve_shc_cts_selected_date(request.args.get('date'))
+    if not selected_date:
+        return jsonify({'error': 'Chưa có dữ liệu tiến độ SHC CTS'}), 404
+
+    df = _load_shc_cts_kiemsoat_df(selected_date)
+    if df is None:
+        return jsonify({'error': f'Không có dữ liệu tiến độ ngày {selected_date}'}), 404
+
+    don_vi_filter = (request.args.get('don_vi') or '').strip()
+    if don_vi_filter and 'Đơn vị' in df.columns:
+        df = df[df['Đơn vị'].astype(str) == don_vi_filter]
+
+    export_df = serialize_dataframe(df)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+        export_df.to_excel(writer, index=False, sheet_name='Kiem_soat_SHC_CTS')
+    output.seek(0)
+
+    suffix = f'_{don_vi_filter}' if don_vi_filter else ''
+    download_name = f'shc_cts_kiemsoat_{selected_date}{suffix}.xlsx'
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+
+
 def _shc_cts_payload_from_excel():
     if not os.path.exists(SHC_CTS_REPORT_PATH):
         raise FileNotFoundError(f'File Excel SHC CTS không tồn tại: {SHC_CTS_REPORT_PATH}')
