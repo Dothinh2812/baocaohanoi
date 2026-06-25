@@ -44,11 +44,34 @@
         </div>
     </div>
 
-    <!-- Kiểm soát tổ trưởng PTTB -->
+    <!-- Chi tiết tồn PTTB các tổ (có cột kiểm soát tổ trưởng inline) -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-list-alt"></i>
+            Chi tiết tồn PTTB các tổ
+        </h3>
+        <p class="section-description">Bảng chi tiết phiếu tồn có thêm cột <strong>Nội dung kiểm soát</strong> (tổ trưởng). Dữ liệu kiểm soát lưu riêng, không bị ghi đè khi tải lại báo cáo.</p>
+        <div class="excel-tabs-container">
+            <ul class="excel-tabs" id="pttb-chitiet-to-tabs">
+                <li class="excel-tab active" data-sheet="ToKT_SonTay">Sơn Tây</li>
+                <li class="excel-tab" data-sheet="ToKT_SuoiHai">Suối Hai</li>
+                <li class="excel-tab" data-sheet="ToKT_QuangOai">Quảng Oai</li>
+                <li class="excel-tab" data-sheet="ToKT_PhucTho">Phúc Thọ</li>
+            </ul>
+            <div id="pttb-chitiet-to-content">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <br>Đang tải dữ liệu...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kiểm soát tổ trưởng PTTB: Thống kê -->
     <div id="pttb-kiemsoat-section" class="section">
         <h3 class="section-title">
-            <i class="fas fa-clipboard-check"></i>
-            Kiểm soát tổ trưởng PTTB
+            <i class="fas fa-chart-pie"></i>
+            Thống kê kiểm soát PTTB
         </h3>
         <div class="pttb-ks-filters" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
             <label>Nhóm giờ:
@@ -86,28 +109,6 @@
         <div id="pttb-kiemsoat-stats" class="pttb-ks-cards"></div>
         <h4 style="margin-top:16px;">Chi tiết theo bộ lọc</h4>
         <div id="pttb-kiemsoat-chitiet-container"></div>
-    </div>
-
-    <!-- Chi tiết tồn PTTB các tổ -->
-    <div class="section">
-        <h3 class="section-title">
-            <i class="fas fa-list-alt"></i>
-            Chi tiết tồn PTTB các tổ
-        </h3>
-        <div class="excel-tabs-container">
-            <ul class="excel-tabs" id="pttb-chitiet-to-tabs">
-                <li class="excel-tab active" data-sheet="ToKT_SonTay">Sơn Tây</li>
-                <li class="excel-tab" data-sheet="ToKT_SuoiHai">Suối Hai</li>
-                <li class="excel-tab" data-sheet="ToKT_QuangOai">Quảng Oai</li>
-                <li class="excel-tab" data-sheet="ToKT_PhucTho">Phúc Thọ</li>
-            </ul>
-            <div id="pttb-chitiet-to-content">
-                <div class="loading">
-                    <i class="fas fa-spinner"></i>
-                    <br>Đang tải dữ liệu...
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Tổng hợp theo đội -->

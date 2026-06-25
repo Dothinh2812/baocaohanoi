@@ -19,14 +19,12 @@ async function initPTTBPage() {
         loadPTTBPendingData(),
         loadPTTBChitietToData(),
         loadPttbKiemSoatThongKe(),
-        loadPttbKiemSoatDetail(),
     ]);
 
     // Initialize detail tabs after data is loaded
     initPTTBDiabanTabs();
     initPTTBDetailTabs();
     initPTTBPendingTabs();
-    initPTTBChitietToTabs();
 }
 
 /**
@@ -321,50 +319,110 @@ function downloadExcelPTTB() {
 }
 
 /**
- * Load PTTB Chi tiết tồn các tổ data
+ * Load PTTB Chi tiết tồn các tổ data (từ kiêm soát endpoint, có cột kiểm soát inline)
  */
+let _pttbKsActiveTeam = null;
+
 async function loadPTTBChitietToData() {
     try {
-        const response = await fetch('/api/pttb-data-chitiet-to');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        if (data.error) {
-            throw new Error(data.error);
-        }
-
-        // Store data globally for tab switching
-        window.pttbChitietToData = data.sheets;
-        window.pttbChitietToFileInfo = data.file_info || null;
-
-        // Render first tab (ToKT_SonTay) by default
-        if (data.sheets && data.sheets['ToKT_SonTay']) {
-            renderPTTBTable('pttb-chitiet-to-content', data.sheets['ToKT_SonTay'], window.pttbChitietToFileInfo);
-        }
+        const data = await API.getPttbKiemSoatDetail();
+        renderPttbKiemSoatMain(data);
     } catch (error) {
         console.error('Error loading PTTB Chitiet To:', error);
         showPTTBError('pttb-chitiet-to-content', error.message);
     }
 }
 
-/**
- * Initialize Chi tiết tồn các tổ tabs (4 tabs)
- */
-function initPTTBChitietToTabs() {
-    const tabs = document.querySelectorAll('#pttb-chitiet-to-tabs .excel-tab');
+function renderPttbKiemSoatMain(data) {
+    const container = document.getElementById('pttb-chitiet-to-content');
+    const tabsEl = document.getElementById('pttb-chitiet-to-tabs');
+    if (!data || !data.sheets || !container || !tabsEl) {
+        if (container) container.innerHTML = '<p>Không có dữ liệu phiếu tồn.</p>';
+        return;
+    }
 
-    tabs.forEach(tab => {
+    const teamNames = Object.keys(data.sheets);
+    if (teamNames.length === 0) {
+        tabsEl.innerHTML = '';
+        container.innerHTML = '<p>Không có phiếu tồn.</p>';
+        return;
+    }
+
+    // populate bộ lọc tổ (thống kê) cùng lúc
+    const toSelect = document.getElementById('pttb-kiemsoat-filter-to');
+    if (toSelect) {
+        const current = toSelect.value;
+        const displayNameMap = { 'PhucTho': 'Phúc Thọ', 'SonTay': 'Sơn Tây', 'QuangOai': 'Quảng Oai', 'SuoiHai': 'Suối Hai' };
+        toSelect.innerHTML = '<option value="">Tất cả</option>' +
+            teamNames.map(t => {
+                const m = t.match(/ToKT_(\w+?)(?:_rut_gon)?$/);
+                const key = m ? m[1] : t;
+                const display = displayNameMap[key] || key;
+                return `<option value="${t}">${display}</option>`;
+            }).join('');
+        if (current && teamNames.includes(current)) toSelect.value = current;
+    }
+
+    if (!_pttbKsActiveTeam || !teamNames.includes(_pttbKsActiveTeam)) {
+        _pttbKsActiveTeam = teamNames[0];
+    }
+
+    tabsEl.innerHTML = teamNames.map(name => {
+        const active = name === _pttbKsActiveTeam ? 'active' : '';
+        const m = name.match(/ToKT_(\w+?)(?:_rut_gon)?$/);
+        const key = m ? m[1] : name;
+        const displayNameMap = { 'PhucTho': 'Phúc Thọ', 'SonTay': 'Sơn Tây', 'QuangOai': 'Quảng Oai', 'SuoiHai': 'Suối Hai' };
+        const display = displayNameMap[key] || key;
+        return `<li class="excel-tab ${active}" data-sheet="${name}">${display}</li>`;
+    }).join('');
+
+    tabsEl.querySelectorAll('.excel-tab').forEach(tab => {
         tab.addEventListener('click', function () {
-            tabs.forEach(t => t.classList.remove('active'));
-            this.classList.add('active');
-
-            const sheetName = this.dataset.sheet;
-            if (window.pttbChitietToData && window.pttbChitietToData[sheetName]) {
-                renderPTTBTable('pttb-chitiet-to-content', window.pttbChitietToData[sheetName], window.pttbChitietToFileInfo);
-            }
+            _pttbKsActiveTeam = this.dataset.sheet;
+            renderPttbKiemSoatMain(data);
         });
     });
+
+    renderPttbKiemSoatTable(_pttbKsActiveTeam, data.sheets[_pttbKsActiveTeam], container);
+}
+
+function renderPttbKiemSoatTable(team, sheetData, container) {
+    if (!container) return;
+    const rows = (sheetData && sheetData.data) || [];
+
+    const colgroup = '<colgroup>' +
+        PTTB_KS_DISPLAY_COLS.map(c => `<col style="width:${PTTB_KS_COL_WIDTHS[c] || 'auto'}">`).join('') +
+        '<col style="width:18%">' +
+        '</colgroup>';
+
+    const headers = PTTB_KS_DISPLAY_COLS.map(c => `<th>${PTTB_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
+    const body = rows.map(row => {
+        const cells = PTTB_KS_DISPLAY_COLS.map(c => `<td>${row[c] != null ? row[c] : ''}</td>`).join('');
+        const maTb = row.MA_THUE_BAO;
+        const noiDung = (row.kiemsoat_noi_dung || '').toString()
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return `
+            <tr>
+                ${cells}
+                <td class="pttb-ks-cell">
+                    <textarea class="pttb-ks-input" rows="2" data-ma_tb="${maTb}"
+                        data-loai="${row.LOAIHINH_TB || ''}" data-doi="${row.DOI_VT || ''}" data-nvtt="${row.NHANVIEN_TIEPTHI || ''}">${noiDung}</textarea>
+                    <button class="pttb-ks-save-btn" onclick="savePttbKiemSoat('${maTb}')">Lưu</button>
+                    <span class="pttb-ks-status" id="pttb-ks-status-${maTb}">${_buildPttbKsBadge(row)}</span>
+                </td>
+            </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="excel-table-card">
+            <div class="excel-table-body" style="max-height:820px;overflow:auto;">
+                <table class="excel-table pttb-ks-detail-table">
+                    ${colgroup}
+                    <thead><tr>${headers}<th>Nội dung kiểm soát</th></tr></thead>
+                    <tbody>${body || '<tr><td colspan="99">Không có phiếu.</td></tr>'}</tbody>
+                </table>
+            </div>
+        </div>`;
 }
 
 /* ========================================
@@ -420,87 +478,6 @@ function _pttbKiemSoatQuery() {
     return params.toString();
 }
 
-async function loadPttbKiemSoatDetail() {
-    try {
-        const data = await API.getPttbKiemSoatDetail();
-        renderPttbKiemSoatDetail(data);
-    } catch (error) {
-        const container = document.getElementById('pttb-kiemsoat-chitiet-container');
-        if (container) container.innerHTML = '<p>Không thể tải dữ liệu kiểm soát PTTB.</p>';
-    }
-}
-
-function renderPttbKiemSoatDetail(data) {
-    const container = document.getElementById('pttb-kiemsoat-chitiet-container');
-    if (!container) return;
-    if (!data || !data.sheets) {
-        container.innerHTML = '<p>Không có dữ liệu phiếu tồn.</p>';
-        return;
-    }
-
-    const teamNames = Object.keys(data.sheets);
-    const toSelect = document.getElementById('pttb-kiemsoat-filter-to');
-    if (toSelect) {
-        const current = toSelect.value;
-        const displayNameMap = { 'PhucTho': 'Phúc Thọ', 'SonTay': 'Sơn Tây', 'QuangOai': 'Quảng Oai', 'SuoiHai': 'Suối Hai' };
-        toSelect.innerHTML = '<option value="">Tất cả</option>' +
-            teamNames.map(t => {
-                const m = t.match(/ToKT_(\w+?)(?:_rut_gon)?$/);
-                const key = m ? m[1] : t;
-                const display = displayNameMap[key] || key;
-                return `<option value="${t}">${display}</option>`;
-            }).join('');
-        if (current && teamNames.includes(current)) toSelect.value = current;
-    }
-
-    let allRows = [];
-    teamNames.forEach(name => {
-        const sheet = data.sheets[name];
-        if (sheet && sheet.data) {
-            allRows = allRows.concat(sheet.data);
-        }
-    });
-
-    if (!allRows.length) {
-        container.innerHTML = '<p>Không có phiếu tồn.</p>';
-        return;
-    }
-
-    const colgroup = '<colgroup>' +
-        PTTB_KS_DISPLAY_COLS.map(c => `<col style="width:${PTTB_KS_COL_WIDTHS[c] || 'auto'}">`).join('') +
-        '<col style="width:18%">' +
-        '</colgroup>';
-
-    const headers = PTTB_KS_DISPLAY_COLS.map(c => `<th>${PTTB_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
-    const body = allRows.map(row => {
-        const cells = PTTB_KS_DISPLAY_COLS.map(c => `<td>${row[c] != null ? row[c] : ''}</td>`).join('');
-        const maTb = row.MA_THUE_BAO;
-        const noiDung = (row.kiemsoat_noi_dung || '').toString()
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return `
-            <tr>
-                ${cells}
-                <td class="pttb-ks-cell">
-                    <textarea class="pttb-ks-input" rows="2" data-ma_tb="${maTb}"
-                        data-loai="${row.LOAIHINH_TB || ''}" data-doi="${row.DOI_VT || ''}" data-nvtt="${row.NHANVIEN_TIEPTHI || ''}">${noiDung}</textarea>
-                    <button class="pttb-ks-save-btn" onclick="savePttbKiemSoat('${maTb}')">Lưu</button>
-                    <span class="pttb-ks-status" id="pttb-ks-status-${maTb}">${_buildPttbKsBadge(row)}</span>
-                </td>
-            </tr>`;
-    }).join('');
-
-    container.innerHTML = `
-        <div class="excel-table-card">
-            <div class="excel-table-body" style="max-height:600px;overflow:auto;">
-                <table class="excel-table pttb-ks-detail-table">
-                    ${colgroup}
-                    <thead><tr>${headers}<th>Nội dung kiểm soát</th></tr></thead>
-                    <tbody>${body}</tbody>
-                </table>
-            </div>
-        </div>`;
-}
-
 async function savePttbKiemSoat(maTb) {
     const textarea = document.querySelector(`.pttb-ks-input[data-ma_tb="${maTb}"]`);
     if (!textarea) return;
@@ -533,9 +510,11 @@ window.savePttbKiemSoat = savePttbKiemSoat;
 
 async function loadPttbKiemSoatThongKe() {
     const statsEl = document.getElementById('pttb-kiemsoat-stats');
+    const chiTietEl = document.getElementById('pttb-kiemsoat-chitiet-container');
     try {
         const data = await API.getPttbKiemSoatThongKe(_pttbKiemSoatQuery());
         renderPttbKiemSoatStats(data, statsEl);
+        renderPttbKiemSoatChiTiet(data.chi_tiet || [], chiTietEl);
     } catch (error) {
         if (statsEl) statsEl.innerHTML = '<p class="error">Không tải được thống kê.</p>';
     }
@@ -557,9 +536,35 @@ function renderPttbKiemSoatStats(data, statsEl) {
         </div>`;
 }
 
+function renderPttbKiemSoatChiTiet(rows, container) {
+    if (!container) return;
+    if (!rows.length) {
+        container.innerHTML = '<p>Không có phiếu khớp bộ lọc.</p>';
+        return;
+    }
+    const cols = ['MA_THUE_BAO', 'TEN_THUEBAO', 'LOAIHINH_TB', 'NHANVIEN_TIEPTHI', 'DOI_VT', 'gio_conlai', 'trang_thai', 'kiemsoat_noi_dung', 'kiemsoat_thoi_diem', 'kiemsoat_nguoi_nhap'];
+    const labels = {
+        'MA_THUE_BAO': 'Mã TB', 'TEN_THUEBAO': 'Khách hàng', 'LOAIHINH_TB': 'Loại',
+        'NHANVIEN_TIEPTHI': 'NVTT', 'DOI_VT': 'Tổ', 'gio_conlai': 'Giờ còn lại',
+        'trang_thai': 'Trạng thái', 'kiemsoat_noi_dung': 'Nội dung KS',
+        'kiemsoat_thoi_diem': 'Thời điểm nhập', 'kiemsoat_nguoi_nhap': 'Người nhập',
+    };
+    const headers = cols.map(c => `<th>${labels[c] || c}</th>`).join('');
+    const body = rows.map(r => `<tr>${cols.map(c => `<td>${r[c] != null ? r[c] : ''}</td>`).join('')}</tr>`).join('');
+    container.innerHTML = `
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table">
+                    <thead><tr>${headers}</tr></thead>
+                    <tbody>${body}</tbody>
+                </table>
+            </div>
+        </div>`;
+}
+
 async function reloadPttbKiemSoatThongKe() {
     await loadPttbKiemSoatThongKe();
-    await loadPttbKiemSoatDetail();
+    await loadPTTBChitietToData();
 }
 window.reloadPttbKiemSoatThongKe = reloadPttbKiemSoatThongKe;
 
