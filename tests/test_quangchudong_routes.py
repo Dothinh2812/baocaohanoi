@@ -50,6 +50,21 @@ def test_quangchudong_dashboard_api_returns_combined_payload(monkeypatch):
     }
 
 
+def test_quangchudong_page_has_off_today_6am_duration_filter():
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/quangchudong')
+
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+    assert '<option value="off-today-6am">OFF từ 06h hôm nay</option>' in html
+    assert 'data-event-time="${row.first_off_time || row.alert_time || \'\'}"' in html
+    assert 'parseLocalDateTime' in html
+    assert 'ticket-today-6am' not in html
+
+
 class _FakeNvktQuangChuDongCache:
     def get_dashboard_payload(self):
         return {
@@ -132,6 +147,24 @@ def test_quangchudong_nvkt_mobile_page_is_standalone(monkeypatch):
     assert 'data-nvkt-slug="le-van-tuan"' in html
     assert 'href="tel:${escapeHtml(href)}"' in html
     assert 'sidebar' not in html.lower()
+
+
+def test_quangchudong_helpers_split_off_today_and_sleeping_rows():
+    rows = [
+        {'ma_tb': 'AFTER', 'first_off_time': '2026-05-13T06:00:00'},
+        {'ma_tb': 'ALERT_FALLBACK', 'first_off_time': '', 'alert_time': '2026-05-13 07:15:00'},
+        {'ma_tb': 'BEFORE', 'first_off_time': '2026-05-12 05:30:00'},
+        {'ma_tb': 'BAD_TIME', 'first_off_time': 'not-a-date'},
+    ]
+    cutoff = datetime(2026, 5, 13, 6, 0, 0)
+    now = datetime(2026, 5, 15, 8, 30, 0)
+
+    off_today = quangchudong_routes._filter_off_today_rows(rows, cutoff)
+    sleeping = quangchudong_routes._filter_sleeping_rows(rows, cutoff, now)
+
+    assert [row['ma_tb'] for row in off_today] == ['ALERT_FALLBACK', 'AFTER']
+    assert [row['ma_tb'] for row in sleeping] == ['BEFORE']
+    assert sleeping[0]['thoi_gian_ngu'] == 3
 
 
 class _FixedDateTime(datetime):

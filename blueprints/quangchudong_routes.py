@@ -32,6 +32,41 @@ def _parse_alert_time(value):
     return None
 
 
+def _get_event_time(row):
+    return _parse_alert_time(row.get('first_off_time') or row.get('alert_time'))
+
+
+def _filter_off_today_rows(rows, cutoff_time):
+    filtered = []
+    for row in rows:
+        event_time = _get_event_time(row)
+        if event_time is not None and event_time >= cutoff_time:
+            filtered.append(row)
+    filtered.sort(key=lambda row: _get_event_time(row) or datetime.min, reverse=True)
+    return filtered
+
+
+def _with_sleep_days(row, now):
+    enriched = dict(row)
+    event_time = _get_event_time(row)
+    if event_time is None:
+        enriched['thoi_gian_ngu'] = ''
+        return enriched
+    diff_days = max(1, int((now - event_time).total_seconds() // 86400))
+    enriched['thoi_gian_ngu'] = diff_days
+    return enriched
+
+
+def _filter_sleeping_rows(rows, cutoff_time, now):
+    filtered = []
+    for row in rows:
+        event_time = _get_event_time(row)
+        if event_time is not None and event_time < cutoff_time:
+            filtered.append(_with_sleep_days(row, now))
+    filtered.sort(key=lambda row: row.get('thoi_gian_ngu') or 0, reverse=True)
+    return filtered
+
+
 def _today_six_am():
     return datetime.now().replace(hour=6, minute=0, second=0, microsecond=0)
 
