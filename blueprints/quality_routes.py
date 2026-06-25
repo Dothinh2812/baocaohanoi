@@ -1,8 +1,10 @@
 import io
 import os
+import sqlite3
 import unicodedata
 from collections import OrderedDict
 from datetime import datetime
+from threading import Lock
 
 import pandas as pd
 from flask import Blueprint, current_app, jsonify, render_template, request, send_file, session
@@ -11,12 +13,18 @@ from app_helpers import (
     build_file_info,
     build_multi_sheet_payload,
     build_sheet_payload,
+    latest_matching_file,
     read_excel_sheet_cached,
     safe_file_response,
     serialize_dataframe,
 )
 from auth import get_user_by_username, login_required
-from config import BAOCAO_HANOI_DOWNLOADS_DIR, SHC_NVKT_DETAIL_REPORTS, SHC_NVKT_TEAMS
+from config import (
+    BAOCAO_HANOI_DOWNLOADS_DIR,
+    SHC_CTS_HISTORY_DB_PATH,
+    SHC_NVKT_DETAIL_REPORTS,
+    SHC_NVKT_TEAMS,
+)
 from repositories import (
     load_many_tables_by_date,
     load_c11_nvkt_df,
@@ -38,7 +46,8 @@ quality_bp = Blueprint('quality', __name__)
 SHC_CTS_REPORT_PATH = '/home/vtst/shc/processed/reports/So_sanh_SHC_theo_ngay_T-1.xlsx'
 SHC_CTS_SUMMARY_SHEET = 'Theo_don_vi'
 SHC_CTS_DETAIL_SHEET = 'Chi_tiet_NVKT'
-SHC_CTS_INTRADAY_REPORT_PATH = '/home/vtst/shc/processed/intraday/reports/Bao_cao_tien_trinh_20260514.xlsx'
+SHC_CTS_INTRADAY_REPORT_DIR = '/home/vtst/shc/processed/intraday/reports'
+SHC_CTS_INTRADAY_REPORT_PATTERN = 'Bao_cao_tien_trinh_*.xlsx'
 SHC_CTS_INTRADAY_PROGRESS_SHEET = 'Theo NVKT'
 SHC_CTS_NVKT_DETAIL_ROOT = '/home/vtst/shc/processed'
 SHC_CTS_NVKT_DETAIL_PREFIX = 'shc_NVKT_danh_sach_chi_tiet_K1'
@@ -540,15 +549,122 @@ def _build_i15_download_workbook_response(payload, filename_prefix):
     )
 
 
+def _file_created_timestamp(file_path):
+    stat = os.stat(file_path)
+    created_at = getattr(stat, 'st_birthtime', stat.st_mtime)
+    return datetime.fromtimestamp(created_at).strftime('%d/%m/%Y %H:%M:%S')
+
+
+def _add_progress_timestamp_column(progress_df, timestamp):
+    progress_df = progress_df.copy()
+    if 'Timestamp' in progress_df.columns:
+        progress_df = progress_df.drop(columns=['Timestamp'])
+    insert_at = 1 if 'Đơn vị' in progress_df.columns else 0
+    progress_df.insert(insert_at, 'Timestamp', timestamp)
+    return progress_df
+
+
+SHC_CTS_KIEMSOAT_NOI_DUNG_MAX = 2000
+SHC_CTS_INTRADAY_PROGRESS_COLUMNS = [
+    'Đơn vị',
+    'NVKT_DB',
+    'Tổng số',
+    'Đạt baseline',
+    'Đã xử lý trong ngày',
+    'Tổng đã đạt',
+    'Chưa đạt',
+    'OFF/Lỗi',
+    '% đạt',
+]
+
+_shc_cts_schema_lock = Lock()
+_shc_cts_schema_ready_path = None
+
+
+def _shc_cts_write_connection():
+    conn = sqlite3.connect(SHC_CTS_HISTORY_DB_PATH, timeout=5)
+    conn.execute('PRAGMA journal_mode=WAL')
+    conn.execute('PRAGMA busy_timeout=5000')
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _shc_cts_read_connection():
+    conn = sqlite3.connect(
+        f'file:{os.path.abspath(SHC_CTS_HISTORY_DB_PATH)}?mode=ro',
+        uri=True,
+        timeout=5,
+    )
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def _ensure_shc_cts_schema():
+    global _shc_cts_schema_ready_path
+    db_path = os.path.abspath(SHC_CTS_HISTORY_DB_PATH)
+    with _shc_cts_schema_lock:
+        if _shc_cts_schema_ready_path == db_path:
+            return
+        db_dir = os.path.dirname(db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+        with _shc_cts_write_connection() as conn:
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS shc_cts_tien_do (
+                    ngay_xu_ly        TEXT NOT NULL,
+                    don_vi            TEXT,
+                    nvkt_db           TEXT NOT NULL,
+                    tong_so           INTEGER,
+                    dat_baseline      INTEGER,
+                    da_xu_ly_ngay     INTEGER,
+                    tong_dat          INTEGER,
+                    chua_dat          INTEGER,
+                    off_loi           INTEGER,
+                    ty_le_dat         REAL,
+                    captured_at       TEXT,
+                    PRIMARY KEY (ngay_xu_ly, nvkt_db)
+                )
+                '''
+            )
+            conn.execute(
+                'CREATE INDEX IF NOT EXISTS idx_shc_cts_tien_do_ngay ON shc_cts_tien_do(ngay_xu_ly)'
+            )
+            conn.execute(
+                'CREATE INDEX IF NOT EXISTS idx_shc_cts_tien_do_don_vi ON shc_cts_tien_do(don_vi)'
+            )
+            conn.execute(
+                '''
+                CREATE TABLE IF NOT EXISTS shc_cts_kiemsoat (
+                    ngay_xu_ly         TEXT NOT NULL,
+                    nvkt_db            TEXT NOT NULL,
+                    don_vi             TEXT,
+                    noi_dung_kiem_soat TEXT NOT NULL DEFAULT '',
+                    nguoi_nhap         TEXT,
+                    thoi_diem_nhap     TEXT,
+                    thoi_diem_cap_nhat TEXT,
+                    PRIMARY KEY (ngay_xu_ly, nvkt_db)
+                )
+                '''
+            )
+        _shc_cts_schema_ready_path = db_path
+
+
 def _shc_cts_payload_from_excel():
     if not os.path.exists(SHC_CTS_REPORT_PATH):
         raise FileNotFoundError(f'File Excel SHC CTS không tồn tại: {SHC_CTS_REPORT_PATH}')
-    if not os.path.exists(SHC_CTS_INTRADAY_REPORT_PATH):
-        raise FileNotFoundError(f'File Excel tiến trình SHC trong ngày không tồn tại: {SHC_CTS_INTRADAY_REPORT_PATH}')
+
+    intraday_pattern = os.path.join(SHC_CTS_INTRADAY_REPORT_DIR, SHC_CTS_INTRADAY_REPORT_PATTERN)
+    intraday_report_path = latest_matching_file(intraday_pattern)
+    if not intraday_report_path:
+        raise FileNotFoundError(
+            f'Không tìm thấy file Excel tiến trình SHC trong ngày theo mẫu: {intraday_pattern}'
+        )
 
     summary_df = read_excel_sheet_cached(SHC_CTS_REPORT_PATH, SHC_CTS_SUMMARY_SHEET)
     detail_df = read_excel_sheet_cached(SHC_CTS_REPORT_PATH, SHC_CTS_DETAIL_SHEET)
-    progress_df = read_excel_sheet_cached(SHC_CTS_INTRADAY_REPORT_PATH, SHC_CTS_INTRADAY_PROGRESS_SHEET)
+    progress_df = read_excel_sheet_cached(intraday_report_path, SHC_CTS_INTRADAY_PROGRESS_SHEET)
+    progress_df = _add_progress_timestamp_column(progress_df, _file_created_timestamp(intraday_report_path))
 
     don_vi_data = OrderedDict()
     if 'Đơn vị' in detail_df.columns:
@@ -574,7 +690,7 @@ def _shc_cts_payload_from_excel():
 
     return {
         'file_info': build_file_info(SHC_CTS_REPORT_PATH, include_name=True),
-        'tien_do_file_info': build_file_info(SHC_CTS_INTRADAY_REPORT_PATH, include_name=True),
+        'tien_do_file_info': build_file_info(intraday_report_path, include_name=True),
         'tong_hop': build_sheet_payload(summary_df),
         'don_vi': don_vi_data,
         'tien_do_xu_ly': build_sheet_payload(progress_df),
