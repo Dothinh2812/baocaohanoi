@@ -2,8 +2,8 @@
 
 ## Mốc cập nhật
 
-- Ngày cập nhật: `2026-06-24`
-- Trạng thái: đã chuyển phần lớn route có dữ liệu phù hợp sang DB mới; các route chưa đủ contract đã bắt đầu bị ngắt khỏi nguồn Excel/file cũ; `/brcd` đã có lớp kiểm soát tổ trưởng (write-aside)
+- Ngày cập nhật: `2026-06-25`
+- Trạng thái: đã chuyển phần lớn route có dữ liệu phù hợp sang DB mới; các route chưa đủ contract đã bắt đầu bị ngắt khỏi nguồn Excel/file cũ; `/brcd` và `/pttb` đã có lớp kiểm soát tổ trưởng (write-aside) kèm snapshot lịch sử và timestamp báo cáo
 
 ## Những gì đã làm
 
@@ -107,6 +107,9 @@ Page HTML đã bật filter ngày tương ứng:
 
 ## 6. Kiểm soát tổ trưởng tại `/brcd`
 
+> Tài liệu vận hành đầy đủ (schema, cron, backup, troubleshooting):
+> [11-kiemsoat-to-truong-van-hanh.md](/home/vtst/dashv4/docs/11-kiemsoat-to-truong-van-hanh.md)
+
 Đã thêm lớp "kiểm soát tổ trưởng" cho phiếu tồn BRCD (mã `baohong_id`):
 
 - tổ trưởng nhập "nội dung kiểm soát" (1 ô tự do) trực tiếp trên bảng chi tiết phiếu tồn
@@ -134,6 +137,9 @@ Page HTML đã bật filter ngày tương ứng:
 
 ## 7. Kiểm soát tổ trưởng tại `/pttb`
 
+> Tài liệu vận hành đầy đủ (schema, cron, backup, troubleshooting):
+> [11-kiemsoat-to-truong-van-hanh.md](/home/vtst/dashv4/docs/11-kiemsoat-to-truong-van-hanh.md)
+
 Đã thêm lớp "kiểm soát tổ trưởng" cho phiếu tồn PTTB (mã `ma_thue_bao`):
 
 - tổ trưởng nhập "nội dung kiểm soát" (1 ô tự do) trực tiếp trên bảng chi tiết phiếu tồn PTTB
@@ -158,6 +164,19 @@ Page HTML đã bật filter ngày tương ứng:
       /home/vtst/dashv4/scripts/sync_pttb_phieu.py \
       >> /home/vtst/dashv4/logs/pttb_phieu_sync.log 2>&1
   ```
+
+### 7.2. Timestamp thời gian file báo cáo
+
+Phía trên bảng chi tiết tồn (cả `/brcd` và `/pttb`) hiển thị dòng timestamp
+màu đỏ nổi bật:
+
+> 🕐 **Dữ liệu báo cáo cập nhật:** `<file mtime>`
+
+- Lấy từ `file_info.modified` của endpoint `detail` (= thời gian `1bss` tải
+  file Excel về, phản ánh độ mới số liệu).
+- Render trong `renderKiemSoatTable` (BRCD) và `renderPttbKiemSoatTable` (PTTB)
+  qua `static/js/pages/brcd.js` và `static/js/pages/pttb.js`.
+- CSS inline: `color:#d32f2f; font-weight:600`.
 
 ## 5. Route chưa hỗ trợ đã bị chặn ở mức page/API
 
@@ -227,7 +246,7 @@ Mục tiêu của payload này là biến endpoint bị ngắt thành backlog d�
 - `/api/pttb-data-summary` trả `501`
 - `/api/tam-dung-khoi-phuc-data` trả `200`
 - `/api/cau-hinh-tu-dong/son-tay` trả `200`
-- `/brcd` khi có session trả `501` với trang pending
+- `/brcd` khi có session trả `200` (đã mở lại với lớp kiểm soát tổ trưởng)
 
 ## Những gì chưa làm
 

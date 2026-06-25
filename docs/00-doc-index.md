@@ -51,6 +51,10 @@ Nếu vào repo ở phiên sau, hoặc cần sửa/thêm tính năng, bắt đ�
 - [10-trien-khai-multi-instance.md](/home/vtst/dashv4/docs/10-trien-khai-multi-instance.md)
 - [07-trien-khai-van-hanh.md](/home/vtst/dashv4/docs/07-trien-khai-van-hanh.md)
 
+### Muốn vận hành / bảo dưỡng lớp kiểm soát tổ trưởng (`/brcd`, `/pttb`)
+
+- [11-kiemsoat-to-truong-van-hanh.md](/home/vtst/dashv4/docs/11-kiemsoat-to-truong-van-hanh.md)
+
 ## Danh sách tài liệu
 
 ### Tài liệu định hướng và phạm vi
@@ -71,6 +75,7 @@ Nếu vào repo ở phiên sau, hoặc cần sửa/thêm tính năng, bắt đ�
 - [07-trien-khai-van-hanh.md](/home/vtst/dashv4/docs/07-trien-khai-van-hanh.md)
 - [08-trang-thai-thuc-thi.md](/home/vtst/dashv4/docs/08-trang-thai-thuc-thi.md)
 - [10-trien-khai-multi-instance.md](/home/vtst/dashv4/docs/10-trien-khai-multi-instance.md)
+- [11-kiemsoat-to-truong-van-hanh.md](/home/vtst/dashv4/docs/11-kiemsoat-to-truong-van-hanh.md)
 
 ## Quy tắc đồng bộ tài liệu
 
