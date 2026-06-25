@@ -263,6 +263,14 @@ def test_quangchudong_page_has_excel_download_link():
     assert 'Kết xuất Excel' in html
 
 
+def test_quangchudong_download_requires_login():
+    client = app.test_client()
+
+    response = client.get('/download/quangchudong-report')
+
+    assert response.status_code in {302, 401}
+
+
 class _FixedDateTime(datetime):
     @classmethod
     def now(cls, tz=None):
