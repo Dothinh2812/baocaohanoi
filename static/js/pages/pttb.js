@@ -383,10 +383,10 @@ function renderPttbKiemSoatMain(data) {
         });
     });
 
-    renderPttbKiemSoatTable(_pttbKsActiveTeam, data.sheets[_pttbKsActiveTeam], container);
+    renderPttbKiemSoatTable(_pttbKsActiveTeam, data.sheets[_pttbKsActiveTeam], container, data.file_info);
 }
 
-function renderPttbKiemSoatTable(team, sheetData, container) {
+function renderPttbKiemSoatTable(team, sheetData, container, fileInfo) {
     if (!container) return;
     const rows = (sheetData && sheetData.data) || [];
 
@@ -413,7 +413,12 @@ function renderPttbKiemSoatTable(team, sheetData, container) {
             </tr>`;
     }).join('');
 
+    const ts = (fileInfo && fileInfo.modified)
+        ? `<div style="color:#d32f2f;font-weight:600;font-size:0.85rem;margin-bottom:6px;"><i class="fas fa-clock"></i> Dữ liệu báo cáo cập nhật: ${fileInfo.modified}</div>`
+        : '';
+
     container.innerHTML = `
+        ${ts}
         <div class="excel-table-card">
             <div class="excel-table-body" style="max-height:820px;overflow:auto;">
                 <table class="excel-table pttb-ks-detail-table">
