@@ -562,7 +562,7 @@ const SHC_CTS_KS_DISPLAY_LABELS = {
     'Đã xử lý trong ngày': 'XL trong ngày', 'Tổng đã đạt': 'Đã đạt',
     'Chưa đạt': 'Chưa đạt', 'OFF/Lỗi': 'OFF/Lỗi', '% đạt': '%',
 };
-let _shcCtsKsCurrent = { date: '', donVi: '', sheets: {}, sourcePill: '' };
+let _shcCtsKsCurrent = { date: '', donVi: '', activeTab: '', sheets: {}, sourcePill: '' };
 
 function _shcCtsKsEscape(v) {
     return String(v == null ? '' : v)
@@ -636,30 +636,57 @@ function renderShcCtsKiemSoatDetail() {
     const container = document.getElementById('shc-cts-ks-chitiet');
     if (!container) return;
     const sheets = _shcCtsKsCurrent.sheets || {};
-    const donViFilter = _shcCtsKsCurrent.donVi;
-    const targetSheets = donViFilter ? { [donViFilter]: sheets[donViFilter] } : sheets;
+    const donViNames = Object.keys(sheets);
 
-    const parts = [];
-    for (const [donVi, sheet] of Object.entries(targetSheets)) {
-        const rows = (sheet && sheet.data) || [];
-        const headers = SHC_CTS_KS_DISPLAY_COLS.map(c => `<th>${SHC_CTS_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
-        const body = rows.map(row => {
-            const cells = SHC_CTS_KS_DISPLAY_COLS.map(c => `<td>${row[c] != null ? row[c] : ''}</td>`).join('');
-            const nvkt = _shcCtsKsEscape(row.NVKT_DB);
-            const noiDung = _shcCtsKsEscape(row.kiemsoat_noi_dung || '');
-            return `<tr>${cells}<td class="shc-cts-ks-cell">
-                <textarea class="shc-cts-ks-input" rows="2" data-nvkt="${nvkt}" data-don_vi="${_shcCtsKsEscape(row['Đơn vị'] || donVi)}">${noiDung}</textarea>
-                <button class="shc-cts-ks-save-btn" onclick="saveShcCtsKiemSoatRow('${nvkt}')">Lưu</button>
-                <span class="shc-cts-ks-badge" id="shc-cts-ks-status-${nvkt}">${_shcCtsKsBadge(row)}</span>
-            </td></tr>`;
-        }).join('');
-        parts.push(`<h5>${_shcCtsKsEscape(donVi)}</h5>
-            <div class="excel-table-card"><div class="excel-table-body" style="max-height:520px;overflow:auto;">
-            <table class="excel-table"><thead><tr>${headers}<th>Kiểm soát</th></tr></thead>
-            <tbody>${body || '<tr><td colspan="99">Không có NVKT.</td></tr>'}</tbody></table>
-            </div></div>`);
+    if (donViNames.length === 0) {
+        container.innerHTML = '<div>Không có dữ liệu.</div>';
+        return;
     }
-    container.innerHTML = parts.join('') || '<div>Không có dữ liệu.</div>';
+
+    if (!_shcCtsKsCurrent.activeTab || !sheets[_shcCtsKsCurrent.activeTab]) {
+        _shcCtsKsCurrent.activeTab = donViNames[0];
+    }
+
+    const shorten = n => n.replace('Tổ Kỹ thuật Địa bàn ', '');
+    const tabsHtml = donViNames.map(n =>
+        `<li class="excel-tab${n === _shcCtsKsCurrent.activeTab ? ' active' : ''}" data-don-vi="${_shcCtsKsEscape(n)}">${_shcCtsKsEscape(shorten(n))}</li>`
+    ).join('');
+
+    container.innerHTML = `<ul class="excel-tabs" id="shc-cts-ks-tabs">${tabsHtml}</ul><div id="shc-cts-ks-chitiet-body"></div>`;
+
+    container.querySelectorAll('.excel-tab').forEach(tab => {
+        tab.addEventListener('click', function () {
+            container.querySelectorAll('.excel-tab').forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+            _shcCtsKsCurrent.activeTab = this.dataset.donVi;
+            renderShcCtsKiemSoatSheet(this.dataset.donVi);
+        });
+    });
+
+    renderShcCtsKiemSoatSheet(_shcCtsKsCurrent.activeTab);
+}
+
+function renderShcCtsKiemSoatSheet(donVi) {
+    const body = document.getElementById('shc-cts-ks-chitiet-body');
+    if (!body) return;
+    const sheets = _shcCtsKsCurrent.sheets || {};
+    const sheet = sheets[donVi];
+    const rows = (sheet && sheet.data) || [];
+    const headers = SHC_CTS_KS_DISPLAY_COLS.map(c => `<th>${SHC_CTS_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
+    const bodyHtml = rows.map(row => {
+        const cells = SHC_CTS_KS_DISPLAY_COLS.map(c => `<td>${row[c] != null ? row[c] : ''}</td>`).join('');
+        const nvkt = _shcCtsKsEscape(row.NVKT_DB);
+        const noiDung = _shcCtsKsEscape(row.kiemsoat_noi_dung || '');
+        return `<tr>${cells}<td class="shc-cts-ks-cell">
+            <textarea class="shc-cts-ks-input" rows="2" data-nvkt="${nvkt}" data-don_vi="${_shcCtsKsEscape(row['Đơn vị'] || donVi)}">${noiDung}</textarea>
+            <button class="shc-cts-ks-save-btn" onclick="saveShcCtsKiemSoatRow('${nvkt}')">Lưu</button>
+            <span class="shc-cts-ks-badge" id="shc-cts-ks-status-${nvkt}">${_shcCtsKsBadge(row)}</span>
+        </td></tr>`;
+    }).join('');
+    body.innerHTML = `<div class="excel-table-card"><div class="excel-table-body" style="max-height:520px;overflow:auto;">
+        <table class="excel-table"><thead><tr>${headers}<th>Kiểm soát</th></tr></thead>
+        <tbody>${bodyHtml || '<tr><td colspan="99">Không có NVKT.</td></tr>'}</tbody></table>
+        </div></div>`;
 }
 
 async function saveShcCtsKiemSoatRow(nvktDb) {
