@@ -151,6 +151,24 @@ def test_quangchudong_nvkt_mobile_page_is_standalone(monkeypatch):
     assert 'sidebar' not in html.lower()
 
 
+def test_quangchudong_page_has_new_off_today_and_sleeping_tabs():
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/quangchudong')
+
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+    assert 'Cảnh báo OFF trong ngày' in html
+    assert 'Thuê bao ngủ theo ngày' in html
+    assert 'id="off-today-table"' in html
+    assert 'id="sleeping-table"' in html
+    assert 'Thời gian ngủ' in html
+    assert 'renderOffTodayAlerts' in html
+    assert 'renderSleepingSubscribers' in html
+
+
 def test_quangchudong_helpers_split_off_today_and_sleeping_rows():
     rows = [
         {'ma_tb': 'AFTER', 'first_off_time': '2026-05-13T06:00:00'},

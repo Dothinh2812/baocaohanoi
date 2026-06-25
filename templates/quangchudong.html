@@ -400,6 +400,12 @@
         <button class="nav-link active" type="button" data-tab="alerts">
             Cảnh báo DOWN <span class="badge badge-danger" id="alert-tab-count">-</span>
         </button>
+        <button class="nav-link" type="button" data-tab="off-today">
+            Cảnh báo OFF trong ngày <span class="badge badge-danger" id="off-today-tab-count">-</span>
+        </button>
+        <button class="nav-link" type="button" data-tab="sleeping">
+            Thuê bao ngủ theo ngày <span class="badge badge-secondary" id="sleeping-tab-count">-</span>
+        </button>
         <button class="nav-link" type="button" data-tab="wide-area">
             Sự cố diện rộng <span class="badge badge-warning" id="wide-area-tab-count">-</span>
         </button>
@@ -430,6 +436,7 @@
                     <option value="">Thời lượng: Tất cả</option>
                     <option value="gt1d">&gt; 1 ngày</option>
                     <option value="lt1d">&lt; 1 ngày</option>
+                    <option value="off-today-6am">OFF từ 06h hôm nay</option>
                 </select>
             </div>
             <table class="data-table" id="alert-table" style="table-layout: fixed; width: 100%;">
@@ -465,6 +472,34 @@
             </table>
         </div>
 
+        <div class="tab-pane" id="off-today-pane">
+            <div class="table-filters" id="off-today-filters">
+                <input type="text" class="filter-input" data-table="off-today-table" data-column="0" placeholder="Mã TB">
+                <input type="text" class="filter-input" data-table="off-today-table" data-column="1" placeholder="Tên TB">
+                <input type="text" class="filter-input" data-table="off-today-table" data-column="4" placeholder="NVKT">
+                <input type="text" class="filter-input" data-table="off-today-table" data-column="5" placeholder="Đội VT">
+                <input type="text" class="filter-input" data-table="off-today-table" data-column="6" placeholder="OLT">
+            </div>
+            <table class="data-table" id="off-today-table" style="table-layout: fixed; width: 100%;">
+                <thead><tr><th>Mã TB</th><th>Tên TB</th><th>Địa chỉ</th><th>SĐT</th><th>NVKT</th><th>Đội VT</th><th>OLT</th><th>SA</th><th>Thời gian OFF</th><th>Thời lượng</th><th>Phiếu BH Lúc</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="tab-pane" id="sleeping-pane">
+            <div class="table-filters" id="sleeping-filters">
+                <input type="text" class="filter-input" data-table="sleeping-table" data-column="0" placeholder="Mã TB">
+                <input type="text" class="filter-input" data-table="sleeping-table" data-column="1" placeholder="Tên TB">
+                <input type="text" class="filter-input" data-table="sleeping-table" data-column="4" placeholder="NVKT">
+                <input type="text" class="filter-input" data-table="sleeping-table" data-column="5" placeholder="Đội VT">
+                <input type="text" class="filter-input" data-table="sleeping-table" data-column="11" placeholder="Thời gian ngủ">
+            </div>
+            <table class="data-table" id="sleeping-table" style="table-layout: fixed; width: 100%;">
+                <thead><tr><th>Mã TB</th><th>Tên TB</th><th>Địa chỉ</th><th>SĐT</th><th>NVKT</th><th>Đội VT</th><th>OLT</th><th>SA</th><th>Thời gian OFF</th><th>Thời lượng</th><th>Phiếu BH Lúc</th><th>Thời gian ngủ</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
         <div class="tab-pane" id="wide-area-pane">
             <div class="table-filters" id="wide-area-filters"
                 style="grid-template-columns: 2fr 1.5fr 0.8fr 0.8fr 1.5fr 1.2fr 1fr 1.2fr;">
@@ -479,6 +514,7 @@
                     <option value="">Thời lượng: Tất cả</option>
                     <option value="gt1d">&gt; 1 ngày</option>
                     <option value="lt1d">&lt; 1 ngày</option>
+                    <option value="off-today-6am">OFF từ 06h hôm nay</option>
                 </select>
             </div>
             <table class="data-table" id="wide-area-table" style="table-layout: fixed; width: 100%;">
@@ -526,6 +562,7 @@
                     <option value="">Thời lượng: Tất cả</option>
                     <option value="gt1d">&gt; 1 ngày</option>
                     <option value="lt1d">&lt; 1 ngày</option>
+                    <option value="off-today-6am">OFF từ 06h hôm nay</option>
                 </select>
             </div>
             <table class="data-table" id="pattern-table" style="table-layout: fixed; width: 100%;">
@@ -562,6 +599,7 @@
                     <option value="">Thời lượng: Tất cả</option>
                     <option value="gt1d">&gt; 1 ngày</option>
                     <option value="lt1d">&lt; 1 ngày</option>
+                    <option value="off-today-6am">OFF từ 06h hôm nay</option>
                 </select>
             </div>
             <table class="data-table" id="port-down-table" style="table-layout: fixed; width: 100%;">
@@ -622,6 +660,65 @@
         return date.toLocaleString('vi-VN');
     }
 
+    function parseLocalDateTime(value) {
+        const text = String(value || '').trim();
+        if (!text) return null;
+
+        const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/);
+        if (isoMatch) {
+            return new Date(
+                Number(isoMatch[1]),
+                Number(isoMatch[2]) - 1,
+                Number(isoMatch[3]),
+                Number(isoMatch[4] || 0),
+                Number(isoMatch[5] || 0),
+                Number(isoMatch[6] || 0)
+            );
+        }
+
+        const vnMatch = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+        if (vnMatch) {
+            return new Date(
+                Number(vnMatch[3]),
+                Number(vnMatch[2]) - 1,
+                Number(vnMatch[1]),
+                Number(vnMatch[4] || 0),
+                Number(vnMatch[5] || 0),
+                Number(vnMatch[6] || 0)
+            );
+        }
+
+        const parsed = new Date(text);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+
+    function getTodaySixAm() {
+        const cutoff = new Date();
+        cutoff.setHours(6, 0, 0, 0);
+        return cutoff;
+    }
+
+    function getEventTime(row) {
+        return row.first_off_time || row.alert_time || '';
+    }
+
+    function isOffToday(row) {
+        const eventTime = parseLocalDateTime(getEventTime(row));
+        return eventTime && eventTime >= getTodaySixAm();
+    }
+
+    function getSleepDays(row) {
+        const eventTime = parseLocalDateTime(getEventTime(row));
+        if (!eventTime) return '';
+        const diffDays = Math.floor((new Date() - eventTime) / 86400000);
+        return Math.max(1, diffDays);
+    }
+
+    function isSleepingSubscriber(row) {
+        const eventTime = parseLocalDateTime(getEventTime(row));
+        return eventTime && eventTime < getTodaySixAm();
+    }
+
     function getDurationMinutes(startTime) {
         if (!startTime) return null;
         const start = new Date(startTime);
@@ -658,7 +755,7 @@
         }
 
         alertTbody.innerHTML = alerts.map(row => `
-            <tr data-duration-minutes="${getDurationMinutes(row.first_off_time || row.alert_time) ?? ''}">
+            <tr data-duration-minutes="${getDurationMinutes(row.first_off_time || row.alert_time) ?? ''}" data-event-time="${row.first_off_time || row.alert_time || ''}">
                 <td>${row.ma_tb || 'N/A'}</td>
                 <td>${row.ten_tb || 'N/A'}</td>
                 <td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td>
@@ -674,6 +771,36 @@
         `).join('');
     }
 
+    function renderOffTodayAlerts(alerts) {
+        const rows = alerts.filter(isOffToday).sort((a, b) => parseLocalDateTime(getEventTime(b)) - parseLocalDateTime(getEventTime(a)));
+        const tbody = document.querySelector('#off-today-table tbody');
+        document.getElementById('off-today-tab-count').textContent = rows.length;
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="11" class="no-data">Không có cảnh báo OFF trong ngày từ 06:00</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(row => `
+            <tr data-duration-minutes="${getDurationMinutes(getEventTime(row)) ?? ''}" data-event-time="${getEventTime(row)}">
+                <td>${row.ma_tb || 'N/A'}</td><td>${row.ten_tb || 'N/A'}</td><td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td><td>${row.dienthoai_lh || ''}</td><td>${row.ten_nvkt_db || ''}</td><td>${row.doi_vt || ''}</td><td>${row.olt_name || ''}</td><td>${row.sa || ''}</td><td>${formatDateTime(getEventTime(row))}</td><td class="duration-badge">${formatDuration(getEventTime(row))}</td><td>${row.ngay_bh || ''}</td>
+            </tr>
+        `).join('');
+    }
+
+    function renderSleepingSubscribers(alerts) {
+        const rows = alerts.filter(isSleepingSubscriber).sort((a, b) => getSleepDays(b) - getSleepDays(a));
+        const tbody = document.querySelector('#sleeping-table tbody');
+        document.getElementById('sleeping-tab-count').textContent = rows.length;
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="12" class="no-data">Không có thuê bao ngủ theo ngày</td></tr>';
+            return;
+        }
+        tbody.innerHTML = rows.map(row => `
+            <tr data-duration-minutes="${getDurationMinutes(getEventTime(row)) ?? ''}" data-event-time="${getEventTime(row)}">
+                <td>${row.ma_tb || 'N/A'}</td><td>${row.ten_tb || 'N/A'}</td><td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td><td>${row.dienthoai_lh || ''}</td><td>${row.ten_nvkt_db || ''}</td><td>${row.doi_vt || ''}</td><td>${row.olt_name || ''}</td><td>${row.sa || ''}</td><td>${formatDateTime(getEventTime(row))}</td><td class="duration-badge">${formatDuration(getEventTime(row))}</td><td>${row.ngay_bh || ''}</td><td>${getSleepDays(row)} ngày</td>
+            </tr>
+        `).join('');
+    }
+
     function renderWideAreaGroups(rows) {
         const tbody = document.querySelector('#wide-area-table tbody');
         document.getElementById('wide-area-count').textContent = rows.length;
@@ -685,7 +812,7 @@
         }
 
         tbody.innerHTML = rows.map(row => `
-            <tr data-count="${row.down_count || 0}" data-duration-minutes="${getDurationMinutes(row.start_time) ?? ''}">
+            <tr data-count="${row.down_count || 0}" data-duration-minutes="${getDurationMinutes(row.start_time) ?? ''}" data-event-time="${row.start_time || ''}">
                 <td>${row.parent_port_key || ''}</td>
                 <td>${row.olt_name || ''}</td>
                 <td>${row.sa || ''}</td>
@@ -707,7 +834,7 @@
         }
 
         tbody.innerHTML = rows.map(row => `
-            <tr data-duration-minutes="${getDurationMinutes(row.first_off_time || row.alert_time) ?? ''}">
+            <tr data-duration-minutes="${getDurationMinutes(row.first_off_time || row.alert_time) ?? ''}" data-event-time="${row.first_off_time || row.alert_time || ''}">
                 <td>${row.ma_tb || ''}</td>
                 <td>${row.ten_tb || ''}</td>
                 <td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td>
@@ -734,7 +861,7 @@
         }
 
         tbody.innerHTML = rows.map(row => `
-            <tr data-count="${row.down_count || 0}" data-duration-minutes="${getDurationMinutes(row.start_time) ?? ''}">
+            <tr data-count="${row.down_count || 0}" data-duration-minutes="${getDurationMinutes(row.start_time) ?? ''}" data-event-time="${row.start_time || ''}">
                 <td>${row.parent_port_key || ''}</td>
                 <td>${row.olt_name || ''}</td>
                 <td>${row.sa || ''}</td>
@@ -762,11 +889,13 @@
                         ? activeData.cache.refreshed_at
                         : new Date().toLocaleTimeString('vi-VN');
                 renderAlerts(activeData.alerts || []);
+                renderOffTodayAlerts(activeData.alerts || []);
+                renderSleepingSubscribers(activeData.alerts || []);
                 renderWideAreaGroups(payload.wide_area_groups || []);
                 renderPatternExclusions(payload.pattern_exclusions || []);
                 renderPortDownGroups(payload.port_down_groups || []);
 
-                ['alert-table', 'wide-area-table', 'pattern-table', 'port-down-table'].forEach(filterTable);
+                ['alert-table', 'off-today-table', 'sleeping-table', 'wide-area-table', 'pattern-table', 'port-down-table'].forEach(filterTable);
             })
             .catch(err => {
                 console.error('Error loading quang chu dong data:', err);
@@ -839,6 +968,13 @@
                         }
                         if (durationFilter.value === 'lt1d' && durationMinutes >= oneDayMinutes) {
                             showRow = false;
+                        }
+                        if (durationFilter.value === 'off-today-6am') {
+                            const eventTime = parseLocalDateTime(row.dataset.eventTime);
+                            const cutoff = getTodaySixAm();
+                            if (!eventTime || eventTime < cutoff) {
+                                showRow = false;
+                            }
                         }
                     }
                 }
