@@ -250,6 +250,19 @@ def test_quangchudong_download_excel_contains_all_tab_sheets(monkeypatch):
     assert sleeping['Thời gian ngủ'].tolist() == [3]
 
 
+def test_quangchudong_page_has_excel_download_link():
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/quangchudong')
+
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+    assert '/download/quangchudong-report' in html
+    assert 'Kết xuất Excel' in html
+
+
 class _FixedDateTime(datetime):
     @classmethod
     def now(cls, tz=None):
