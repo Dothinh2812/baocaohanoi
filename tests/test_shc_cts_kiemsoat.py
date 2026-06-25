@@ -193,3 +193,64 @@ def test_kiemsoat_luu_rejects_missing_keys(tmp_path, monkeypatch):
         json={'ngay_xu_ly': '2026-06-25', 'noi_dung': 'x'},
     )
     assert response.status_code == 400
+
+
+# --- Detail ---
+
+def test_detail_today_reads_live_excel_and_syncs(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    response = _logged_in_client().get('/api/shc-cts-kiemsoat/detail')
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body['selected_date'] == '2026-06-25'
+    assert body['is_today_live'] is True
+    assert '2026-06-25' in body['available_dates']
+    don_vi = 'Tổ Kỹ thuật Địa bàn Phúc Thọ'
+    assert don_vi in body['sheets']
+    assert body['sheets'][don_vi]['data'][0]['NVKT_DB'] == 'Nguyễn Văn A'
+    conn = sqlite3.connect(db_path)
+    n = conn.execute('SELECT COUNT(*) FROM shc_cts_tien_do').fetchone()[0]
+    conn.close()
+    assert n == 2
+
+
+def test_detail_past_date_reads_from_db(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    quality_routes._sync_shc_cts_tien_do_to_db()
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260626.xlsx')
+    response = _logged_in_client().get('/api/shc-cts-kiemsoat/detail?date=2026-06-25')
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body['selected_date'] == '2026-06-25'
+    assert body['is_today_live'] is False
+    don_vi = 'Tổ Kỹ thuật Địa bàn Phúc Thọ'
+    assert body['sheets'][don_vi]['data'][0]['NVKT_DB'] == 'Nguyễn Văn A'
+
+
+def test_detail_joins_kiemsoat_annotation(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    _logged_in_client().post(
+        '/api/shc-cts-kiemsoat/luu',
+        json={'ngay_xu_ly': '2026-06-25', 'nvkt_db': 'Nguyễn Văn A',
+              'don_vi': 'Tổ Kỹ thuật Địa bàn Phúc Thọ', 'noi_dung': 'Ghi chú KS'},
+    )
+    response = _logged_in_client().get('/api/shc-cts-kiemsoat/detail')
+    body = response.get_json()
+    don_vi = 'Tổ Kỹ thuật Địa bàn Phúc Thọ'
+    row = body['sheets'][don_vi]['data'][0]
+    assert row['kiemsoat_noi_dung'] == 'Ghi chú KS'
+    assert row['kiemsoat_da_nhap'] is True
+
+
+def test_detail_returns_404_when_no_data(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    monkeypatch.setattr(quality_routes, 'SHC_CTS_INTRADAY_REPORT_DIR', str(tmp_path))
+    response = _logged_in_client().get('/api/shc-cts-kiemsoat/detail?date=2099-01-01')
+    assert response.status_code == 404
