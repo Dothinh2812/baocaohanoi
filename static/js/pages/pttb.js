@@ -390,19 +390,58 @@ function renderPttbKiemSoatTable(team, sheetData, container, fileInfo) {
     if (!container) return;
     const rows = (sheetData && sheetData.data) || [];
 
+    // Build unique values for each column for filter dropdowns
+    const uniqueValues = {};
+    PTTB_KS_DISPLAY_COLS.forEach((col, idx) => {
+        const values = new Set();
+        rows.forEach(row => {
+            const val = row[col] !== null && row[col] !== undefined ? String(row[col]).trim() : '';
+            if (val) values.add(val);
+        });
+        uniqueValues[col] = Array.from(values).sort((a, b) => a.localeCompare(b, 'vi'));
+    });
+
     const colgroup = '<colgroup>' +
         PTTB_KS_DISPLAY_COLS.map(c => `<col style="width:${PTTB_KS_COL_WIDTHS[c] || 'auto'}">`).join('') +
         '<col style="width:18%">' +
         '</colgroup>';
 
-    const headers = PTTB_KS_DISPLAY_COLS.map(c => `<th>${PTTB_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
-    const body = rows.map(row => {
-        const cells = PTTB_KS_DISPLAY_COLS.map(c => `<td>${row[c] != null ? row[c] : ''}</td>`).join('');
+    const headers = PTTB_KS_DISPLAY_COLS.map((c, idx) => `<th data-column="${c}" data-column-idx="${idx}">${PTTB_KS_DISPLAY_LABELS[c] || c}</th>`).join('');
+    
+    // Build filter row
+    const filterCells = PTTB_KS_DISPLAY_COLS.map((col, idx) => {
+        let dropdownItemsHtml = '<div class="filter-dropdown-item" data-value="">-- Tất cả --</div>';
+        
+        // Add special numeric filters for columns that likely contain numbers
+        if (['gio_conlai', 'chitieu_tg'].includes(col)) {
+            dropdownItemsHtml += '<div class="filter-dropdown-item filter-operator" data-value="!=0">&#8800; 0 (Khác 0)</div>';
+            dropdownItemsHtml += '<div class="filter-dropdown-item filter-operator" data-value=">0">&gt; 0 (Lớn hơn 0)</div>';
+            dropdownItemsHtml += '<div class="filter-dropdown-item filter-operator" data-value="<0">&lt; 0 (Nhỏ hơn 0)</div>';
+        }
+
+        (uniqueValues[col] || []).forEach(val => {
+            const escaped = val.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            dropdownItemsHtml += `<div class="filter-dropdown-item" data-value="${escaped}">${escaped}</div>`;
+        });
+
+        return `<th style="padding: 4px;">
+            <div class="filter-wrapper">
+                <input type="text" class="column-filter" data-column-idx="${idx}" placeholder="Lọc..." autocomplete="off" />
+                <span class="filter-dropdown-toggle" data-column-idx="${idx}"><i class="fas fa-caret-down"></i></span>
+                <div class="filter-dropdown-list" data-column-idx="${idx}">
+                    ${dropdownItemsHtml}
+                </div>
+            </div>
+        </th>`;
+    }).join('');
+
+    const body = rows.map((row, rowIndex) => {
+        const cells = PTTB_KS_DISPLAY_COLS.map((c, idx) => `<td data-column="${c}" data-column-idx="${idx}">${row[c] != null ? row[c] : ''}</td>`).join('');
         const maTb = row.MA_THUE_BAO;
         const noiDung = (row.kiemsoat_noi_dung || '').toString()
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `
-            <tr>
+            <tr class="data-row" data-row-index="${rowIndex}">
                 ${cells}
                 <td class="pttb-ks-cell">
                     <textarea class="pttb-ks-input" rows="2" data-ma_tb="${maTb}"
@@ -420,10 +459,17 @@ function renderPttbKiemSoatTable(team, sheetData, container, fileInfo) {
     container.innerHTML = `
         ${ts}
         <div class="excel-table-card">
+            <div class="excel-table-header">
+                <h3 class="excel-table-title">${team}</h3>
+                <span class="excel-table-count">${rows.length} bản ghi</span>
+            </div>
             <div class="excel-table-body" style="max-height:820px;overflow:auto;">
-                <table class="excel-table pttb-ks-detail-table">
+                <table class="excel-table pttb-ks-detail-table filterable-table" id="pttb-ks-table-${team}" data-show-row-numbers="false">
                     ${colgroup}
-                    <thead><tr>${headers}<th>Nội dung kiểm soát</th></tr></thead>
+                    <thead>
+                        <tr class="header-row">${headers}<th>Nội dung kiểm soát</th></tr>
+                        <tr class="filter-row">${filterCells}<th style="padding: 4px;"></th></tr>
+                    </thead>
                     <tbody>${body || '<tr><td colspan="99">Không có phiếu.</td></tr>'}</tbody>
                 </table>
             </div>
