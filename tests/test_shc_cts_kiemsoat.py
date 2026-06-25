@@ -1,0 +1,126 @@
+import sqlite3
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from dashboard import app
+from blueprints import quality_routes
+
+
+_PROGRESS_COLUMNS = [
+    'Đơn vị', 'NVKT_DB', 'Tổng số', 'Đạt baseline',
+    'Đã xử lý trong ngày', 'Tổng đã đạt', 'Chưa đạt', 'OFF/Lỗi', '% đạt',
+]
+
+
+def _prepare_db(tmp_path, monkeypatch):
+    db_path = tmp_path / 'shc_cts.db'
+    monkeypatch.setattr(quality_routes, 'SHC_CTS_HISTORY_DB_PATH', str(db_path))
+    quality_routes._shc_cts_schema_ready_path = None
+    quality_routes._ensure_shc_cts_schema()
+    return db_path
+
+
+def _logged_in_client():
+    client = app.test_client()
+    with client.session_transaction() as sess:
+        sess['username'] = 'test-user'
+    return client
+
+
+def _write_intraday(tmp_path, monkeypatch, rows, filename='Bao_cao_tien_trinh_20260625.xlsx'):
+    intraday_path = tmp_path / filename
+    df = pd.DataFrame(rows, columns=_PROGRESS_COLUMNS)
+    with pd.ExcelWriter(intraday_path, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name='Theo NVKT', index=False)
+    monkeypatch.setattr(quality_routes, 'SHC_CTS_INTRADAY_REPORT_DIR', str(tmp_path))
+    return intraday_path
+
+
+def _progress_rows():
+    return [
+        {
+            'Đơn vị': 'Tổ Kỹ thuật Địa bàn Phúc Thọ', 'NVKT_DB': 'Nguyễn Văn A',
+            'Tổng số': 10, 'Đạt baseline': 5, 'Đã xử lý trong ngày': 3,
+            'Tổng đã đạt': 6, 'Chưa đạt': 4, 'OFF/Lỗi': 0, '% đạt': 60,
+        },
+        {
+            'Đơn vị': 'Tổ Kỹ thuật Địa bàn Phúc Thọ', 'NVKT_DB': 'Trần Văn B',
+            'Tổng số': 8, 'Đạt baseline': 4, 'Đã xử lý trong ngày': 2,
+            'Tổng đã đạt': 5, 'Chưa đạt': 3, 'OFF/Lỗi': 1, '% đạt': 62.5,
+        },
+    ]
+
+
+# --- Parse ngày ---
+
+def test_parse_intraday_date_ok():
+    assert quality_routes._parse_shc_cts_intraday_date(
+        'Bao_cao_tien_trinh_20260625.xlsx') == '2026-06-25'
+
+
+def test_parse_intraday_date_invalid_returns_none():
+    assert quality_routes._parse_shc_cts_intraday_date('Bao_cao_chot_ngay_20260625.xlsx') is None
+    assert quality_routes._parse_shc_cts_intraday_date('Bao_cao_tien_trinh_abc.xlsx') is None
+
+
+# --- Schema ---
+
+def test_ensure_schema_creates_shc_cts_tables(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    conn = sqlite3.connect(db_path)
+    cols_td = {r[1] for r in conn.execute('PRAGMA table_info(shc_cts_tien_do)')}
+    cols_ks = {r[1] for r in conn.execute('PRAGMA table_info(shc_cts_kiemsoat)')}
+    conn.close()
+    assert {'ngay_xu_ly', 'don_vi', 'nvkt_db', 'tong_so', 'dat_baseline',
+            'da_xu_ly_ngay', 'tong_dat', 'chua_dat', 'off_loi', 'ty_le_dat',
+            'captured_at'} <= cols_td
+    assert {'ngay_xu_ly', 'nvkt_db', 'don_vi', 'noi_dung_kiem_soat',
+            'nguoi_nhap', 'thoi_diem_nhap', 'thoi_diem_cap_nhat'} <= cols_ks
+
+
+# --- Sync ---
+
+def test_sync_first_time(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    _write_intraday(tmp_path, monkeypatch, _progress_rows(),
+                    'Bao_cao_tien_trinh_20260625.xlsx')
+    result = quality_routes._sync_shc_cts_tien_do_to_db()
+    assert result['synced'] == 2
+    assert result['new'] == 2
+    assert result['updated'] == 0
+    assert result['skipped'] == 0
+    assert result['ngay_xu_ly'] == '2026-06-25'
+
+
+def test_sync_upsert_keeps_latest_values(tmp_path, monkeypatch):
+    db_path = _prepare_db(tmp_path, monkeypatch)
+    rows = _progress_rows()
+    _write_intraday(tmp_path, monkeypatch, rows, 'Bao_cao_tien_trinh_20260625.xlsx')
+    quality_routes._sync_shc_cts_tien_do_to_db()
+
+    rows[0] = {**rows[0], 'Tổng đã đạt': 9, 'Chưa đạt': 1}
+    _write_intraday(tmp_path, monkeypatch, rows, 'Bao_cao_tien_trinh_20260625.xlsx')
+    result = quality_routes._sync_shc_cts_tien_do_to_db()
+
+    assert result['synced'] == 2
+    assert result['new'] == 0
+    assert result['updated'] == 2
+    conn = sqlite3.connect(db_path)
+    row = conn.execute(
+        "SELECT tong_dat, chua_dat FROM shc_cts_tien_do WHERE nvkt_db='Nguyễn Văn A'"
+    ).fetchone()
+    conn.close()
+    assert row[0] == 9
+    assert row[1] == 1
+
+
+def test_sync_skips_when_intraday_missing(tmp_path, monkeypatch):
+    _prepare_db(tmp_path, monkeypatch)
+    monkeypatch.setattr(quality_routes, 'SHC_CTS_INTRADAY_REPORT_DIR', str(tmp_path))
+    result = quality_routes._sync_shc_cts_tien_do_to_db()
+    assert result['skipped'] == 1
+    assert result['reason'] == 'intraday_missing'

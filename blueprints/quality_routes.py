@@ -650,6 +650,131 @@ def _ensure_shc_cts_schema():
         _shc_cts_schema_ready_path = db_path
 
 
+def _parse_shc_cts_intraday_date(filename):
+    name = os.path.basename(str(filename))
+    prefix = 'Bao_cao_tien_trinh_'
+    if not name.startswith(prefix) or not name.lower().endswith('.xlsx'):
+        return None
+    date_text = name[len(prefix):-5]
+    try:
+        parsed = datetime.strptime(date_text, '%Y%m%d')
+    except ValueError:
+        return None
+    return parsed.strftime('%Y-%m-%d')
+
+
+def _shc_cts_intraday_row_to_params(row, ngay_xu_ly, now_iso):
+    def _num(col):
+        v = row.get(col)
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return None
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return None
+
+    def _real(col):
+        v = row.get(col)
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    return (
+        ngay_xu_ly,
+        str(row.get('Đơn vị') or '').strip(),
+        str(row.get('NVKT_DB') or '').strip(),
+        _num('Tổng số'),
+        _num('Đạt baseline'),
+        _num('Đã xử lý trong ngày'),
+        _num('Tổng đã đạt'),
+        _num('Chưa đạt'),
+        _num('OFF/Lỗi'),
+        _real('% đạt'),
+        now_iso,
+    )
+
+
+_SHC_CTS_TIEN_DO_UPSERT_SQL = """
+    INSERT INTO shc_cts_tien_do (
+        ngay_xu_ly, don_vi, nvkt_db, tong_so, dat_baseline, da_xu_ly_ngay,
+        tong_dat, chua_dat, off_loi, ty_le_dat, captured_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(ngay_xu_ly, nvkt_db) DO UPDATE SET
+        don_vi = excluded.don_vi,
+        tong_so = excluded.tong_so,
+        dat_baseline = excluded.dat_baseline,
+        da_xu_ly_ngay = excluded.da_xu_ly_ngay,
+        tong_dat = excluded.tong_dat,
+        chua_dat = excluded.chua_dat,
+        off_loi = excluded.off_loi,
+        ty_le_dat = excluded.ty_le_dat,
+        captured_at = excluded.captured_at
+"""
+
+
+def _sync_shc_cts_tien_do_to_db():
+    """Đọc file intraday SHC CTS mới nhất, upsert snapshot vào shc_cts_tien_do.
+
+    Idempotent. Không raise khi file thiếu / DB lock — trả dict với skipped=1.
+    """
+    intraday_pattern = os.path.join(SHC_CTS_INTRADAY_REPORT_DIR, SHC_CTS_INTRADAY_REPORT_PATTERN)
+    intraday_path = latest_matching_file(intraday_pattern)
+    if not intraday_path:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1,
+                'reason': 'intraday_missing', 'ngay_xu_ly': ''}
+    ngay_xu_ly = _parse_shc_cts_intraday_date(os.path.basename(intraday_path))
+    if not ngay_xu_ly:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1,
+                'reason': 'date_unparseable', 'ngay_xu_ly': ''}
+
+    _ensure_shc_cts_schema()
+    try:
+        df = read_excel_sheet_cached(intraday_path, SHC_CTS_INTRADAY_PROGRESS_SHEET)
+    except Exception:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1,
+                'reason': 'excel_unreadable', 'ngay_xu_ly': ngay_xu_ly}
+
+    df = df.copy()
+    df['NVKT_DB'] = df['NVKT_DB'].astype(str).str.strip()
+    df = df[df['NVKT_DB'].str.len() > 0]
+    df = df[~df['NVKT_DB'].str.upper().eq('TỔNG')]
+    if df.empty:
+        return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 0,
+                'reason': '', 'ngay_xu_ly': ngay_xu_ly}
+
+    all_keys = [(ngay_xu_ly, nvkt) for nvkt in df['NVKT_DB'].tolist()]
+    now_iso = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        with _shc_cts_write_connection() as conn:
+            placeholders = ', '.join('?' for _ in df['NVKT_DB'])
+            existing_rows = conn.execute(
+                f'SELECT nvkt_db FROM shc_cts_tien_do '
+                f'WHERE ngay_xu_ly = ? AND nvkt_db IN ({placeholders})',
+                [ngay_xu_ly, *df['NVKT_DB'].tolist()],
+            ).fetchall()
+            existing = {r['nvkt_db'] for r in existing_rows}
+
+            for _, row in df.iterrows():
+                params = _shc_cts_intraday_row_to_params(row, ngay_xu_ly, now_iso)
+                conn.execute(_SHC_CTS_TIEN_DO_UPSERT_SQL, params)
+
+        new_count = sum(1 for _, nvkt in all_keys if nvkt not in existing)
+        updated_count = len(all_keys) - new_count
+        return {'synced': len(all_keys), 'new': new_count, 'updated': updated_count,
+                'skipped': 0, 'reason': '', 'ngay_xu_ly': ngay_xu_ly}
+    except sqlite3.OperationalError as exc:
+        msg = str(exc).lower()
+        if 'locked' in msg or 'busy' in msg:
+            return {'synced': 0, 'new': 0, 'updated': 0, 'skipped': 1,
+                    'reason': 'db_locked', 'ngay_xu_ly': ngay_xu_ly}
+        raise
+
+
 def _shc_cts_payload_from_excel():
     if not os.path.exists(SHC_CTS_REPORT_PATH):
         raise FileNotFoundError(f'File Excel SHC CTS không tồn tại: {SHC_CTS_REPORT_PATH}')
