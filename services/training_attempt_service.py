@@ -244,6 +244,37 @@ def _reproduce_snapshot_order(db_path, attempt_id):
         conn.close()
 
 
+def snapshot_order(db_path, attempt_id):
+    """Đọc presentation order đã snapshot của attempt."""
+    conn = read_connection(db_path)
+    try:
+        items = conn.execute(
+            "SELECT id, sequence_number, question_version_id FROM exam_attempt_items "
+            "WHERE attempt_id=? ORDER BY sequence_number", (attempt_id,)
+        ).fetchall()
+        return [
+            {
+                "sequence_number": item["sequence_number"],
+                "qv": item["question_version_id"],
+                "options": [
+                    (option["option_code"], option["display_order"])
+                    for option in conn.execute(
+                        "SELECT option_code, display_order FROM exam_attempt_options "
+                        "WHERE attempt_item_id=? ORDER BY display_order", (item["id"],)
+                    ).fetchall()
+                ],
+            }
+            for item in items
+        ]
+    finally:
+        conn.close()
+
+
+def reproduce_snapshot_order(db_path, attempt_id):
+    """Tái tạo presentation order từ input đã lưu của attempt."""
+    return _reproduce_snapshot_order(db_path, attempt_id)
+
+
 def _attempt_start_result(attempt_id, conn, assignment_id):
     row = conn.execute(
         "SELECT status, started_at_ms, deadline_at_ms FROM exam_attempts WHERE id=?",

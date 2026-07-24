@@ -224,9 +224,9 @@ def test_shuffle_snapshot_is_reproducible_and_includes_order_in_checksum(monkeyp
     first_order = _snapshot_order(db_path, first["attempt_id"])
     second_order = _snapshot_order(db_path, second["attempt_id"])
     assert first_order == second_order
-    assert att._reproduce_snapshot_order(db_path, first["attempt_id"]) == _snapshot_presentation(
-        db_path, first["attempt_id"]
-    )
+    snapshot = _snapshot_presentation(db_path, first["attempt_id"])
+    assert att.snapshot_order(db_path, first["attempt_id"]) == snapshot
+    assert att.reproduce_snapshot_order(db_path, first["attempt_id"]) == snapshot
     template_items = es.get_template_items(db_path, es.get_exam(db_path, exam_id)["template_id"])
     assert first_order[0] != [item["question_version_id"] for item in template_items]
     assert first_order[1] != ["A", "B"] * 3
