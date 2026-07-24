@@ -3,8 +3,8 @@
 ## 1. Thông tin tài liệu
 
 - Tên: Module Đào tạo & sát hạch tích hợp `dashv4`
-- Trạng thái: đặc tả thiết kế, chưa triển khai
-- Phiên bản đặc tả: `1.1`
+- Trạng thái: đặc tả thiết kế, engine fixed-template đã triển khai một phần theo các contract cập nhật bên dưới
+- Phiên bản đặc tả: `1.2`
 - Ngày lập: `2026-07-24`
 - Phạm vi triển khai: từng instance TTVT
 - Quy mô mục tiêu: tối đa khoảng 40–50 người dùng mỗi instance
@@ -748,7 +748,7 @@ deadline_at = min(
 
 - Server time là nguồn chuẩn; client chỉ hiển thị countdown từ `deadline_at` server trả về.
 - Độ chính xác tính theo giây; so sánh bằng timestamp tuyệt đối, không làm tròn phút.
-- Autosave chỉ được nhận khi server nhận request tại hoặc trước deadline và revision hợp lệ.
+- Autosave chỉ được nhận khi server nhận request trước deadline và revision hợp lệ; tại đúng deadline bị từ chối.
 - Submit đến sau deadline vẫn được phép gọi idempotently để chuyển bài sang `timed_out`, nhưng không nhận đáp án mới; chỉ chấm response server đã lưu đúng hạn.
 - MVP không có grace period thay đổi đáp án. Retry submit không làm mất các response đã autosave.
 - Nhiều Gunicorn worker cùng dùng clock hệ điều hành của cùng host; vận hành phải đồng bộ thời gian host bằng NTP/systemd-timesyncd.
@@ -1360,12 +1360,29 @@ Insert lần đầu dùng unique `(attempt_id, attempt_item_id)` và xử lý co
 - Request submit lặp trả result hiện có.
 - Không cập nhật counter tổng hợp dùng chung theo từng submit; báo cáo dùng aggregate query hoặc cache có thể tái tạo.
 
+#### State machine và thời gian đã triển khai
+
+- Kỳ thi chuyển chính xác `draft -> ready -> open -> closed`; `draft`/`ready -> cancelled`. `closed` và `cancelled` không mở lại, close chỉ nhận `open` (retry close khi đã `closed` chỉ chạy recovery).
+- Attempt terminal không trở lại `active`. Close trước deadline dùng `administratively_submitted`/`exam_closed`; close tại hoặc sau deadline dùng `timed_out`/`timeout`. Khi finalize close kỳ thi open đã hết `end_at`, attempt active cũng là `timed_out`, kể cả deadline cá nhân muộn hơn.
+- Autosave dùng thứ tự precedence: attempt không active -> `ATTEMPT_ALREADY_COMPLETED`; exam không open hoặc `now >= end_at` -> `EXAM_NOT_OPEN`; sau đó `now >= deadline_at` -> `ATTEMPT_EXPIRED`. Điều này không nhận response tại đúng deadline.
+- Submit sau deadline không nhận đáp án mới và chuyển `timed_out`, chấm response đã persist. Submit retry trả result gốc trừ attempt đã đóng hành chính, khi đó learner nhận `ATTEMPT_ALREADY_COMPLETED`.
+
+#### Audience chain đã triển khai
+
+- Question version có mapping audience chỉ được đưa vào template cùng audience; template, exam và assignment phải cùng audience.
+- User có ít nhất một `training_user_audiences` chỉ được giao khi có mapping khớp; user không có mapping vẫn hợp lệ để hỗ trợ dữ liệu người dùng chưa cấu hình, và assignment snapshot audience được chọn.
+
 #### Finalize/report
 
 - Compare-and-set trạng thái kỳ thi.
 - `close` compare-and-set kỳ thi trước để chặn ghi mới, sau đó kết thúc từng active attempt bằng các transaction ngắn, idempotent; không giữ một transaction cho toàn bộ kỳ thi.
 - Unique `(exam_event_id, revision)` ngăn snapshot trùng.
 - Finalize lặp trả revision đã tạo nếu không có adjustment mới.
+
+#### Recovery và chặn report đã triển khai
+
+- Close commit trạng thái kỳ thi trước, rồi xử lý từng attempt trong transaction độc lập. Summary gồm `processed_attempt_ids`, `already_completed_ids`, `failed_attempts`; retry close/finalize có thể tiếp tục các attempt còn active.
+- Lỗi toàn vẹn snapshot của một attempt được ghi audit và cô lập, không rollback attempt khác. Finalize không tạo report khi summary còn `failed_attempts`; lỗi trả `blocking_attempts` và `recovery_summary` để vận hành sửa dữ liệu trước khi chốt lại.
 
 #### Retry SQLite
 
@@ -1468,8 +1485,9 @@ DASHV4_TRAINING_GENERATION_TIMEOUT_SECONDS
 
 Trên cấu hình production mục tiêu được ghi trong biên bản test:
 
-- 50 người autosave mỗi 10 giây trong 10 phút, không mất hoặc đảo revision hợp lệ.
-- 50 request submit trong vòng 5 giây, mỗi attempt có đúng một trạng thái kết thúc và một result gốc.
+- Smoke hiện có chỉ là local in-process với SQLite connection độc lập theo thread: 50 autosave đồng thời trên một item giữ revision cao nhất, 50 submit đồng thời trên một attempt tạo đúng một result/audit terminal, và race close/autosave/submit giữ đúng một result terminal. Không suy diễn kết quả này thành kiểm thử scheduler đa process hoặc tải production.
+- 50 người autosave mỗi 10 giây trong 10 phút, không mất hoặc đảo revision hợp lệ, vẫn là tiêu chí nghiệm thu production cần chạy và ghi biên bản riêng.
+- 50 request submit trong vòng 5 giây, mỗi attempt có đúng một trạng thái kết thúc và một result gốc, vẫn cần đo trên cấu hình production mục tiêu.
 - Không có result/report snapshot trùng khi retry hoặc hai worker xử lý đồng thời.
 - Restart web app khi attempt đang active không làm mất response đã autosave.
 - Worker AI bị dừng giữa job có thể được claim lại sau lease timeout hoặc chuyển failed có thể retry.

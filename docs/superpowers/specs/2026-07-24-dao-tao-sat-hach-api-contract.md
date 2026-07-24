@@ -1,7 +1,7 @@
 # API contract — Module Đào tạo & sát hạch (MVP)
 
 - Ngày lập: `2026-07-24`
-- Spec nguồn: `docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-design.md` (1.1)
+- Spec nguồn: `docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-design.md` (1.2)
 - Data dictionary: `docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-data-dictionary.md`
 - Tất cả endpoint dưới `blueprints/training_routes.py` (blueprint `training`).
 - **Auth**: mọi route yêu cầu đăng nhập (auth chung dashboard). Không thêm vào `PUBLIC_ENDPOINTS`.
@@ -27,6 +27,8 @@ Mã lỗi tối thiểu (stable):
 | `ATTEMPT_ALREADY_COMPLETED` | 409 | attempt đã kết thúc |
 | `ATTEMPT_EXPIRED` | 410 | quá deadline |
 | `EXAM_NOT_OPEN` | 409 | kỳ thi chưa mở/đã đóng |
+| `AUDIENCE_MISMATCH` | 400 | audience không khớp trong chuỗi question/template/exam/assignment hoặc user đã cấu hình không thuộc audience được giao |
+| `ATTEMPT_SNAPSHOT_INVALID` | 409 | snapshot attempt bị sửa/không còn checksum hợp lệ; finalize bị chặn khi recovery còn lỗi này |
 | `QUESTION_SUPPLY_INSUFFICIENT` | 409 | blueprint thiếu câu (sau MVP) |
 | `VERSION_CONFLICT` | 409 | PATCH sai expected_version |
 | `DOCUMENT_HAS_BLOCKING_ISSUES` | 409 | sinh câu khi có issue open mức cao |
@@ -87,18 +89,18 @@ Mã lỗi tối thiểu (stable):
 ```
 
 ### 1.3 PUT /api/training/attempts/<id>/responses/<item_id> — autosave
-- Permission: ownership + attempt `active` + server_now <= deadline.
+- Permission: ownership. Precedence: attempt không `active` trả `ATTEMPT_ALREADY_COMPLETED`; exam không `open` hoặc `server_now >= end_at` trả `EXAM_NOT_OPEN`; sau đó `server_now >= deadline` trả `ATTEMPT_EXPIRED`.
 - Body: `{ "selected_option_ids": ["B"], "client_revision": 7 }`.
 - Compare-and-set: chỉ ghi khi `client_revision > stored_revision`. Request cũ đến muộn → `accepted=false`, trả stored response, không lỗi.
 - Response:
 ```json
 { "accepted": true, "stored_response": { "selected_option_ids": ["B"], "client_revision": 7 } }
 ```
-- Lỗi: `ATTEMPT_EXPIRED` (410, không nhận đáp án mới), `ATTEMPT_ALREADY_COMPLETED` (409).
+- Lỗi: `ATTEMPT_EXPIRED` (410, không nhận đáp án mới, gồm đúng deadline), `EXAM_NOT_OPEN` (409), `ATTEMPT_ALREADY_COMPLETED` (409).
 
 ### 1.4 POST /api/training/attempts/<id>/submit — submit
 - Permission: ownership. Idempotent: retry trả cùng result gốc.
-- Nếu đã kết thúc → trả result hiện có. Nếu quá deadline → chuyển `timed_out` + chấm response đã lưu (không nhận đáp án mới).
+- Nếu đã kết thúc có result thì retry trả result gốc, trừ `administratively_submitted` trả `ATTEMPT_ALREADY_COMPLETED`. Nếu quá deadline → chuyển `timed_out` + chấm response đã lưu (không nhận đáp án mới).
 - Compare-and-set `status=active→submitted`. Chấm từ snapshot attempt_items/options.
 - Response (single_choice):
 ```json
@@ -118,12 +120,11 @@ Mã lỗi tối thiểu (stable):
 
 ### 1.6 POST /api/training/exams/<id>/close — đóng kỳ thi
 - Permission: `exam_manager`/`admin`. Idempotent.
-- Compare-and-set `open→closed`. Chặn attempt/response mới. Chuyển active attempt → `administratively_submitted` + chấm. **Không** tạo report snapshot.
+- Compare-and-set `open→closed`, lưu `closed_at_ms`, rồi chặn attempt/response mới trước recovery. Active attempt được xử lý từng transaction: close trước deadline -> `administratively_submitted`/`exam_closed`; close tại hoặc sau deadline -> `timed_out`/`timeout`. Response có thêm `recovery_summary` gồm `processed_attempt_ids`, `already_completed_ids`, `failed_attempts`. Retry khi đã closed tiếp tục recovery. **Không** tạo report snapshot.
 
 ### 1.7 POST /api/training/exams/<id>/finalize — chốt kỳ thi
-- Permission: `exam_manager`/`admin`. Idempotent: đã finalize không adjustment mới → trả revision hiện hành.
-- Recover: attempt dở → kết thúc+chấm; assignment chưa bắt đầu → expired; tạo report snapshot revision N.
-- Lỗi: `FINALIZATION_ALREADY_COMPLETED` (409 nếu cố tạo lại).
+- Permission: `exam_manager`/`admin`. Idempotent: đã có report snapshot → trả revision hiện hành.
+- Chỉ nhận exam `closed`, hoặc `open` khi `server_now >= end_at`; finalize sớm giữ exam open và trả `EXAM_NOT_OPEN`. Với open đã hết giờ, finalize close trước nên active attempt được `timed_out`. Recover attempt dở theo transaction riêng; assignment chưa bắt đầu -> `expired`; chỉ tạo report snapshot revision N khi `failed_attempts` rỗng. Nếu còn lỗi, trả lỗi attempt (ví dụ `ATTEMPT_SNAPSHOT_INVALID`) với `details.blocking_attempts` và `details.recovery_summary`.
 
 ### 1.8 GET /api/training/exams/<id>/report — xem báo cáo
 - Permission: `exam_manager`/`admin`. Trả revision mới nhất (hoặc `?revision=N`).
@@ -172,6 +173,8 @@ Bổ sung: `correct_option_ids, explanation, distractor_rationales, evidence, ma
 - `GET /api/training/templates` — list.
 - `POST /api/training/exams` — tạo kỳ thi (template_id, audience, start/end/duration, pass_score).
 - `POST /api/training/exams/<id>/assignments` — chọn users, snapshot assignment.
+
+Audience bắt buộc nhất quán theo chuỗi question version -> template -> exam -> assignment. User đã có row `training_user_audiences` phải có audience được giao; user chưa có row được phép giao và audience được snapshot vào assignment.
 
 ## 6. Thi lại
 

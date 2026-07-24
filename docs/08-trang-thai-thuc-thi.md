@@ -203,11 +203,13 @@ màu đỏ nổi bật:
 Tài liệu vận hành: [12-dao-tao-sat-hach-van-hanh.md](/home/vtst/dashv4-training/docs/12-dao-tao-sat-hach-van-hanh.md).
 
 - Dữ liệu ghi nằm tại SQLite `DASHV4_TRAINING_DB_PATH` per-instance (mặc định `runtime_app/<unit>/training.db`), hoàn toàn tách khỏi `report_history.db`; `supports_date = n/a`.
-- Migration đã có đến v10. v10 dựng lại `exam_template_items` với foreign key/unique constraint và đồng bộ `exam_templates.total_questions` từ item hợp lệ.
-- RBAC module được kiểm tra tại server theo role/scope `training_user_roles` và audience mapping; admin module thỏa role yêu cầu.
+- Migration đã có đến v11. v10 dựng lại `exam_template_items` với foreign key/unique constraint và đồng bộ `exam_templates.total_questions` từ item hợp lệ; v11 thêm `exam_events.closed_at_ms` để giữ phân loại recovery khi close được retry.
+- RBAC module được kiểm tra tại server theo role/scope `training_user_roles` và audience mapping; admin module thỏa role yêu cầu. Chuỗi audience question -> template -> exam -> assignment được kiểm tra; user đã cấu hình audience phải khớp, user chưa cấu hình vẫn được giao và được snapshot audience.
 - AI generation queue có atomic claim, lease/heartbeat, retry/recovery và worker riêng. Provider fake phục vụ test; chưa xác nhận bật hoặc nghiệm thu production OpenAI.
 - Fixed template chỉ nhận question version đã publish, không cho câu trùng và bị bất biến khi đã khóa/được dùng; attempt snapshot có checksum để phát hiện can thiệp.
-- Close chuyển attempt active sang submit hành chính và chấm theo transaction ngắn; finalize recover attempt dở, expire assignment chưa bắt đầu, tạo report revision với checksum. Không ghi đè report snapshot cũ.
+- State machine kỳ thi đã khóa chính xác: `draft -> ready -> open -> closed`, hoặc `draft/ready -> cancelled`; không close từ trạng thái khác open và không mở lại closed/cancelled. Close trước deadline chuyển attempt active sang `administratively_submitted`; close đúng/sau deadline chuyển `timed_out`. Close commit chặn write trước rồi recovery từng attempt theo transaction ngắn, có summary `processed_attempt_ids`/`already_completed_ids`/`failed_attempts`.
+- Autosave ưu tiên lỗi attempt đã kết thúc, rồi kỳ thi đóng/hết `end_at`, rồi deadline; autosave đúng deadline bị từ chối. Submit sau deadline chỉ chấm response đã lưu và chuyển `timed_out`. Finalize chỉ nhận closed hoặc open đã hết `end_at`; finalize sớm không close kỳ thi. Finalize recover attempt dở, expire assignment chưa bắt đầu và chỉ tạo report revision checksum khi recovery không còn lỗi. Lỗi snapshot được cô lập theo attempt nhưng chặn report, kèm `blocking_attempts` và recovery summary. Không ghi đè report snapshot cũ.
+- Smoke đồng thời hiện là local in-process, không phải chứng nhận tải production: 50 autosave đồng thời giữ revision cao nhất, 50 submit đồng thời chỉ tạo một result/audit terminal, và có race close/autosave/submit.
 - Chưa ghi nhận hoàn tất UI người vận hành/người học, production OpenAI, hoặc luồng thi lại. Các phần này vẫn cần acceptance riêng trước khi coi là hoàn thành MVP.
 
 ## 5. Route chưa hỗ trợ đã bị chặn ở mức page/API
