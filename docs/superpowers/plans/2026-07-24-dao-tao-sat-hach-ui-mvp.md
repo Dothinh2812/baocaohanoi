@@ -169,7 +169,7 @@ Tiêu chí hoàn thành:
 - Revision cũ không ghi đè revision mới ✅.
 - Submit retry không tạo result/audit trùng ✅.
 
-## 8. Pha UI-5 — Báo cáo sau thi
+## 8. Pha UI-5 — Báo cáo sau thi ✅ HOÀN THÀNH
 
 Sau finalize, hiển thị:
 

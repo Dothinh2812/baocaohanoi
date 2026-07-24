@@ -39,6 +39,7 @@ Chưa có cleanup job MVP. Giữ document version, raw AI response, audit, attem
 - Template management UI-3 đã hoàn tất: `GET /api/training/templates` (list, pagination), `GET /api/training/templates/<id>` (detail với items), `POST /api/training/templates` (tạo từ câu hỏi đã publish). Frontend panel trong `static/js/training-templates.js` với danh sách, form tạo và question picker.
 - Exam management UI-3 đã hoàn tất: `GET /api/training/exams` (list, filter status, pagination), `GET /api/training/exams/<id>` (detail với template info và assignment_summary), `GET /api/training/exams/<id>/assignments` (danh sách assignment), `GET /api/training/users` (danh sách user có thể giao bài, không trả password), `POST /api/training/exams` (tạo kỳ thi), `POST /api/training/exams/<id>/assignments` (giao bài), `POST /api/training/exams/<id>/cancel`, `POST /api/training/exams/<id>/ready`, `POST /api/training/exams/<id>/open`. Frontend panel trong `static/js/training-exams.js` với danh sách, form tạo, quản lý assignment, lifecycle buttons (Ready/Open/Close/Cancel/Finalize) và recovery summary display.
 - Learner experience UI-4 đã hoàn tất: `GET /api/training/my-assignments` (danh sách assignment của learner, phân nhóm theo trạng thái, permission `_learner_required` + CSRF). Frontend `static/js/training-my-exams.js` (assignment catalog phân nhóm chưa bắt đầu/đang làm/đã hoàn thành/hết hạn, nút bắt đầu/tiếp tục). Frontend `static/js/training-attempt.js` (đồng hồ countdown từ `deadline_at_ms`, câu nav grid, autosave debounce 400ms `client_revision` CAS, submit confirm + unanswered count, lock UI khi terminal/expired). CSS attempt workspace styles. JS behavioral test `tests/js/test_training_attempt_workspace.mjs`.
+- Report dashboard UI-5 đã hoàn tất: `GET /api/training/exams/<id>/report` (report snapshot, permission exam_manager/admin), `POST /api/training/exams/<id>/finalize` (chốt kỳ thi, idempotent), `GET /download/training/exams/<id>/report.xlsx` (export Excel). Frontend `static/js/training-reports.js` hiển thị danh sách finalized exams, chi tiết báo cáo (summary cards: được giao/đã làm/chưa làm/hết hạn/đạt/không đạt/điểm TB, individual results table), finalize action button với double-click protection và error handling blocking_attempts, export Excel button. Route RBAC: learner blocked từ report/finalize/export. Snapshot bất biến, report không lộ đáp án/explanation/evidence. JS behavioral test `tests/js/test_training_report_panel.mjs`.
 - Close/finalize/report/export: `/api/training/exams/<id>/close`, `/api/training/exams/<id>/finalize`, `/api/training/exams/<id>/report`, `/download/training/exams/<id>/report.xlsx`.
 
 ## Chính sách engine đã triển khai
@@ -60,8 +61,8 @@ Chưa có cleanup job MVP. Giữ document version, raw AI response, audit, attem
 
 ## Giới hạn nghiệm thu hiện tại
 
-- Backend close/finalize và integrity snapshot đã có. UI-3 (template/exam panels) và UI-4 (learner experience) đã hoàn tất.
+- Backend close/finalize/report/export đã có. UI-3 (template/exam panels), UI-4 (learner experience) và UI-5 (report dashboard) đã hoàn tất.
 - Chưa xác nhận production OpenAI.
-- Chưa xác nhận hoàn tất luồng thi lại, báo cáo sau thi; không coi các mục này là hoàn thành chỉ dựa trên API/backend.
+- Chưa xác nhận hoàn tất luồng thi lại; không coi các mục này là hoàn thành chỉ dựa trên API/backend.
 
 Mọi write API cần session, quyền module và CSRF `X-CSRF-Token`.
