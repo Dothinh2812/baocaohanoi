@@ -220,6 +220,28 @@ def create_template():
         return _error_response(exc)
 
 
+@training_bp.route("/api/training/templates")
+@_exam_manager_required
+def list_templates():
+    page = max(1, request.args.get("page", 1, type=int))
+    page_size = min(100, max(1, request.args.get("page_size", 25, type=int)))
+    try:
+        return jsonify(exams.list_templates(
+            config.TRAINING_DB_PATH, page=page, page_size=page_size,
+        ))
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/templates/<template_id>")
+@_exam_manager_required
+def get_template_detail(template_id):
+    try:
+        return jsonify(exams.get_template_detail(config.TRAINING_DB_PATH, template_id))
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
 @training_bp.route("/api/training/exams", methods=["POST"])
 @csrf_protect
 @_exam_manager_required
@@ -254,6 +276,56 @@ def create_assignments(exam_id):
         return jsonify({"assignment_ids": assignment_ids}), 201
     except (KeyError, ValueError) as exc:
         return jsonify({"error": {"code": "VALIDATION_ERROR", "message": str(exc), "details": {}}}), 400
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/exams")
+@_exam_manager_required
+def list_exams():
+    page = max(1, request.args.get("page", 1, type=int))
+    page_size = min(100, max(1, request.args.get("page_size", 25, type=int)))
+    try:
+        return jsonify(exams.list_exams(
+            config.TRAINING_DB_PATH, page=page, page_size=page_size,
+            status=request.args.get("status"),
+        ))
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/exams/<exam_id>")
+@_exam_manager_required
+def get_exam_detail(exam_id):
+    try:
+        resp = jsonify(exams.get_exam_detail(config.TRAINING_DB_PATH, exam_id))
+        add_no_cache_headers(resp)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/exams/<exam_id>/assignments")
+@_exam_manager_required
+def list_exam_assignments(exam_id):
+    try:
+        return jsonify({
+            "items": exams.get_exam_assignments_dto(config.TRAINING_DB_PATH, exam_id),
+        })
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/users")
+@_exam_manager_required
+def list_assignable_users():
+    try:
+        return jsonify({
+            "items": exams.list_assignable_users(
+                config.TRAINING_DB_PATH, q=request.args.get("q", ""),
+            ),
+        })
     except TrainingError as exc:
         return _error_response(exc)
 
