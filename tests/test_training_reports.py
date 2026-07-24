@@ -78,7 +78,7 @@ def test_finalize_administratively_submits_active_attempt_and_is_idempotent(monk
         conn.close()
 
 
-def test_finalize_preserves_timeout_status_for_expired_active_attempt(monkeypatch, tmp_path):
+def test_finalize_administratively_submits_expired_active_closed_attempt(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
     started = attempts.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
@@ -93,8 +93,8 @@ def test_finalize_preserves_timeout_status_for_expired_active_attempt(monkeypatc
     reports.finalize_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
 
     attempt = attempts.get_attempt(db_path, started["attempt_id"])
-    assert attempt["status"] == "timed_out"
-    assert attempt["ended_reason"] == "timeout"
+    assert attempt["status"] == "administratively_submitted"
+    assert attempt["ended_reason"] == "exam_closed"
 
 
 def test_finalize_recovers_active_closed_exam_with_exam_closed_reason(monkeypatch, tmp_path):

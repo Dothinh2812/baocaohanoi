@@ -179,6 +179,33 @@ def test_create_template_rejects_question_with_incompatible_audience(monkeypatch
     assert exc.value.code == "TEMPLATE_QUESTION_INVALID"
 
 
+def test_update_template_rejects_question_with_incompatible_audience(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_ids = _publish_questions(db_path)
+    template = es.create_template(
+        db_path, unit_code="son_tay", actor="alice", code="TPL-UPDATE-AUDIENCE", title="Template",
+        target_audience_code="nvkt", question_version_ids=version_ids,
+        duration_seconds=600, pass_score_percent=80.0,
+    )
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO question_audiences (question_version_id, audience_code) VALUES (?, ?)",
+            (version_ids[0], "kinh_doanh"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(TrainingError) as exc:
+        es.update_template(
+            db_path, unit_code="son_tay", actor="alice", template_id=template["id"],
+            question_version_ids=version_ids, shuffle_questions=False, shuffle_options=False,
+        )
+
+    assert exc.value.code == "TEMPLATE_QUESTION_INVALID"
+
+
 def test_create_exam_draft(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     version_ids = _publish_questions(db_path)

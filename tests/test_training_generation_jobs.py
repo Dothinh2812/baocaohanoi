@@ -152,6 +152,35 @@ def test_expired_lease_can_be_reclaimed(monkeypatch, tmp_path):
     assert reclaimed["retry_count"] == 1
 
 
+def test_lease_at_exact_expiration_is_reclaimable_and_rejects_stale_worker(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    job_id = gs.enqueue_job(
+        db_path, unit_code="son_tay", actor="alice",
+        source_document_version_ids=["docver-001"],
+        target_audience_codes=["nvkt"], requested_count=1,
+    )
+    expiration = 1_000_000
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute(
+            "UPDATE ai_generation_jobs SET status='running', claimed_by='w1', lease_expires_at_ms=? WHERE id=?",
+            (expiration, job_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    monkeypatch.setattr(time_policy, "utc_now_ms", lambda: expiration)
+
+    with pytest.raises(TrainingError) as exc_info:
+        gs.heartbeat(db_path, job_id=job_id, worker_id="w1", lease_seconds=300)
+    reclaimed = gs.claim_next_job(db_path, worker_id="w2", lease_seconds=300)
+
+    assert exc_info.value.code == ErrorCode.CONFLICT
+    assert reclaimed is not None
+    assert reclaimed["id"] == job_id
+    assert reclaimed["claimed_by"] == "w2"
+
+
 def test_complete_job_creates_drafts(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     job_id = gs.enqueue_job(

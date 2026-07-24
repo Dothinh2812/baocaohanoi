@@ -77,14 +77,10 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
         conn.close()
 
     for attempt_id in active_attempt_ids:
-        attempt = attempts.get_attempt(db_path, attempt_id)
-        if time_policy.utc_now_ms() >= attempt["deadline_at_ms"]:
-            attempts.submit_attempt(db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id)
-        else:
-            attempts.administratively_submit_attempt(
-                db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id,
-                ended_reason="exam_closed",
-            )
+        attempts.administratively_submit_attempt(
+            db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id,
+            ended_reason="exam_closed",
+        )
 
     conn = write_connection(db_path)
     try:

@@ -62,7 +62,7 @@ def claim_next_job(db_path, *, worker_id, lease_seconds):
             """SELECT * FROM ai_generation_jobs
             WHERE status = 'pending'
                OR (status = 'running' AND lease_expires_at_ms IS NOT NULL
-                   AND lease_expires_at_ms < ?)
+                    AND lease_expires_at_ms <= ?)
             ORDER BY created_at_ms
             LIMIT 1""",
             (now,),

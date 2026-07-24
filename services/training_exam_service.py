@@ -117,7 +117,7 @@ def update_template(
     try:
         conn.execute("BEGIN IMMEDIATE")
         template = conn.execute(
-            "SELECT locked FROM exam_templates WHERE id=?", (template_id,)
+            "SELECT locked, target_audience_code FROM exam_templates WHERE id=?", (template_id,)
         ).fetchone()
         if not template:
             raise TrainingError(ErrorCode.NOT_FOUND, "Template không tồn tại", status=404)
@@ -142,6 +142,25 @@ def update_template(
             version["publication_status"] != "published" for version in versions
         ):
             raise TrainingError(ErrorCode.TEMPLATE_QUESTION_INVALID, "Question version không hợp lệ")
+        incompatible = conn.execute(
+            f"""SELECT qv.id FROM question_versions qv
+            WHERE qv.id IN ({placeholders})
+              AND EXISTS (
+                  SELECT 1 FROM question_audiences qa
+                  WHERE qa.question_version_id = qv.id
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM question_audiences qa
+                  WHERE qa.question_version_id = qv.id AND qa.audience_code = ?
+              )""",
+            [*question_version_ids, template["target_audience_code"]],
+        ).fetchone()
+        if incompatible:
+            raise TrainingError(
+                ErrorCode.TEMPLATE_QUESTION_INVALID,
+                f"Question version {incompatible['id']} không phù hợp đối tượng",
+                status=400,
+            )
         conn.execute("DELETE FROM exam_template_items WHERE template_id=?", (template_id,))
         for sequence_number, question_version_id in enumerate(question_version_ids, start=1):
             conn.execute(

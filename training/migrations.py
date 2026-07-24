@@ -12,7 +12,7 @@ import time
 from training import time_policy
 from training.db import write_connection
 
-CURRENT_SCHEMA_VERSION = 9
+CURRENT_SCHEMA_VERSION = 10
 
 
 class UnitCodeMismatchError(Exception):
