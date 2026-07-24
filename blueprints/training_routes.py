@@ -10,6 +10,8 @@ from training.permissions import has_module_role
 from services import training_attempt_service as attempts
 from services import training_exam_service as exams
 from services import training_report_service as reports
+from services import training_knowledge_service as knowledge
+from services import training_question_service as questions
 
 training_bp = Blueprint("training", __name__)
 
@@ -42,6 +44,55 @@ def page_index():
         current_user=get_user_by_username(session.get("username")),
         active_page="training",
     )
+
+
+@training_bp.route("/api/training/knowledge", methods=["GET", "POST"])
+@_manager_required
+def knowledge_collection():
+    if request.method == "GET":
+        result = knowledge.list_documents(
+            config.TRAINING_DB_PATH,
+            status=request.args.get("status"),
+            page=max(1, request.args.get("page", 1, type=int)),
+            page_size=min(100, max(1, request.args.get("page_size", 25, type=int))),
+        )
+        return jsonify(result)
+
+    token = request.form.get("csrf_token") or request.headers.get("X-CSRF-Token")
+    from app_helpers import validate_csrf_token
+    if not validate_csrf_token(token):
+        return jsonify({"error": {"code": "CSRF_INVALID", "message": "CSRF token không hợp lệ", "details": {}}}), 400
+    payload = request.get_json(silent=True) or {}
+    content = payload.get("content_text", "")
+    if not isinstance(content, str) or not content.strip():
+        return jsonify({"error": {"code": "VALIDATION_ERROR", "message": "Nội dung văn bản là bắt buộc.", "details": {}}}), 400
+    if len(content.encode("utf-8")) > config.TRAINING_MAX_TEXT_BYTES:
+        return jsonify({"error": {"code": "VALIDATION_ERROR", "message": "Nội dung vượt giới hạn cấu hình.", "details": {}}}), 400
+    try:
+        result = knowledge.create_document(
+            config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE, actor=session["username"],
+            document_code=payload["document_code"], title=payload["title"],
+            content_text=content, classification=payload.get("classification"),
+            audience_codes=payload.get("audience_codes"),
+        )
+        return jsonify(result), 201
+    except (KeyError, ValueError) as exc:
+        return jsonify({"error": {"code": "VALIDATION_ERROR", "message": str(exc), "details": {}}}), 400
+
+
+@training_bp.route("/api/training/questions/import", methods=["POST"])
+@csrf_protect
+@_manager_required
+def import_questions():
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = questions.import_question_batch(
+            config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE,
+            actor=session["username"], batch=payload, status="draft",
+        )
+        return jsonify(result), 201
+    except TrainingError as exc:
+        return _error_response(exc)
 
 
 @training_bp.route("/api/training/assignments/<assignment_id>/attempts", methods=["POST"])
