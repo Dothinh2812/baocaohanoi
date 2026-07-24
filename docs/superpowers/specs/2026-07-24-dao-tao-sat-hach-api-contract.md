@@ -32,7 +32,6 @@ Mã lỗi tối thiểu (stable):
 | `QUESTION_SUPPLY_INSUFFICIENT` | 409 | blueprint thiếu câu (sau MVP) |
 | `VERSION_CONFLICT` | 409 | PATCH sai expected_version |
 | `DOCUMENT_HAS_BLOCKING_ISSUES` | 409 | sinh câu khi có issue open mức cao |
-| `FINALIZATION_ALREADY_COMPLETED` | 409 | finalize lặp không có thay đổi |
 | `PERMISSION_SCOPE_DENIED` | 403 | learner truy cập dữ liệu người khác |
 | `CSRF_INVALID` | 400 | sai token (envelope chung dashboard) |
 
