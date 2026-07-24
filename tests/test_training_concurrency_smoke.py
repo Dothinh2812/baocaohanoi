@@ -9,6 +9,8 @@ from services import training_exam_service as exams
 from services import training_question_service as questions
 from services.training_catalog_service import seed_defaults
 
+# Local in-process concurrency smoke: service calls use independent SQLite connections in threads.
+# Cross-process scheduling is intentionally out of scope for this bounded test.
 
 VALID_BATCH = {
     "schema_version": "1.0",
@@ -87,7 +89,7 @@ def _run_concurrently(count, worker):
             barrier.wait(timeout=10)
             outcome = worker(index)
             with outcomes_lock:
-                outcomes.append(outcome)
+                outcomes.append((index, outcome))
         except Exception as exc:
             with outcomes_lock:
                 errors.append(exc)
@@ -108,6 +110,16 @@ def _assert_no_sqlite_lock(errors):
     ]
 
 
+def _assert_autosave_outcomes(outcomes):
+    assert len(outcomes) == 50
+    assert all(
+        outcome["stored_revision"] == revision
+        if outcome["accepted"] else outcome["stored_revision"] > revision
+        for revision, outcome in outcomes
+    )
+    assert max(outcome["stored_revision"] for _, outcome in outcomes) == 50
+
+
 def test_fifty_concurrent_autosaves_keep_highest_revision(monkeypatch, tmp_path):
     db_path, _, attempt_id, item_ids = _setup_attempt(monkeypatch, tmp_path)
     item_id = item_ids[0]
@@ -121,8 +133,7 @@ def test_fifty_concurrent_autosaves_keep_highest_revision(monkeypatch, tmp_path)
 
     _assert_no_sqlite_lock(errors)
     assert not errors
-    assert outcomes
-    assert all(outcome["accepted"] or outcome["stored_revision"] >= 1 for outcome in outcomes)
+    _assert_autosave_outcomes(outcomes)
     response = attempts.get_attempt_learner_view(db_path, attempt_id)["items"][0]["response"]
     assert response == {"selected_option_ids": ["B"], "client_revision": 50}
 
@@ -144,7 +155,7 @@ def test_fifty_concurrent_submits_create_one_result_and_one_terminal_audit(monke
     _assert_no_sqlite_lock(errors)
     assert not errors
     assert len(outcomes) == 50
-    assert len({outcome["result"]["score"] for outcome in outcomes}) == 1
+    assert len({outcome["result"]["score"] for _, outcome in outcomes}) == 1
     conn = training_db.read_connection(db_path)
     try:
         assert conn.execute("SELECT COUNT(*) AS count FROM exam_results WHERE attempt_id=?", (attempt_id,)).fetchone()["count"] == 1
@@ -198,11 +209,11 @@ def test_close_racing_autosave_and_submit_keeps_one_terminal_result_and_audits(m
     conn = training_db.read_connection(db_path)
     try:
         assert conn.execute("SELECT COUNT(*) AS count FROM exam_results WHERE attempt_id=?", (attempt_id,)).fetchone()["count"] == 1
-        for action in ("submit_attempt", "administratively_submit_attempt"):
-            assert conn.execute(
-                "SELECT COUNT(*) AS count FROM training_audit_log WHERE action=? AND entity_id=?",
-                (action, attempt_id),
-            ).fetchone()["count"] <= 1
+        assert conn.execute(
+            "SELECT COUNT(*) AS count FROM training_audit_log "
+            "WHERE action IN ('submit_attempt', 'administratively_submit_attempt') AND entity_id=?",
+            (attempt_id,),
+        ).fetchone()["count"] == 1
         assert conn.execute(
             "SELECT COUNT(*) AS count FROM training_audit_log WHERE action='close_exam' AND entity_id=?",
             (exam_id,),
