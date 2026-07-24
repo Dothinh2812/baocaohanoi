@@ -76,7 +76,7 @@ def test_create_template_rejects_unpublished(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     result = qs.import_question_batch(db_path, unit_code="son_tay", actor="alice",
                                        batch=VALID_BATCH, status="draft")
-    with pytest.raises(TrainingError):
+    with pytest.raises(TrainingError) as exc:
         es.create_template(
             db_path, unit_code="son_tay", actor="alice",
             code="TPL-BAD", title="Bad",
@@ -84,6 +84,73 @@ def test_create_template_rejects_unpublished(monkeypatch, tmp_path):
             question_version_ids=result["version_ids"],
             duration_seconds=1500, pass_score_percent=80.0,
         )
+    assert exc.value.code == "TEMPLATE_QUESTION_INVALID"
+
+
+def test_create_template_rejects_no_question_versions(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+
+    with pytest.raises(TrainingError) as exc:
+        es.create_template(
+            db_path, unit_code="son_tay", actor="alice",
+            code="TPL-EMPTY", title="Empty", target_audience_code="nvkt",
+            question_version_ids=[], duration_seconds=1500, pass_score_percent=80.0,
+        )
+
+    assert exc.value.code == "TEMPLATE_QUESTION_INVALID"
+
+
+def test_create_template_rejects_missing_question_version(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+
+    with pytest.raises(TrainingError) as exc:
+        es.create_template(
+            db_path, unit_code="son_tay", actor="alice",
+            code="TPL-MISSING", title="Missing", target_audience_code="nvkt",
+            question_version_ids=["missing-version"],
+            duration_seconds=1500, pass_score_percent=80.0,
+        )
+
+    assert exc.value.code == "TEMPLATE_QUESTION_INVALID"
+
+
+def test_create_template_rejects_duplicate_question_version(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_id = _publish_questions(db_path)[0]
+
+    with pytest.raises(TrainingError) as exc:
+        es.create_template(
+            db_path, unit_code="son_tay", actor="alice",
+            code="TPL-DUP", title="Duplicate", target_audience_code="nvkt",
+            question_version_ids=[version_id, version_id],
+            duration_seconds=1500, pass_score_percent=80.0,
+        )
+
+    assert exc.value.code == "TEMPLATE_QUESTION_DUPLICATE"
+
+
+def test_create_template_rejects_question_with_incompatible_audience(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_id = _publish_questions(db_path)[0]
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO question_audiences (question_version_id, audience_code) VALUES (?, ?)",
+            (version_id, "kinh_doanh"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(TrainingError) as exc:
+        es.create_template(
+            db_path, unit_code="son_tay", actor="alice",
+            code="TPL-AUDIENCE", title="Audience", target_audience_code="nvkt",
+            question_version_ids=[version_id],
+            duration_seconds=1500, pass_score_percent=80.0,
+        )
+
+    assert exc.value.code == "TEMPLATE_QUESTION_INVALID"
 
 
 def test_create_exam_draft(monkeypatch, tmp_path):

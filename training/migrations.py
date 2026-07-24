@@ -11,7 +11,7 @@ import time
 from training import time_policy
 from training.db import write_connection
 
-CURRENT_SCHEMA_VERSION = 7
+CURRENT_SCHEMA_VERSION = 8
 
 
 class UnitCodeMismatchError(Exception):
@@ -638,6 +638,37 @@ def migration_007(conn):
     )
 
 
+def migration_008(conn):
+    """Khóa template item vào question version và loại trừ câu hỏi trùng."""
+    conn.execute(
+        """
+        CREATE TABLE exam_template_items_new (
+            id TEXT NOT NULL PRIMARY KEY,
+            template_id TEXT NOT NULL,
+            sequence_number INTEGER NOT NULL,
+            question_version_id TEXT NOT NULL,
+            section_label TEXT,
+            points REAL NOT NULL DEFAULT 1.0,
+            FOREIGN KEY (template_id) REFERENCES exam_templates(id),
+            FOREIGN KEY (question_version_id) REFERENCES question_versions(id),
+            UNIQUE (template_id, sequence_number),
+            UNIQUE (template_id, question_version_id)
+        )
+        """
+    )
+    conn.execute(
+        """INSERT INTO exam_template_items_new
+        (id, template_id, sequence_number, question_version_id, section_label, points)
+        SELECT id, template_id, sequence_number, question_version_id, section_label, points
+        FROM exam_template_items"""
+    )
+    conn.execute("DROP TABLE exam_template_items")
+    conn.execute("ALTER TABLE exam_template_items_new RENAME TO exam_template_items")
+    conn.execute(
+        "CREATE INDEX idx_titems_template_qv ON exam_template_items (template_id, question_version_id)"
+    )
+
+
 _MIGRATIONS = [
     (1, migration_001),
     (2, migration_002),
@@ -646,6 +677,7 @@ _MIGRATIONS = [
     (5, migration_005),
     (6, migration_006),
     (7, migration_007),
+    (8, migration_008),
 ]
 
 

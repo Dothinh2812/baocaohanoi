@@ -22,19 +22,46 @@ def create_template(
 ):
     """Tạo fixed template từ published question versions."""
     if not question_version_ids:
-        raise TrainingError(ErrorCode.VALIDATION_ERROR, "Template cần ít nhất một câu hỏi")
+        raise TrainingError(ErrorCode.TEMPLATE_QUESTION_INVALID, "Template cần ít nhất một câu hỏi")
+    if len(set(question_version_ids)) != len(question_version_ids):
+        raise TrainingError(ErrorCode.TEMPLATE_QUESTION_DUPLICATE, "Template không được chứa câu hỏi trùng")
     conn = write_connection(db_path)
     try:
         placeholders = ",".join("?" * len(question_version_ids))
-        unpublished = conn.execute(
-            f"SELECT id FROM question_versions WHERE id IN ({placeholders}) "
-            "AND publication_status != 'published'",
+        versions = conn.execute(
+            f"SELECT id, publication_status FROM question_versions WHERE id IN ({placeholders})",
             question_version_ids,
         ).fetchall()
+        if len(versions) != len(question_version_ids):
+            raise TrainingError(
+                ErrorCode.TEMPLATE_QUESTION_INVALID,
+                "Question version không tồn tại",
+                status=400,
+            )
+        unpublished = next((version for version in versions if version["publication_status"] != "published"), None)
         if unpublished:
             raise TrainingError(
-                ErrorCode.VALIDATION_ERROR,
-                f"Question version {unpublished[0]['id']} chưa được publish",
+                ErrorCode.TEMPLATE_QUESTION_INVALID,
+                f"Question version {unpublished['id']} chưa được publish",
+                status=400,
+            )
+        incompatible = conn.execute(
+            f"""SELECT qv.id FROM question_versions qv
+            WHERE qv.id IN ({placeholders})
+              AND EXISTS (
+                  SELECT 1 FROM question_audiences qa
+                  WHERE qa.question_version_id = qv.id
+              )
+              AND NOT EXISTS (
+                  SELECT 1 FROM question_audiences qa
+                  WHERE qa.question_version_id = qv.id AND qa.audience_code = ?
+              )""",
+            [*question_version_ids, target_audience_code],
+        ).fetchone()
+        if incompatible:
+            raise TrainingError(
+                ErrorCode.TEMPLATE_QUESTION_INVALID,
+                f"Question version {incompatible['id']} không phù hợp đối tượng",
                 status=400,
             )
         template_id = gen_id("tpl")
@@ -45,7 +72,7 @@ def create_template(
              pass_score_percent, shuffle_questions, shuffle_options, locked, created_by, created_at_ms)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)""",
             (template_id, code, title, target_audience_code,
-             len(question_version_ids), duration_seconds, pass_score_percent,
+             0, duration_seconds, pass_score_percent,
              int(shuffle_questions), int(shuffle_options), actor, now),
         )
         for seq, qv_id in enumerate(question_version_ids, start=1):
@@ -54,11 +81,17 @@ def create_template(
                 "VALUES (?, ?, ?, ?, 1.0)",
                 (gen_id("ti"), template_id, seq, qv_id),
             )
+        total_questions = conn.execute(
+            "SELECT COUNT(*) FROM exam_template_items WHERE template_id=?", (template_id,)
+        ).fetchone()[0]
+        conn.execute(
+            "UPDATE exam_templates SET total_questions=? WHERE id=?", (total_questions, template_id)
+        )
         write_audit(conn, actor=actor, unit_code=unit_code, action="create_template",
                     entity_type="exam_template", entity_id=template_id)
         conn.commit()
         return {"id": template_id, "code": code, "title": title,
-                "total_questions": len(question_version_ids), "locked": 0}
+                "total_questions": total_questions, "locked": 0}
     finally:
         conn.close()
 

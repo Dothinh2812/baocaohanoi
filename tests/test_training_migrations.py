@@ -62,7 +62,7 @@ def test_instance_metadata_has_correct_unit_code(monkeypatch, tmp_path):
     ).fetchone()
     conn.close()
     assert row["unit_code"] == "son_tay"
-    assert row["schema_version"] >= 1
+    assert row["schema_version"] >= 8
 
 
 def test_write_connection_pragmas(monkeypatch, tmp_path):
@@ -109,3 +109,57 @@ def test_audit_log_index_exists(monkeypatch, tmp_path):
     ).fetchall()}
     conn.close()
     assert "idx_audit_entity" in indexes
+
+
+def test_migration_008_preserves_template_items_and_locks_question_versions(monkeypatch, tmp_path):
+    db_path = _config(monkeypatch, tmp_path)
+    migrations.run_migrations(db_path, unit_code="son_tay", migrations=migrations._MIGRATIONS[:7])
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO question_items (id, created_at_ms) VALUES ('question', 0)"
+        )
+        conn.execute(
+            """INSERT INTO question_versions
+            (id, question_item_id, version_number, type, stem, correct_option_ids_json,
+             difficulty, created_by, created_at_ms)
+            VALUES ('version', 'question', 1, 'single_choice', 'Question', '[]', 'easy', 'alice', 0)"""
+        )
+        conn.execute(
+            """INSERT INTO exam_templates
+            (id, code, title, target_audience_code, total_questions, duration_seconds,
+             created_by, created_at_ms)
+            VALUES ('template', 'TPL', 'Template', 'nvkt', 1, 60, 'alice', 0)"""
+        )
+        conn.execute(
+            """INSERT INTO exam_template_items
+            (id, template_id, sequence_number, question_version_id, points)
+            VALUES ('item', 'template', 1, 'version', 1.0)"""
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    migrations.run_migrations(db_path, unit_code="son_tay")
+
+    conn = training_db.write_connection(db_path)
+    try:
+        assert conn.execute("SELECT question_version_id FROM exam_template_items").fetchone()[0] == "version"
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                """INSERT INTO exam_template_items
+                (id, template_id, sequence_number, question_version_id, points)
+                VALUES ('duplicate', 'template', 2, 'version', 1.0)"""
+            )
+        with pytest.raises(sqlite3.IntegrityError):
+            conn.execute(
+                """INSERT INTO exam_template_items
+                (id, template_id, sequence_number, question_version_id, points)
+                VALUES ('missing', 'template', 2, 'missing-version', 1.0)"""
+            )
+        indexes = {row["name"] for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='index'"
+        ).fetchall()}
+        assert "idx_titems_template_qv" in indexes
+    finally:
+        conn.close()
