@@ -408,6 +408,11 @@ def create_assignments(db_path, *, unit_code, actor, exam_id, users, audience_co
                 "Đối tượng giao bài phải trùng với đối tượng kỳ thi",
             )
         usernames = [user["username"] for user in users]
+        if any(not isinstance(username, str) or not username.strip() for username in usernames):
+            raise TrainingError(
+                ErrorCode.VALIDATION_ERROR,
+                "Username giao bài là bắt buộc",
+            )
         if len(set(usernames)) != len(usernames):
             raise TrainingError(
                 ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
@@ -470,11 +475,13 @@ def create_assignments(db_path, *, unit_code, actor, exam_id, users, audience_co
     except sqlite3.IntegrityError as exc:
         if conn.in_transaction:
             conn.rollback()
-        raise TrainingError(
-            ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
-            "Người dùng đã được giao bài",
-            status=409,
-        ) from exc
+        if "UNIQUE constraint failed: exam_assignments.exam_event_id, exam_assignments.username, exam_assignments.audience_code" in str(exc):
+            raise TrainingError(
+                ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
+                "Người dùng đã được giao bài",
+                status=409,
+            ) from exc
+        raise
     except TrainingError:
         if conn.in_transaction:
             conn.rollback()

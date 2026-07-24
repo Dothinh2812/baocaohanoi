@@ -4,7 +4,7 @@ import pytest
 
 from training import db as training_db
 from training import migrations, time_policy
-from training.errors import TrainingError
+from training.errors import ErrorCode, TrainingError
 from services import training_exam_service as es
 from services import training_question_service as qs
 from services.training_catalog_service import seed_defaults
@@ -741,3 +741,18 @@ def test_create_assignments_rejects_existing_assignment_atomically(monkeypatch, 
     assert exc_info.value.code == "ASSIGNMENT_ALREADY_EXISTS"
     assert exc_info.value.status == 409
     assert [row["username"] for row in es.get_assignments_for_exam(db_path, exam["id"])] == ["u1"]
+
+
+def test_create_assignments_rejects_missing_username_as_validation_error(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-ASSIGN-MISSING-USERNAME")
+
+    with pytest.raises(TrainingError) as exc_info:
+        es.create_assignments(
+            db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+            users=[{"username": None}], audience_code="nvkt",
+        )
+
+    assert exc_info.value.code == ErrorCode.VALIDATION_ERROR
+    assert exc_info.value.status == 400
+    assert es.get_assignments_for_exam(db_path, exam["id"]) == []
