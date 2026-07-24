@@ -69,6 +69,19 @@ def test_workspace_shows_editor_and_exam_manager_navigation(monkeypatch, tmp_pat
     assert b"K\xe1\xba\xbft qu\xe1\xba\xa3 c\xe1\bb\xa7a t\xc3\xb4i" not in response.data
 
 
+def test_workspace_shows_exam_manager_assignment_navigation(monkeypatch, tmp_path):
+    for client in _workspace_client(
+        monkeypatch,
+        tmp_path,
+        username="manager",
+        roles=("exam_manager",),
+    ):
+        response = client.get("/dao-tao-sat-hach")
+
+    assert response.status_code == 200
+    assert "Giao bài".encode("utf-8") in response.data
+
+
 def test_workspace_dashboard_admin_receives_all_module_navigation(monkeypatch, tmp_path):
     for client in _workspace_client(
         monkeypatch,
