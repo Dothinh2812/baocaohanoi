@@ -640,33 +640,53 @@ def migration_007(conn):
 
 def migration_008(conn):
     """Khóa template item vào question version và loại trừ câu hỏi trùng."""
-    conn.execute(
-        """
-        CREATE TABLE exam_template_items_new (
-            id TEXT NOT NULL PRIMARY KEY,
-            template_id TEXT NOT NULL,
-            sequence_number INTEGER NOT NULL,
-            question_version_id TEXT NOT NULL,
-            section_label TEXT,
-            points REAL NOT NULL DEFAULT 1.0,
-            FOREIGN KEY (template_id) REFERENCES exam_templates(id),
-            FOREIGN KEY (question_version_id) REFERENCES question_versions(id),
-            UNIQUE (template_id, sequence_number),
-            UNIQUE (template_id, question_version_id)
+    # The migration runner records version 7 before reaching this migration.
+    # SQLite permits changing foreign_keys only outside that transaction.
+    if conn.in_transaction:
+        conn.commit()
+    foreign_keys_enabled = conn.execute("PRAGMA foreign_keys").fetchone()[0]
+    # SQLite only applies this pragma outside a transaction; restore it after the rebuild.
+    if foreign_keys_enabled:
+        conn.execute("PRAGMA foreign_keys=OFF")
+    try:
+        conn.execute("BEGIN")
+        conn.execute(
+            """
+            CREATE TABLE exam_template_items_new (
+                id TEXT NOT NULL PRIMARY KEY,
+                template_id TEXT NOT NULL,
+                sequence_number INTEGER NOT NULL,
+                question_version_id TEXT NOT NULL,
+                section_label TEXT,
+                points REAL NOT NULL DEFAULT 1.0,
+                FOREIGN KEY (template_id) REFERENCES exam_templates(id),
+                FOREIGN KEY (question_version_id) REFERENCES question_versions(id),
+                UNIQUE (template_id, sequence_number),
+                UNIQUE (template_id, question_version_id)
+            )
+            """
         )
-        """
-    )
-    conn.execute(
-        """INSERT INTO exam_template_items_new
-        (id, template_id, sequence_number, question_version_id, section_label, points)
-        SELECT id, template_id, sequence_number, question_version_id, section_label, points
-        FROM exam_template_items"""
-    )
-    conn.execute("DROP TABLE exam_template_items")
-    conn.execute("ALTER TABLE exam_template_items_new RENAME TO exam_template_items")
-    conn.execute(
-        "CREATE INDEX idx_titems_template_qv ON exam_template_items (template_id, question_version_id)"
-    )
+        conn.execute(
+            """INSERT INTO exam_template_items_new
+            (id, template_id, sequence_number, question_version_id, section_label, points)
+            SELECT ti.id, ti.template_id, ti.sequence_number, ti.question_version_id,
+                   ti.section_label, ti.points
+            FROM exam_template_items ti
+            JOIN exam_templates et ON et.id = ti.template_id
+            JOIN question_versions qv ON qv.id = ti.question_version_id"""
+        )
+        conn.execute("DROP TABLE exam_template_items")
+        conn.execute("ALTER TABLE exam_template_items_new RENAME TO exam_template_items")
+        conn.execute(
+            "CREATE INDEX idx_titems_template_qv ON exam_template_items (template_id, question_version_id)"
+        )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        if foreign_keys_enabled:
+            conn.execute("PRAGMA foreign_keys=ON")
 
 
 _MIGRATIONS = [

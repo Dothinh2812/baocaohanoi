@@ -146,6 +146,19 @@ def test_migration_008_preserves_template_items_and_locks_question_versions(monk
             VALUES ('item', 'template', 1, 'version', 1.0)"""
         )
         conn.commit()
+        conn.execute("PRAGMA foreign_keys=OFF")
+        conn.execute(
+            """INSERT INTO exam_template_items
+            (id, template_id, sequence_number, question_version_id, points)
+            VALUES ('dangling-version', 'template', 2, 'missing-version', 1.0)"""
+        )
+        conn.execute(
+            """INSERT INTO exam_template_items
+            (id, template_id, sequence_number, question_version_id, points)
+            VALUES ('dangling-template', 'missing-template', 1, 'version-2', 1.0)"""
+        )
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=ON")
     finally:
         conn.close()
 
@@ -153,7 +166,17 @@ def test_migration_008_preserves_template_items_and_locks_question_versions(monk
 
     conn = training_db.write_connection(db_path)
     try:
-        assert conn.execute("SELECT question_version_id FROM exam_template_items").fetchone()[0] == "version"
+        rows = conn.execute(
+            "SELECT id, question_version_id FROM exam_template_items"
+        ).fetchall()
+        assert [(row["id"], row["question_version_id"]) for row in rows] == [("item", "version")]
+        foreign_keys = conn.execute("PRAGMA foreign_key_list('exam_template_items')").fetchall()
+        assert any(
+            fk["table"] == "question_versions"
+            and fk["from"] == "question_version_id"
+            and fk["to"] == "id"
+            for fk in foreign_keys
+        )
         with pytest.raises(sqlite3.IntegrityError):
             conn.execute(
                 """INSERT INTO exam_template_items
