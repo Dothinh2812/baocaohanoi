@@ -1,6 +1,7 @@
 from functools import wraps
+import uuid
 
-from flask import Blueprint, jsonify, render_template, request, session
+from flask import Blueprint, jsonify, render_template, request, send_file, session
 
 import config
 from app_helpers import add_no_cache_headers, csrf_protect
@@ -274,3 +275,17 @@ def get_report(exam_id):
         return jsonify(report)
     except TrainingError as exc:
         return _error_response(exc)
+
+
+@training_bp.route("/download/training/exams/<exam_id>/report.xlsx")
+@_manager_required
+def download_report_excel(exam_id):
+    report = reports.get_report_snapshot(config.TRAINING_DB_PATH, exam_id)
+    if report is None:
+        return jsonify({"error": {"code": "NOT_FOUND", "message": "Kỳ thi chưa được chốt.", "details": {}}}), 404
+    from pathlib import Path
+
+    filename = f"exam-report-{uuid.uuid4().hex}.xlsx"
+    path = Path(config.TRAINING_EXPORT_DIR) / filename
+    reports.export_report_excel(report["payload"], path)
+    return send_file(path, as_attachment=True, download_name=f"bao-cao-{exam_id}.xlsx")

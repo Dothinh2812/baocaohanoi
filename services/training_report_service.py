@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from pathlib import Path
 
 from training import constants, time_policy
 from training.db import read_connection, write_connection
@@ -142,3 +143,36 @@ def get_report_snapshot(db_path, exam_id, revision=None):
         return {"revision": row["revision"], "payload": json.loads(row["payload_json"])}
     finally:
         conn.close()
+
+
+def _excel_text(value):
+    if value is None:
+        return ""
+    value = str(value)
+    return "'" + value if value.startswith(("=", "+", "-", "@")) else value
+
+
+def export_report_excel(payload, output_path):
+    """Xuất report snapshot; escape công thức Excel từ dữ liệu người dùng/AI."""
+    from openpyxl import Workbook
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    workbook = Workbook()
+    workbook.remove(workbook.active)
+    summary = workbook.create_sheet("Summary")
+    summary.append(["Chỉ tiêu", "Giá trị"])
+    for key, value in payload.get("summary", {}).items():
+        summary.append([_excel_text(key), value])
+    individual = workbook.create_sheet("Individual")
+    individual.append(["Username", "Họ tên", "Điểm", "Tỷ lệ", "Đạt"])
+    for row in payload.get("individual", []):
+        assignment, result = row.get("assignment", {}), row.get("result") or {}
+        individual.append([
+            _excel_text(assignment.get("username")), _excel_text(assignment.get("display_name")),
+            result.get("raw_score", ""), result.get("percent", ""), result.get("passed", ""),
+        ])
+    for name in ("Topics", "Questions", "Retake"):
+        workbook.create_sheet(name)
+    workbook.save(output_path)
+    return output_path
