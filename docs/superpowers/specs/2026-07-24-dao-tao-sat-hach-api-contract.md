@@ -178,6 +178,10 @@ Bổ sung: `correct_option_ids, explanation, distractor_rationales, evidence, ma
 - `POST /api/training/exams/<id>/assignments` — chọn users, snapshot assignment.
 - `GET /api/training/users` — danh sách user có thể giao bài (`?q=` search). Trả `{username, display_name}`, không trả password/role/is_active. Permission: exam_manager/admin.
 
+## 5b. Learner assignment catalog
+
+- `GET /api/training/my-assignments` — danh sách assignment của learner hiện tại. Permission: `learner` + `_learner_required` + CSRF. Response `{ "items": [...] }`, mỗi item gồm: `assignment_id, exam_id, exam_title, exam_code, status (assigned/in_progress/completed/expired), audience_code, assigned_at_ms, started_at_ms, deadline_at_ms, duration_seconds, attempt_id, attempt_status, attempt_started_at_ms, attempt_ended_at_ms`. Items phân nhóm theo status bởi frontend.
+
 Audience bắt buộc nhất quán theo chuỗi question version -> template -> exam -> assignment. User đã có row `training_user_audiences` phải có audience được giao; user chưa có row được phép giao và audience được snapshot vào assignment.
 
 ## 6. Thi lại

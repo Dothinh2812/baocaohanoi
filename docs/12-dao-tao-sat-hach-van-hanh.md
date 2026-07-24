@@ -38,6 +38,7 @@ Chưa có cleanup job MVP. Giữ document version, raw AI response, audit, attem
 - Question bank UI-2 đã hoàn tất và được test (editor/exam-manager): `GET /api/training/questions` (page, page_size <= 100; filter status/audience/domain/topic/q), `GET /api/training/questions/<version>` (trả `Cache-Control: no-store`), `POST /api/training/questions/validate`, `/import`, `/<version>/approve`, `/<version>/reject`, `/<version>/publish`. List/detail are management DTOs, never raw SQLite rows; detail gồm scoring metadata và creation/approval/publication history khi có. Domain derives from evidence joined to `knowledge_blocks`; no schema migration was added. Import always creates draft; publish chỉ nhận unpublished approved; review và publish đã có CAS (`BEGIN IMMEDIATE` + `WHERE ... AND status=?`)防止 concurrent transition, review không được đổi published hoặc lặp state và publish lặp trả conflict không thêm audit. Learner không có question-bank API và attempt DTO không chứa đáp án, giải thích, evidence, distractor rationales hoặc metadata chấm.
 - Template management UI-3 đã hoàn tất: `GET /api/training/templates` (list, pagination), `GET /api/training/templates/<id>` (detail với items), `POST /api/training/templates` (tạo từ câu hỏi đã publish). Frontend panel trong `static/js/training-templates.js` với danh sách, form tạo và question picker.
 - Exam management UI-3 đã hoàn tất: `GET /api/training/exams` (list, filter status, pagination), `GET /api/training/exams/<id>` (detail với template info và assignment_summary), `GET /api/training/exams/<id>/assignments` (danh sách assignment), `GET /api/training/users` (danh sách user có thể giao bài, không trả password), `POST /api/training/exams` (tạo kỳ thi), `POST /api/training/exams/<id>/assignments` (giao bài), `POST /api/training/exams/<id>/cancel`, `POST /api/training/exams/<id>/ready`, `POST /api/training/exams/<id>/open`. Frontend panel trong `static/js/training-exams.js` với danh sách, form tạo, quản lý assignment, lifecycle buttons (Ready/Open/Close/Cancel/Finalize) và recovery summary display.
+- Learner experience UI-4 đã hoàn tất: `GET /api/training/my-assignments` (danh sách assignment của learner, phân nhóm theo trạng thái, permission `_learner_required` + CSRF). Frontend `static/js/training-my-exams.js` (assignment catalog phân nhóm chưa bắt đầu/đang làm/đã hoàn thành/hết hạn, nút bắt đầu/tiếp tục). Frontend `static/js/training-attempt.js` (đồng hồ countdown từ `deadline_at_ms`, câu nav grid, autosave debounce 400ms `client_revision` CAS, submit confirm + unanswered count, lock UI khi terminal/expired). CSS attempt workspace styles. JS behavioral test `tests/js/test_training_attempt_workspace.mjs`.
 - Close/finalize/report/export: `/api/training/exams/<id>/close`, `/api/training/exams/<id>/finalize`, `/api/training/exams/<id>/report`, `/download/training/exams/<id>/report.xlsx`.
 
 ## Chính sách engine đã triển khai
@@ -59,8 +60,8 @@ Chưa có cleanup job MVP. Giữ document version, raw AI response, audit, attem
 
 ## Giới hạn nghiệm thu hiện tại
 
-- Backend close/finalize và integrity snapshot đã có. UI-3 (template/exam panels) đã hoàn tất.
+- Backend close/finalize và integrity snapshot đã có. UI-3 (template/exam panels) và UI-4 (learner experience) đã hoàn tất.
 - Chưa xác nhận production OpenAI.
-- Chưa xác nhận hoàn tất luồng thi lại; không coi các mục này là hoàn thành chỉ dựa trên API/backend.
+- Chưa xác nhận hoàn tất luồng thi lại, báo cáo sau thi; không coi các mục này là hoàn thành chỉ dựa trên API/backend.
 
 Mọi write API cần session, quyền module và CSRF `X-CSRF-Token`.

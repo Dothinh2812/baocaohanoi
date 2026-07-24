@@ -140,14 +140,16 @@ Tiêu chí hoàn thành:
 - Không tự open theo thời gian và không tự giao bài.
 - Close/finalize hiển thị `recovery_summary` và không che giấu attempt lỗi.
 
-## 7. Pha UI-4 — Trải nghiệm làm bài của learner
+## 7. Pha UI-4 — Trải nghiệm làm bài của learner ✅ HOÀN THÀNH
 
-### Bài thi của tôi
+### Bài thi của tôi ✅
 
 - Danh sách bài chưa làm, đang làm và đã hoàn thành.
 - Hiển thị trạng thái, thời hạn, thời lượng và nút bắt đầu/tiếp tục.
+- Backend: `GET /api/training/my-assignments` (`_learner_required` + CSRF).
+- Frontend: `static/js/training-my-exams.js` (assignment catalog phân nhóm).
 
-### Màn hình làm bài
+### Màn hình làm bài ✅
 
 - Đồng hồ dùng deadline server trả về.
 - Hiển thị danh sách câu và trạng thái đã trả lời.
@@ -156,13 +158,16 @@ Tiêu chí hoàn thành:
 - Xác nhận trước khi submit.
 - Khi exam đóng hoặc hết giờ, ngừng nhận input và đồng bộ trạng thái từ server.
 - Không đưa correct options, explanation, evidence hoặc đáp án qua HTML/API learner.
+- Frontend: `static/js/training-attempt.js`, CSS attempt workspace.
+- HTML panels: `#training-my-exams`, `#training-attempt` trong `templates/pages/training/index.html`.
+- JS behavioral test: `tests/js/test_training_attempt_workspace.mjs`.
 
 Tiêu chí hoàn thành:
 
-- Làm bài được trên desktop và màn hình điện thoại thông dụng.
-- Không mất câu trả lời sau refresh.
-- Revision cũ không ghi đè revision mới.
-- Submit retry không tạo result/audit trùng.
+- Làm bài được trên desktop và màn hình điện thoại thông dụng ✅.
+- Không mất câu trả lời sau refresh ✅.
+- Revision cũ không ghi đè revision mới ✅.
+- Submit retry không tạo result/audit trùng ✅.
 
 ## 8. Pha UI-5 — Báo cáo sau thi
 
