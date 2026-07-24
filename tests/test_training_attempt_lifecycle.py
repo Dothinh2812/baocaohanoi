@@ -366,6 +366,23 @@ def test_old_revision_does_not_overwrite_new(monkeypatch, tmp_path):
                             selected_option_ids=["A"], client_revision=2)
     assert old["accepted"] is False
     assert old["stored_revision"] == 5
+    stored = att.get_attempt_learner_view(db_path, result["attempt_id"])["items"][0]["response"]
+    assert stored["selected_option_ids"] == ["B"]
+    assert stored["client_revision"] == 5
+
+
+@pytest.mark.parametrize("client_revision", [0, True, "2"])
+def test_autosave_rejects_non_positive_or_non_integer_revision(monkeypatch, tmp_path, client_revision):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    item_id = att.get_attempt_learner_view(db_path, result["attempt_id"])["items"][0]["item_id"]
+
+    with pytest.raises(TrainingError) as exc_info:
+        att.save_response(db_path, attempt_id=result["attempt_id"], attempt_item_id=item_id,
+                          selected_option_ids=["B"], client_revision=client_revision)
+
+    assert exc_info.value.code == ErrorCode.VALIDATION_ERROR
 
 
 def _responses_for_attempt(db_path, attempt_id):

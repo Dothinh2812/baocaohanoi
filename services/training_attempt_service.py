@@ -358,6 +358,13 @@ def save_response(db_path, *, attempt_id, attempt_item_id, selected_option_ids, 
     conn = write_connection(db_path)
     try:
         conn.execute("BEGIN IMMEDIATE")
+        if (
+            not isinstance(client_revision, int)
+            or isinstance(client_revision, bool)
+            or client_revision <= 0
+        ):
+            raise TrainingError(ErrorCode.VALIDATION_ERROR,
+                                "Phiên bản client phải là số nguyên dương")
         attempt = conn.execute(
             "SELECT status, deadline_at_ms FROM exam_attempts WHERE id=?",
             (attempt_id,),
