@@ -255,6 +255,7 @@ def create_exam():
             end_at_ms=payload["end_at_ms"], duration_seconds=payload["duration_seconds"],
             pass_score_percent=payload.get("pass_score_percent", 80.0),
             description=payload.get("description"),
+            reveal_answers_after_finalize=bool(payload.get("reveal_answers_after_finalize", True)),
         )
         return jsonify(result), 201
     except (KeyError, ValueError) as exc:
