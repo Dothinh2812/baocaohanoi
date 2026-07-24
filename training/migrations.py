@@ -11,7 +11,7 @@ import time
 from training import time_policy
 from training.db import write_connection
 
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 
 class UnitCodeMismatchError(Exception):
@@ -112,8 +112,80 @@ def migration_001(conn):
     )
 
 
+def migration_002(conn):
+    """Catalog (domains/categories/indicators/topics/competencies/audiences/
+    services/tags) + RBAC (user_roles/user_audiences)."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS training_domains (
+            code TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL,
+            sort_order INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS training_categories (
+            code TEXT NOT NULL PRIMARY KEY,
+            domain_code TEXT NOT NULL,
+            name TEXT NOT NULL,
+            FOREIGN KEY (domain_code) REFERENCES training_domains(code)
+        );
+        CREATE INDEX IF NOT EXISTS idx_categories_domain
+            ON training_categories (domain_code);
+
+        CREATE TABLE IF NOT EXISTS training_indicators (
+            code TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS training_topics (
+            code TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS training_competencies (
+            code TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS training_audiences (
+            code TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL,
+            responsibility_text TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS training_services (
+            code TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS training_tags (
+            code TEXT NOT NULL PRIMARY KEY,
+            name TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS training_user_roles (
+            id TEXT NOT NULL PRIMARY KEY,
+            username TEXT NOT NULL,
+            role_code TEXT NOT NULL,
+            granted_at_ms INTEGER NOT NULL,
+            UNIQUE (username, role_code)
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_roles_username
+            ON training_user_roles (username);
+
+        CREATE TABLE IF NOT EXISTS training_user_audiences (
+            id TEXT NOT NULL PRIMARY KEY,
+            username TEXT NOT NULL,
+            audience_code TEXT NOT NULL,
+            UNIQUE (username, audience_code)
+        );
+        """
+    )
+
+
 _MIGRATIONS = [
     (1, migration_001),
+    (2, migration_002),
 ]
 
 
