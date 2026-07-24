@@ -169,9 +169,14 @@ Bổ sung: `correct_option_ids, explanation, distractor_rationales, evidence, ma
 ## 5. Đề & kỳ thi (MVP subset)
 
 - `POST /api/training/templates` — fixed template (published question_versions).
-- `GET /api/training/templates` — list.
+- `GET /api/training/templates` — list (pagination: page, page_size). Trả DTO allowlist: `id, code, title, target_audience_code, total_questions, duration_seconds, pass_score_percent, shuffle_questions, shuffle_options, locked, created_by, created_at_ms`.
+- `GET /api/training/templates/<template_id>` — detail với items: `{sequence_number, question_version_id, stem, type, difficulty, section_label, points}`. Permission: exam_manager/admin.
 - `POST /api/training/exams` — tạo kỳ thi (template_id, audience, start/end/duration, pass_score).
+- `GET /api/training/exams` — list (pagination: page, page_size, optional status filter). Trả DTO allowlist: `id, code, title, template_id, target_audience_code, status, start_at_ms, end_at_ms, duration_seconds, pass_score_percent, reveal_answers_after_finalize, created_by, created_at_ms, finalized_at_ms`. Permission: exam_manager/admin.
+- `GET /api/training/exams/<exam_id>` — detail với `template: {code, title}`, `assignment_summary: {total, assigned, completed, expired, cancelled, in_progress}`. Trả `Cache-Control: no-store`. Permission: exam_manager/admin.
+- `GET /api/training/exams/<exam_id>/assignments` — danh sách assignment DTO (không nhạy cảm). Permission: exam_manager/admin.
 - `POST /api/training/exams/<id>/assignments` — chọn users, snapshot assignment.
+- `GET /api/training/users` — danh sách user có thể giao bài (`?q=` search). Trả `{username, display_name}`, không trả password/role/is_active. Permission: exam_manager/admin.
 
 Audience bắt buộc nhất quán theo chuỗi question version -> template -> exam -> assignment. User đã có row `training_user_audiences` phải có audience được giao; user chưa có row được phép giao và audience được snapshot vào assignment.
 

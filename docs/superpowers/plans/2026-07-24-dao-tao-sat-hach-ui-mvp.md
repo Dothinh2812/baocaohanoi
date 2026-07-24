@@ -87,9 +87,11 @@ Tiêu chí hoàn thành:
 - Không serialize trực tiếp learner DTO từ entity quản trị.
 - Validation lỗi không làm mất nội dung người dùng vừa nhập.
 
-## 6. Pha UI-3 — Mẫu đề và tổ chức kỳ thi
+## 6. Pha UI-3 — Mẫu đề và tổ chức kỳ thi ✅ HOÀN THÀNH
 
-### Mẫu đề cố định
+> Commit range: `9643043..HEAD`. Chi tiết tại `docs/superpowers/plans/2026-07-24-training-ui3-templates-exams.md`.
+
+### Mẫu đề cố định ✅
 
 - Tạo template từ câu hỏi đã publish.
 - Chọn một audience, thời lượng, điểm đạt, trộn câu và trộn đáp án.
@@ -97,7 +99,7 @@ Tiêu chí hoàn thành:
 - Cảnh báo audience không phù hợp.
 - Không sửa cấu trúc template đã được kỳ thi sử dụng.
 
-### Kỳ thi
+### Kỳ thi ✅
 
 - Tạo exam từ template.
 - Nhập thời gian bắt đầu/kết thúc và cấu hình công bố kết quả.
@@ -105,6 +107,32 @@ Tiêu chí hoàn thành:
 - Hiển thị trạng thái `draft`, `ready`, `open`, `closed`, `cancelled`.
 - Các nút `Ready`, `Open`, `Close`, `Cancel`, `Finalize` phải có modal mô tả tác động.
 - Hiển thị số người chưa bắt đầu, đang làm, đã hoàn thành và recovery blocker.
+
+### Hardening ✅
+
+- `Cache-Control: no-store` trên management question detail.
+- CAS cho review transitions (`BEGIN IMMEDIATE` + `WHERE ... AND review_status=?`).
+- CAS cho publish (`BEGIN IMMEDIATE` + duplicate guard + `WHERE ... AND publication_status='unpublished'`).
+
+### Read model APIs ✅
+
+- `GET /api/training/templates` — list DTO.
+- `GET /api/training/templates/<id>` — detail với items.
+- `GET /api/training/exams` — list DTO.
+- `GET /api/training/exams/<id>` — detail với template info và assignment_summary.
+- `GET /api/training/exams/<id>/assignments` — assignment list.
+- `GET /api/training/users` — assignable users (no password).
+
+### Frontend ✅
+
+- `static/js/training-templates.js` — template panel: list, create form, question picker.
+- `static/js/training-exams.js` — exam panel: list, create form, assignment, lifecycle, status tracking.
+
+### Tests ✅
+
+- `tests/test_training_ui3_hardening.py` — Cache-Control + CAS concurrency tests.
+- `tests/test_training_template_exam_routes.py` — route-level tests cho templates/exams/users.
+- `tests/js/test_training_exams_lifecycle.mjs` — JS behavioral test cho exam lifecycle buttons.
 
 Tiêu chí hoàn thành:
 
