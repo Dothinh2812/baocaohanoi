@@ -13,6 +13,9 @@ from repositories.training_repository import gen_id
 
 def score_attempt(db_path, attempt_id):
     """Đọc snapshot items + responses, tính điểm. Trả result dict."""
+    from services import training_attempt_service as attempts
+
+    attempts.require_snapshot_integrity(db_path, attempt_id)
     conn = read_connection(db_path)
     try:
         return score_attempt_with_conn(conn, attempt_id)

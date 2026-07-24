@@ -322,3 +322,142 @@ def test_migration_008_preserves_template_items_and_locks_question_versions(monk
         assert "idx_titems_template_qv" in indexes
     finally:
         conn.close()
+
+
+@pytest.mark.parametrize("starting_version", [7, 8])
+def test_migration_010_recounts_templates_after_removing_legacy_items(monkeypatch, tmp_path, starting_version):
+    db_path = _config(monkeypatch, tmp_path)
+    migrations.run_migrations(
+        db_path, unit_code="son_tay", migrations=migrations._MIGRATIONS[:starting_version]
+    )
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("INSERT INTO question_items (id, created_at_ms) VALUES ('question', 0)")
+        conn.execute(
+            """INSERT INTO question_versions
+            (id, question_item_id, version_number, type, stem, correct_option_ids_json,
+             difficulty, created_by, created_at_ms)
+            VALUES ('version', 'question', 1, 'single_choice', 'Question', '[]', 'easy', 'alice', 0)"""
+        )
+        conn.execute(
+            """INSERT INTO exam_templates
+            (id, code, title, target_audience_code, total_questions, duration_seconds,
+             created_by, created_at_ms)
+            VALUES ('template', 'TPL', 'Template', 'nvkt', 99, 60, 'alice', 0)"""
+        )
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=OFF")
+        conn.execute("DROP TABLE exam_template_items")
+        conn.execute(
+            """CREATE TABLE exam_template_items (
+                id TEXT NOT NULL PRIMARY KEY,
+                template_id TEXT NOT NULL,
+                sequence_number INTEGER NOT NULL,
+                question_version_id TEXT NOT NULL,
+                section_label TEXT,
+                points REAL NOT NULL DEFAULT 1.0
+            )"""
+        )
+        conn.executemany(
+            """INSERT INTO exam_template_items
+            (id, template_id, sequence_number, question_version_id, points)
+            VALUES (?, ?, ?, ?, 1.0)""",
+            [
+                ('valid', 'template', 1, 'version'),
+                ('duplicate', 'template', 2, 'version'),
+                ('orphan-question', 'template', 3, 'missing-version'),
+                ('orphan-template', 'missing-template', 1, 'version'),
+            ],
+        )
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=ON")
+    finally:
+        conn.close()
+
+    migrations.run_migrations(db_path, unit_code="son_tay")
+    migrations.run_migrations(db_path, unit_code="son_tay")
+
+    conn = training_db.read_connection(db_path)
+    try:
+        items = conn.execute(
+            "SELECT id FROM exam_template_items WHERE template_id='template' ORDER BY sequence_number"
+        ).fetchall()
+        total = conn.execute(
+            "SELECT total_questions FROM exam_templates WHERE id='template'"
+        ).fetchone()["total_questions"]
+    finally:
+        conn.close()
+    assert [row["id"] for row in items] == ["valid"]
+    assert total == 1
+
+
+@pytest.mark.parametrize("starting_version", [7, 8])
+def test_migration_010_rolls_back_item_rebuild_and_template_counts(monkeypatch, tmp_path, starting_version):
+    db_path = _config(monkeypatch, tmp_path)
+    migrations.run_migrations(
+        db_path, unit_code="son_tay", migrations=migrations._MIGRATIONS[:starting_version]
+    )
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("INSERT INTO question_items (id, created_at_ms) VALUES ('question', 0)")
+        conn.execute(
+            """INSERT INTO question_versions
+            (id, question_item_id, version_number, type, stem, correct_option_ids_json,
+             difficulty, created_by, created_at_ms)
+            VALUES ('version', 'question', 1, 'single_choice', 'Question', '[]', 'easy', 'alice', 0)"""
+        )
+        conn.execute(
+            """INSERT INTO exam_templates
+            (id, code, title, target_audience_code, total_questions, duration_seconds,
+             created_by, created_at_ms)
+            VALUES ('template', 'TPL', 'Template', 'nvkt', 99, 60, 'alice', 0)"""
+        )
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=OFF")
+        conn.execute("DROP TABLE exam_template_items")
+        conn.execute(
+            """CREATE TABLE exam_template_items (
+                id TEXT NOT NULL PRIMARY KEY,
+                template_id TEXT NOT NULL,
+                sequence_number INTEGER NOT NULL,
+                question_version_id TEXT NOT NULL,
+                section_label TEXT,
+                points REAL NOT NULL DEFAULT 1.0
+            )"""
+        )
+        conn.executemany(
+            """INSERT INTO exam_template_items
+            (id, template_id, sequence_number, question_version_id, points)
+            VALUES (?, ?, ?, ?, 1.0)""",
+            [
+                ('valid', 'template', 1, 'version'),
+                ('duplicate', 'template', 2, 'version'),
+                ('orphan-question', 'template', 3, 'missing-version'),
+                ('orphan-template', 'missing-template', 1, 'version'),
+            ],
+        )
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=ON")
+    finally:
+        conn.close()
+
+    monkeypatch.setattr(migrations, "_record_migration", lambda *_: (_ for _ in ()).throw(RuntimeError("record failed")))
+    with pytest.raises(RuntimeError, match="record failed"):
+        migrations.run_migrations(
+            db_path, unit_code="son_tay", migrations=[(10, migrations.migration_010)]
+        )
+
+    conn = training_db.read_connection(db_path)
+    try:
+        version = conn.execute("SELECT MAX(version) AS version FROM training_schema_migrations").fetchone()["version"]
+        total = conn.execute("SELECT total_questions FROM exam_templates WHERE id='template'").fetchone()["total_questions"]
+        items = conn.execute("SELECT id FROM exam_template_items ORDER BY id").fetchall()
+        replacement = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='exam_template_items_new'"
+        ).fetchone()
+    finally:
+        conn.close()
+    assert version == starting_version
+    assert total == 99
+    assert [row["id"] for row in items] == ["duplicate", "orphan-question", "orphan-template", "valid"]
+    assert replacement is None

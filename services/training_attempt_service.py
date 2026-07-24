@@ -9,7 +9,7 @@ import json
 import random
 import secrets
 
-from training import constants, time_policy
+from training import constants, db as training_db, time_policy
 from training.db import read_connection, write_connection
 from training.errors import ErrorCode, TrainingError
 from repositories.training_repository import gen_id, write_audit
@@ -270,8 +270,8 @@ def snapshot_order(db_path, attempt_id):
         conn.close()
 
 
-def reproduce_snapshot_order(db_path, attempt_id):
-    """Tái tạo presentation order chỉ từ snapshot bất biến của attempt."""
+def read_snapshot_presentation(db_path, attempt_id):
+    """Đọc presentation order đã persisted trong snapshot attempt."""
     return snapshot_order(db_path, attempt_id)
 
 
@@ -285,6 +285,32 @@ def verify_snapshot_checksum(db_path, attempt_id):
         if not attempt:
             raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
         return _verify_snapshot_checksum_with_conn(conn, attempt_id)
+    finally:
+        conn.close()
+
+
+def require_snapshot_integrity(db_path, attempt_id, *, unit_code=None, actor="system"):
+    """Reject a corrupted persisted snapshot and record the rejected operation."""
+    conn = write_connection(db_path)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        if not conn.execute("SELECT 1 FROM exam_attempts WHERE id=?", (attempt_id,)).fetchone():
+            raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
+        if _verify_snapshot_checksum_with_conn(conn, attempt_id):
+            conn.rollback()
+            return
+        write_audit(
+            conn, actor=actor, unit_code=unit_code or training_db.UNIT_CODE,
+            action="attempt_snapshot_invalid", entity_type="exam_attempt", entity_id=attempt_id,
+        )
+        conn.commit()
+        raise TrainingError(
+            ErrorCode.ATTEMPT_SNAPSHOT_INVALID, "Snapshot bài làm không toàn vẹn", status=409,
+        )
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -571,7 +597,14 @@ def administratively_submit_attempt(db_path, *, unit_code, actor, attempt_id, en
 def _complete_active_attempt(conn, *, unit_code, actor, attempt, status, ended_reason, action):
     """CAS terminal transition, immutable-snapshot scoring, result and audit in one transaction."""
     if not _verify_snapshot_checksum_with_conn(conn, attempt["id"]):
-        raise TrainingError(ErrorCode.CONFLICT, "Snapshot bài làm không toàn vẹn", status=409)
+        write_audit(
+            conn, actor=actor, unit_code=unit_code, action="attempt_snapshot_invalid",
+            entity_type="exam_attempt", entity_id=attempt["id"],
+        )
+        conn.commit()
+        raise TrainingError(
+            ErrorCode.ATTEMPT_SNAPSHOT_INVALID, "Snapshot bài làm không toàn vẹn", status=409,
+        )
     now = time_policy.utc_now_ms()
     cursor = conn.execute(
         "UPDATE exam_attempts SET status=?, submitted_at_ms=?, ended_reason=? WHERE id=? AND status='active'",

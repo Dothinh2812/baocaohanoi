@@ -108,6 +108,64 @@ def get_template_items(db_path, template_id):
         conn.close()
 
 
+def update_template(
+    db_path, *, unit_code, actor, template_id, question_version_ids,
+    shuffle_questions, shuffle_options,
+):
+    """Update mutable template presentation settings and its question list."""
+    conn = write_connection(db_path)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        template = conn.execute(
+            "SELECT locked FROM exam_templates WHERE id=?", (template_id,)
+        ).fetchone()
+        if not template:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Template không tồn tại", status=404)
+        used = conn.execute(
+            "SELECT 1 FROM exam_events WHERE template_id=?", (template_id,)
+        ).fetchone()
+        if template["locked"] or used:
+            raise TrainingError(
+                ErrorCode.TEMPLATE_IMMUTABLE,
+                "Template đã khóa hoặc đã được dùng cho kỳ thi", status=409,
+            )
+        if not question_version_ids:
+            raise TrainingError(ErrorCode.TEMPLATE_QUESTION_INVALID, "Template cần ít nhất một câu hỏi")
+        if len(set(question_version_ids)) != len(question_version_ids):
+            raise TrainingError(ErrorCode.TEMPLATE_QUESTION_DUPLICATE, "Template không được chứa câu hỏi trùng")
+        placeholders = ",".join("?" * len(question_version_ids))
+        versions = conn.execute(
+            f"SELECT id, publication_status FROM question_versions WHERE id IN ({placeholders})",
+            question_version_ids,
+        ).fetchall()
+        if len(versions) != len(question_version_ids) or any(
+            version["publication_status"] != "published" for version in versions
+        ):
+            raise TrainingError(ErrorCode.TEMPLATE_QUESTION_INVALID, "Question version không hợp lệ")
+        conn.execute("DELETE FROM exam_template_items WHERE template_id=?", (template_id,))
+        for sequence_number, question_version_id in enumerate(question_version_ids, start=1):
+            conn.execute(
+                """INSERT INTO exam_template_items
+                (id, template_id, sequence_number, question_version_id, points)
+                VALUES (?, ?, ?, ?, 1.0)""",
+                (gen_id("ti"), template_id, sequence_number, question_version_id),
+            )
+        conn.execute(
+            """UPDATE exam_templates
+            SET total_questions=?, shuffle_questions=?, shuffle_options=? WHERE id=?""",
+            (len(question_version_ids), int(shuffle_questions), int(shuffle_options), template_id),
+        )
+        write_audit(conn, actor=actor, unit_code=unit_code, action="update_template",
+                    entity_type="exam_template", entity_id=template_id)
+        conn.commit()
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
 def create_exam(
     db_path, *, unit_code, actor, code, title, template_id, target_audience_code,
     start_at_ms, end_at_ms, duration_seconds, pass_score_percent,

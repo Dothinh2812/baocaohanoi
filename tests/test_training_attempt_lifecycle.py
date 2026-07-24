@@ -9,6 +9,7 @@ from training.errors import ErrorCode, TrainingError
 from services import training_exam_service as es
 from services import training_attempt_service as att
 from services import training_question_service as qs
+from services import training_scoring_service as scoring
 from services.training_catalog_service import seed_defaults
 
 
@@ -226,7 +227,7 @@ def test_shuffle_snapshot_is_reproducible_and_includes_order_in_checksum(monkeyp
     assert first_order == second_order
     snapshot = _snapshot_presentation(db_path, first["attempt_id"])
     assert att.snapshot_order(db_path, first["attempt_id"]) == snapshot
-    assert att.reproduce_snapshot_order(db_path, first["attempt_id"]) == snapshot
+    assert att.read_snapshot_presentation(db_path, first["attempt_id"]) == snapshot
     template_items = es.get_template_items(db_path, es.get_exam(db_path, exam_id)["template_id"])
     assert first_order[0] != [item["question_version_id"] for item in template_items]
     assert first_order[1] != ["A", "B"] * 3
@@ -299,14 +300,14 @@ def test_snapshot_checksum_includes_assigned_sequence_and_option_display_order(m
     assert att.verify_snapshot_checksum(db_path, result["attempt_id"]) is False
 
 
-def test_reproduced_order_is_stable_after_template_mutation(monkeypatch, tmp_path):
+def test_persisted_snapshot_presentation_is_stable_after_template_mutation(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     exam_id, assignment_id = _make_open_exam_with_assignment(
         db_path, shuffle_questions=True, shuffle_options=True,
     )
     monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
     result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
-    expected = att.reproduce_snapshot_order(db_path, result["attempt_id"])
+    expected = att.read_snapshot_presentation(db_path, result["attempt_id"])
     template_id = es.get_exam(db_path, exam_id)["template_id"]
     conn = training_db.write_connection(db_path)
     conn.execute("UPDATE exam_templates SET shuffle_questions=0, shuffle_options=0 WHERE id=?", (template_id,))
@@ -314,7 +315,7 @@ def test_reproduced_order_is_stable_after_template_mutation(monkeypatch, tmp_pat
     conn.commit()
     conn.close()
 
-    assert att.reproduce_snapshot_order(db_path, result["attempt_id"]) == expected
+    assert att.read_snapshot_presentation(db_path, result["attempt_id"]) == expected
 
 
 def test_snapshot_checksum_verification_detects_tampered_item_content(monkeypatch, tmp_path):
@@ -333,10 +334,76 @@ def test_snapshot_checksum_verification_detects_tampered_item_content(monkeypatc
 
 def test_snapshot_helpers_raise_not_found_for_missing_attempt(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
-    for helper in (att.snapshot_order, att.reproduce_snapshot_order, att.verify_snapshot_checksum):
+    for helper in (att.snapshot_order, att.read_snapshot_presentation, att.verify_snapshot_checksum):
         with pytest.raises(TrainingError) as exc_info:
             helper(db_path, "missing")
         assert exc_info.value.code == ErrorCode.NOT_FOUND
+
+
+@pytest.mark.parametrize("tamper", ["item", "option", "order"])
+def test_submit_rejects_tampered_snapshot_with_one_audit_and_no_result(monkeypatch, tmp_path, tamper):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    conn = training_db.write_connection(db_path)
+    try:
+        if tamper == "item":
+            conn.execute("UPDATE exam_attempt_items SET stem='tampered' WHERE attempt_id=?", (started["attempt_id"],))
+        elif tamper == "option":
+            conn.execute(
+                "UPDATE exam_attempt_options SET option_text='tampered' WHERE attempt_item_id="
+                "(SELECT id FROM exam_attempt_items WHERE attempt_id=? LIMIT 1)",
+                (started["attempt_id"],),
+            )
+        else:
+            conn.execute(
+                "UPDATE exam_attempt_options SET display_order=99 WHERE attempt_item_id="
+                "(SELECT id FROM exam_attempt_items WHERE attempt_id=? LIMIT 1) AND display_order=0",
+                (started["attempt_id"],),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(TrainingError) as exc:
+        att.submit_attempt(db_path, unit_code="son_tay", actor="learner1", attempt_id=started["attempt_id"])
+    assert exc.value.code == "ATTEMPT_SNAPSHOT_INVALID"
+    conn = training_db.read_connection(db_path)
+    try:
+        audits = conn.execute(
+            "SELECT COUNT(*) AS count FROM training_audit_log "
+            "WHERE action='attempt_snapshot_invalid' AND entity_id=?", (started["attempt_id"],)
+        ).fetchone()["count"]
+        result = conn.execute("SELECT 1 FROM exam_results WHERE attempt_id=?", (started["attempt_id"],)).fetchone()
+    finally:
+        conn.close()
+    assert audits == 1
+    assert result is None
+
+
+def test_direct_scoring_rejects_tampered_snapshot_with_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_attempt_items SET stem='tampered' WHERE attempt_id=?", (started["attempt_id"],))
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(TrainingError) as exc:
+        scoring.score_attempt(db_path, started["attempt_id"])
+    assert exc.value.code == "ATTEMPT_SNAPSHOT_INVALID"
+    conn = training_db.read_connection(db_path)
+    try:
+        audits = conn.execute(
+            "SELECT COUNT(*) AS count FROM training_audit_log "
+            "WHERE action='attempt_snapshot_invalid' AND entity_id=?", (started["attempt_id"],)
+        ).fetchone()["count"]
+    finally:
+        conn.close()
+    assert audits == 1
 
 
 # --- M3.4: autosave ---

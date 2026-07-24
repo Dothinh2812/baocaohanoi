@@ -131,6 +131,30 @@ def test_create_template_rejects_duplicate_question_version(monkeypatch, tmp_pat
     assert exc.value.code == "TEMPLATE_QUESTION_DUPLICATE"
 
 
+def test_update_template_rejects_question_and_shuffle_changes_after_exam_created(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_ids = _publish_questions(db_path)
+    template = es.create_template(
+        db_path, unit_code="son_tay", actor="alice", code="TPL-IMM", title="Template",
+        target_audience_code="nvkt", question_version_ids=version_ids,
+        duration_seconds=600, pass_score_percent=80.0,
+    )
+    now = time_policy.utc_now_ms()
+    es.create_exam(
+        db_path, unit_code="son_tay", actor="alice", code="EXAM-IMM", title="Exam",
+        template_id=template["id"], target_audience_code="nvkt", start_at_ms=now,
+        end_at_ms=now + 60_000, duration_seconds=600, pass_score_percent=80.0,
+    )
+
+    with pytest.raises(TrainingError) as exc:
+        es.update_template(
+            db_path, unit_code="son_tay", actor="alice", template_id=template["id"],
+            question_version_ids=list(reversed(version_ids)), shuffle_questions=True,
+            shuffle_options=False,
+        )
+    assert exc.value.code == "TEMPLATE_IMMUTABLE"
+
+
 def test_create_template_rejects_question_with_incompatible_audience(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     version_id = _publish_questions(db_path)[0]

@@ -702,6 +702,55 @@ def migration_009(conn):
     conn.execute("ALTER TABLE ai_generation_jobs ADD COLUMN unit_code TEXT")
 
 
+def migration_010(conn):
+    """Repair template items and synchronize their cached question totals."""
+    conn.execute("DROP TABLE IF EXISTS exam_template_items_new")
+    conn.execute(
+        """
+        CREATE TABLE exam_template_items_new (
+            id TEXT NOT NULL PRIMARY KEY,
+            template_id TEXT NOT NULL,
+            sequence_number INTEGER NOT NULL,
+            question_version_id TEXT NOT NULL,
+            section_label TEXT,
+            points REAL NOT NULL DEFAULT 1.0,
+            FOREIGN KEY (template_id) REFERENCES exam_templates(id),
+            FOREIGN KEY (question_version_id) REFERENCES question_versions(id),
+            UNIQUE (template_id, sequence_number),
+            UNIQUE (template_id, question_version_id)
+        )
+        """
+    )
+    conn.execute(
+        """INSERT INTO exam_template_items_new
+        (id, template_id, sequence_number, question_version_id, section_label, points)
+        SELECT ti.id, ti.template_id, ti.sequence_number, ti.question_version_id,
+               ti.section_label, ti.points
+        FROM exam_template_items ti
+        JOIN exam_templates et ON et.id = ti.template_id
+        JOIN question_versions qv ON qv.id = ti.question_version_id
+        WHERE NOT EXISTS (
+            SELECT 1 FROM exam_template_items earlier
+            JOIN exam_templates earlier_template ON earlier_template.id = earlier.template_id
+            JOIN question_versions earlier_version ON earlier_version.id = earlier.question_version_id
+            WHERE earlier.template_id = ti.template_id
+              AND earlier.question_version_id = ti.question_version_id
+              AND earlier.rowid < ti.rowid
+        )"""
+    )
+    conn.execute("DROP TABLE exam_template_items")
+    conn.execute("ALTER TABLE exam_template_items_new RENAME TO exam_template_items")
+    conn.execute(
+        "CREATE INDEX idx_titems_template_qv ON exam_template_items (template_id, question_version_id)"
+    )
+    conn.execute(
+        """UPDATE exam_templates
+        SET total_questions=(
+            SELECT COUNT(*) FROM exam_template_items ti WHERE ti.template_id=exam_templates.id
+        )"""
+    )
+
+
 _MIGRATIONS = [
     (1, migration_001),
     (2, migration_002),
@@ -712,6 +761,7 @@ _MIGRATIONS = [
     (7, migration_007),
     (8, migration_008),
     (9, migration_009),
+    (10, migration_010),
 ]
 
 
