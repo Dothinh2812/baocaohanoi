@@ -407,9 +407,15 @@ def get_question_management_detail(db_path, version_id):
 
 
 def add_review_action(db_path, *, unit_code, actor, version_id, action, comment=None):
+    """CAS review transition trong một write transaction (BEGIN IMMEDIATE).
+
+    Đọc + kiểm tra + UPDATE ... WHERE id=? AND review_status=? (CAS guard) đều
+    chạy trong cùng transaction giữ write lock, chống race giữa hai reviewer.
+    """
     now = time_policy.utc_now_ms()
     conn = write_connection(db_path)
     try:
+        conn.execute("BEGIN IMMEDIATE")
         ver = conn.execute(
             "SELECT review_status, publication_status FROM question_versions WHERE id=?",
             (version_id,),
@@ -442,14 +448,20 @@ def add_review_action(db_path, *, unit_code, actor, version_id, action, comment=
         new_review, allowed_states = transition
         if ver["review_status"] not in allowed_states:
             raise TrainingError(ErrorCode.CONFLICT, "Trạng thái duyệt hiện tại không cho phép thao tác này.", status=409)
-        conn.execute(
-            "UPDATE question_versions SET review_status=? WHERE id=?",
-            (new_review, version_id),
-        )
         if new_review == constants.QuestionReviewStatus.APPROVED:
-            conn.execute(
-                "UPDATE question_versions SET approved_by=?, approved_at_ms=? WHERE id=?",
-                (actor, now, version_id),
+            cursor = conn.execute(
+                "UPDATE question_versions SET review_status=?, approved_by=?, approved_at_ms=? "
+                "WHERE id=? AND review_status=?",
+                (new_review, actor, now, version_id, ver["review_status"]),
+            )
+        else:
+            cursor = conn.execute(
+                "UPDATE question_versions SET review_status=? WHERE id=? AND review_status=?",
+                (new_review, version_id, ver["review_status"]),
+            )
+        if cursor.rowcount == 0:
+            raise TrainingError(
+                ErrorCode.CONFLICT, "Trạng thái đã thay đổi, vui lòng tải lại.", status=409,
             )
         conn.execute(
             "INSERT INTO question_reviews (id, question_version_id, action, reviewer, comment, created_at_ms) "
@@ -459,6 +471,10 @@ def add_review_action(db_path, *, unit_code, actor, version_id, action, comment=
         write_audit(conn, actor=actor, unit_code=unit_code, action=f"review_{action}",
                     entity_type="question_version", entity_id=version_id)
         conn.commit()
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
     finally:
         conn.close()
 
