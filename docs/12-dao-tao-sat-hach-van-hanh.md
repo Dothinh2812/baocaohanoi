@@ -35,7 +35,7 @@ Chưa có cleanup job MVP. Giữ document version, raw AI response, audit, attem
 ## API vận hành
 
 - Knowledge: `POST /api/training/knowledge`.
-- Question draft/review/publish: `/api/training/questions/import`, `/<version>/approve`, `/<version>/publish`.
+- Question bank UI-2 (editor/exam-manager): `GET /api/training/questions` (page, page_size <= 100; filter status/audience/domain/topic/q), `GET /api/training/questions/<version>`, `POST /api/training/questions/validate`, `/import`, `/<version>/approve`, `/<version>/reject`, `/<version>/publish`. List/detail are management DTOs, never raw SQLite rows. Domain derives from evidence joined to `knowledge_blocks`; no schema migration was added. Import always creates draft; publish requires approved. Learner không có question-bank API và attempt DTO không chứa đáp án, giải thích, evidence, distractor rationales hoặc metadata chấm.
 - Template/exam/assignment: `/api/training/templates`, `/api/training/exams`, `/api/training/exams/<id>/assignments`, `/api/training/exams/<id>/cancel`.
 - Close/finalize/report/export: `/api/training/exams/<id>/close`, `/api/training/exams/<id>/finalize`, `/api/training/exams/<id>/report`, `/download/training/exams/<id>/report.xlsx`.
 
