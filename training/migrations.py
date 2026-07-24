@@ -6,6 +6,7 @@ Gunicorn worker không migrate đồng thời. Kiểm tra unit_code trước khi
 
 import fcntl
 import os
+import sqlite3
 import time
 
 from training import time_policy
@@ -75,11 +76,24 @@ def _record_migration(conn, version):
     )
 
 
+def _execute_script(conn, script):
+    """Chạy từng statement để không khiến sqlite3 commit transaction hiện tại."""
+    statement = ""
+    for line in script.splitlines(keepends=True):
+        statement += line
+        if sqlite3.complete_statement(statement):
+            if statement.strip():
+                conn.execute(statement)
+            statement = ""
+    if statement.strip():
+        conn.execute(statement)
+
+
 # --- migration definitions ---
 
 def migration_001(conn):
     """Foundation: instance metadata, schema migrations, audit log."""
-    conn.executescript(
+    _execute_script(conn,
         """
         CREATE TABLE IF NOT EXISTS training_instance_metadata (
             unit_code TEXT NOT NULL PRIMARY KEY,
@@ -115,7 +129,7 @@ def migration_001(conn):
 def migration_002(conn):
     """Catalog (domains/categories/indicators/topics/competencies/audiences/
     services/tags) + RBAC (user_roles/user_audiences)."""
-    conn.executescript(
+    _execute_script(conn,
         """
         CREATE TABLE IF NOT EXISTS training_domains (
             code TEXT NOT NULL PRIMARY KEY,
@@ -185,7 +199,7 @@ def migration_002(conn):
 
 def migration_003(conn):
     """Kho tri thức: documents, versions, blocks, issues, rules, mappings."""
-    conn.executescript(
+    _execute_script(conn,
         """
         CREATE TABLE IF NOT EXISTS knowledge_documents (
             id TEXT NOT NULL PRIMARY KEY,
@@ -286,7 +300,7 @@ def migration_003(conn):
 
 def migration_004(conn):
     """Kho câu hỏi: items, versions, options, sources, reviews, mappings."""
-    conn.executescript(
+    _execute_script(conn,
         """
         CREATE TABLE IF NOT EXISTS question_items (
             id TEXT NOT NULL PRIMARY KEY,
@@ -394,7 +408,7 @@ def migration_004(conn):
 
 def migration_005(conn):
     """AI generation jobs + batches."""
-    conn.executescript(
+    _execute_script(conn,
         """
         CREATE TABLE IF NOT EXISTS ai_generation_jobs (
             id TEXT NOT NULL PRIMARY KEY,
@@ -438,7 +452,7 @@ def migration_005(conn):
 
 def migration_006(conn):
     """Đề và kỳ thi: templates, template_items, events, assignments."""
-    conn.executescript(
+    _execute_script(conn,
         """
         CREATE TABLE IF NOT EXISTS exam_templates (
             id TEXT NOT NULL PRIMARY KEY,
@@ -517,7 +531,7 @@ def migration_006(conn):
 
 def migration_007(conn):
     """Bài làm và kết quả: attempts, attempt_items/options, responses, results, reports."""
-    conn.executescript(
+    _execute_script(conn,
         """
         CREATE TABLE IF NOT EXISTS exam_attempts (
             id TEXT NOT NULL PRIMARY KEY,
@@ -641,6 +655,7 @@ def migration_007(conn):
 def migration_008(conn):
     """Khóa template item vào question version và loại trừ câu hỏi trùng."""
     # Keep foreign keys enabled; valid parent joins make the rebuild safe in the runner transaction.
+    conn.execute("DROP TABLE IF EXISTS exam_template_items_new")
     conn.execute(
         """
         CREATE TABLE exam_template_items_new (

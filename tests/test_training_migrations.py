@@ -111,6 +111,31 @@ def test_audit_log_index_exists(monkeypatch, tmp_path):
     assert "idx_audit_entity" in indexes
 
 
+def test_failed_fresh_migration_leaves_no_schema(monkeypatch, tmp_path):
+    db_path = _config(monkeypatch, tmp_path)
+
+    def fail_migration(conn):
+        raise RuntimeError("migration failed")
+
+    with pytest.raises(RuntimeError, match="migration failed"):
+        migrations.run_migrations(
+            db_path,
+            unit_code="son_tay",
+            migrations=[(1, migrations.migration_001), (2, fail_migration)],
+        )
+
+    conn = training_db.write_connection(db_path)
+    try:
+        tables = {row["name"] for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+        ).fetchall()}
+    finally:
+        conn.close()
+
+    assert "training_schema_migrations" not in tables
+    assert "training_audit_log" not in tables
+
+
 def test_migration_008_rolls_back_when_recording_fails(monkeypatch, tmp_path):
     db_path = _config(monkeypatch, tmp_path)
     migrations.run_migrations(db_path, unit_code="son_tay", migrations=migrations._MIGRATIONS[:7])
@@ -137,6 +162,29 @@ def test_migration_008_rolls_back_when_recording_fails(monkeypatch, tmp_path):
     assert 8 not in versions
     assert schema_version == 7
     assert not any(fk["table"] == "question_versions" for fk in foreign_keys)
+
+
+def test_migration_008_recovers_orphaned_replacement_table(monkeypatch, tmp_path):
+    db_path = _config(monkeypatch, tmp_path)
+    migrations.run_migrations(db_path, unit_code="son_tay", migrations=migrations._MIGRATIONS[:7])
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("CREATE TABLE exam_template_items_new (id TEXT NOT NULL PRIMARY KEY)")
+        conn.commit()
+    finally:
+        conn.close()
+
+    migrations.run_migrations(db_path, unit_code="son_tay")
+
+    conn = training_db.write_connection(db_path)
+    try:
+        orphan = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='exam_template_items_new'"
+        ).fetchone()
+    finally:
+        conn.close()
+
+    assert orphan is None
 
 
 def test_migration_008_preserves_template_items_and_locks_question_versions(monkeypatch, tmp_path):
