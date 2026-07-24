@@ -370,6 +370,33 @@ def save_response(db_path, *, attempt_id, attempt_item_id, selected_option_ids, 
         if now > attempt["deadline_at_ms"]:
             raise TrainingError(ErrorCode.ATTEMPT_EXPIRED, "Đã hết thời gian làm bài", status=410)
 
+        item = conn.execute(
+            "SELECT type FROM exam_attempt_items WHERE id=? AND attempt_id=?",
+            (attempt_item_id, attempt_id),
+        ).fetchone()
+        if not item:
+            raise TrainingError(ErrorCode.ATTEMPT_ITEM_NOT_FOUND,
+                                "Câu hỏi không thuộc bài làm", status=404)
+        if (
+            not isinstance(selected_option_ids, list)
+            or any(not isinstance(option_id, str) for option_id in selected_option_ids)
+            or len(set(selected_option_ids)) != len(selected_option_ids)
+        ):
+            raise TrainingError(ErrorCode.INVALID_OPTION_SELECTION,
+                                "Lựa chọn đáp án không hợp lệ")
+        option_ids = {
+            row["option_code"] for row in conn.execute(
+                "SELECT option_code FROM exam_attempt_options WHERE attempt_item_id=?",
+                (attempt_item_id,),
+            ).fetchall()
+        }
+        if any(option_id not in option_ids for option_id in selected_option_ids):
+            raise TrainingError(ErrorCode.INVALID_OPTION_SELECTION,
+                                "Lựa chọn đáp án không hợp lệ")
+        if item["type"] == "single_choice" and len(selected_option_ids) > 1:
+            raise TrainingError(ErrorCode.SINGLE_CHOICE_REQUIRES_ONE_OPTION,
+                                "Câu hỏi một lựa chọn chỉ nhận tối đa một đáp án")
+
         existing = conn.execute(
             "SELECT client_revision FROM exam_responses WHERE attempt_id=? AND attempt_item_id=?",
             (attempt_id, attempt_item_id),

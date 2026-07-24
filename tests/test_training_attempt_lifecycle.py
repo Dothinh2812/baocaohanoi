@@ -368,6 +368,77 @@ def test_old_revision_does_not_overwrite_new(monkeypatch, tmp_path):
     assert old["stored_revision"] == 5
 
 
+def _responses_for_attempt(db_path, attempt_id):
+    conn = training_db.read_connection(db_path)
+    try:
+        return [tuple(row) for row in conn.execute(
+            "SELECT attempt_id, attempt_item_id, selected_option_ids_json, client_revision "
+            "FROM exam_responses WHERE attempt_id=? ORDER BY attempt_item_id",
+            (attempt_id,),
+        ).fetchall()]
+    finally:
+        conn.close()
+
+
+def test_autosave_rejects_item_from_another_attempt_without_response_mutation(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    other_assignment_id = es.create_assignments(
+        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
+        users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
+    )[0]
+    attempt = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    other_attempt = att.start_attempt(
+        db_path, unit_code="son_tay", actor="learner2", assignment_id=other_assignment_id,
+    )
+    own_item_id = att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["item_id"]
+    foreign_item_id = att.get_attempt_learner_view(db_path, other_attempt["attempt_id"])["items"][0]["item_id"]
+    att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=own_item_id,
+                      selected_option_ids=["B"], client_revision=1)
+    before = _responses_for_attempt(db_path, attempt["attempt_id"])
+
+    with pytest.raises(TrainingError) as exc_info:
+        att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=foreign_item_id,
+                          selected_option_ids=["B"], client_revision=2)
+
+    assert exc_info.value.code == ErrorCode.ATTEMPT_ITEM_NOT_FOUND
+    assert _responses_for_attempt(db_path, attempt["attempt_id"]) == before
+
+
+def test_autosave_rejects_unknown_option_without_response_mutation(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    attempt = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    item_id = att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["item_id"]
+    att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
+                      selected_option_ids=["B"], client_revision=1)
+    before = _responses_for_attempt(db_path, attempt["attempt_id"])
+
+    with pytest.raises(TrainingError) as exc_info:
+        att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
+                          selected_option_ids=["missing"], client_revision=2)
+
+    assert exc_info.value.code == ErrorCode.INVALID_OPTION_SELECTION
+    assert _responses_for_attempt(db_path, attempt["attempt_id"]) == before
+
+
+def test_autosave_rejects_multiple_options_for_single_choice_without_response_mutation(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    attempt = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    item_id = att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["item_id"]
+    att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
+                      selected_option_ids=["B"], client_revision=1)
+    before = _responses_for_attempt(db_path, attempt["attempt_id"])
+
+    with pytest.raises(TrainingError) as exc_info:
+        att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
+                          selected_option_ids=["A", "B"], client_revision=2)
+
+    assert exc_info.value.code == ErrorCode.SINGLE_CHOICE_REQUIRES_ONE_OPTION
+    assert _responses_for_attempt(db_path, attempt["attempt_id"]) == before
+
+
 # --- M3.5: submit + scoring ---
 
 def test_submit_creates_result(monkeypatch, tmp_path):
