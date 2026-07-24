@@ -291,6 +291,17 @@ def get_attempt(db_path, attempt_id):
         conn.close()
 
 
+def response_count(db_path, attempt_id):
+    """Đếm response hiện có của một attempt qua kết nối chỉ đọc."""
+    conn = read_connection(db_path)
+    try:
+        return conn.execute(
+            "SELECT COUNT(*) AS count FROM exam_responses WHERE attempt_id=?", (attempt_id,)
+        ).fetchone()["count"]
+    finally:
+        conn.close()
+
+
 def attempt_owner_username(db_path, attempt_id):
     conn = read_connection(db_path)
     try:

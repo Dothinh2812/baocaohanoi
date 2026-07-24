@@ -385,18 +385,6 @@ def test_autosave_rejects_non_positive_or_non_integer_revision(monkeypatch, tmp_
     assert exc_info.value.code == ErrorCode.VALIDATION_ERROR
 
 
-def _responses_for_attempt(db_path, attempt_id):
-    conn = training_db.read_connection(db_path)
-    try:
-        return [tuple(row) for row in conn.execute(
-            "SELECT attempt_id, attempt_item_id, selected_option_ids_json, client_revision "
-            "FROM exam_responses WHERE attempt_id=? ORDER BY attempt_item_id",
-            (attempt_id,),
-        ).fetchall()]
-    finally:
-        conn.close()
-
-
 def test_autosave_rejects_item_from_another_attempt_without_response_mutation(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
@@ -412,14 +400,17 @@ def test_autosave_rejects_item_from_another_attempt_without_response_mutation(mo
     foreign_item_id = att.get_attempt_learner_view(db_path, other_attempt["attempt_id"])["items"][0]["item_id"]
     att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=own_item_id,
                       selected_option_ids=["B"], client_revision=1)
-    before = _responses_for_attempt(db_path, attempt["attempt_id"])
+    before_count = att.response_count(db_path, attempt["attempt_id"])
 
     with pytest.raises(TrainingError) as exc_info:
         att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=foreign_item_id,
                           selected_option_ids=["B"], client_revision=2)
 
     assert exc_info.value.code == ErrorCode.ATTEMPT_ITEM_NOT_FOUND
-    assert _responses_for_attempt(db_path, attempt["attempt_id"]) == before
+    assert att.response_count(db_path, attempt["attempt_id"]) == before_count
+    assert att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["response"][
+        "selected_option_ids"
+    ] == ["B"]
 
 
 def test_autosave_rejects_unknown_option_without_response_mutation(monkeypatch, tmp_path):
@@ -429,14 +420,17 @@ def test_autosave_rejects_unknown_option_without_response_mutation(monkeypatch, 
     item_id = att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["item_id"]
     att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
                       selected_option_ids=["B"], client_revision=1)
-    before = _responses_for_attempt(db_path, attempt["attempt_id"])
+    before_count = att.response_count(db_path, attempt["attempt_id"])
 
     with pytest.raises(TrainingError) as exc_info:
         att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
                           selected_option_ids=["missing"], client_revision=2)
 
     assert exc_info.value.code == ErrorCode.INVALID_OPTION_SELECTION
-    assert _responses_for_attempt(db_path, attempt["attempt_id"]) == before
+    assert att.response_count(db_path, attempt["attempt_id"]) == before_count
+    assert att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["response"][
+        "selected_option_ids"
+    ] == ["B"]
 
 
 def test_autosave_rejects_multiple_options_for_single_choice_without_response_mutation(monkeypatch, tmp_path):
@@ -446,14 +440,17 @@ def test_autosave_rejects_multiple_options_for_single_choice_without_response_mu
     item_id = att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["item_id"]
     att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
                       selected_option_ids=["B"], client_revision=1)
-    before = _responses_for_attempt(db_path, attempt["attempt_id"])
+    before_count = att.response_count(db_path, attempt["attempt_id"])
 
     with pytest.raises(TrainingError) as exc_info:
         att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
                           selected_option_ids=["A", "B"], client_revision=2)
 
     assert exc_info.value.code == ErrorCode.SINGLE_CHOICE_REQUIRES_ONE_OPTION
-    assert _responses_for_attempt(db_path, attempt["attempt_id"]) == before
+    assert att.response_count(db_path, attempt["attempt_id"]) == before_count
+    assert att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["response"][
+        "selected_option_ids"
+    ] == ["B"]
 
 
 # --- M3.5: submit + scoring ---
