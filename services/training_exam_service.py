@@ -730,6 +730,55 @@ def get_exam_assignments_dto(db_path, exam_id):
         conn.close()
 
 
+def get_my_assignments_dto(db_path, username):
+    conn = read_connection(db_path)
+    try:
+        rows = conn.execute(
+            """
+            SELECT a.id, a.exam_event_id, a.username, a.display_name,
+                   a.audience_code, a.status AS assignment_status,
+                   a.duration_seconds, a.assigned_at_ms,
+                   e.code AS exam_code, e.title AS exam_title,
+                   e.status AS exam_status, e.start_at_ms, e.end_at_ms,
+                   e.pass_score_percent, e.reveal_answers_after_finalize,
+                   e.finalized_at_ms,
+                   t.id AS attempt_id, t.status AS attempt_status,
+                   t.deadline_at_ms
+            FROM exam_assignments a
+            JOIN exam_events e ON e.id = a.exam_event_id
+            LEFT JOIN exam_attempts t ON t.assignment_id = a.id
+            WHERE a.username = ?
+            ORDER BY e.start_at_ms DESC, a.assigned_at_ms DESC
+            """,
+            (username,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+    items = []
+    for r in rows:
+        items.append({
+            "assignment_id": r["id"],
+            "exam_id": r["exam_event_id"],
+            "exam_code": r["exam_code"],
+            "exam_title": r["exam_title"],
+            "exam_status": r["exam_status"],
+            "assignment_status": r["assignment_status"],
+            "audience_code": r["audience_code"],
+            "start_at_ms": r["start_at_ms"],
+            "end_at_ms": r["end_at_ms"],
+            "duration_seconds": r["duration_seconds"],
+            "pass_score_percent": r["pass_score_percent"],
+            "reveal_answers_after_finalize": bool(r["reveal_answers_after_finalize"]),
+            "finalized": r["finalized_at_ms"] is not None,
+            "assigned_at_ms": r["assigned_at_ms"],
+            "attempt_id": r["attempt_id"],
+            "attempt_status": r["attempt_status"],
+            "deadline_at_ms": r["deadline_at_ms"],
+        })
+    return {"items": items}
+
+
 def _get_all_users():
     """Indirection over auth.get_all_users for testability."""
     from auth import get_all_users

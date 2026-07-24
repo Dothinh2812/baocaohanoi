@@ -281,6 +281,15 @@ def create_assignments(exam_id):
         return _error_response(exc)
 
 
+@training_bp.route("/api/training/my-assignments")
+@_learner_required
+@csrf_protect
+def get_my_assignments():
+    username = session.get("username")
+    result = exams.get_my_assignments_dto(config.TRAINING_DB_PATH, username)
+    return jsonify(result)
+
+
 @training_bp.route("/api/training/exams")
 @_exam_manager_required
 def list_exams():
