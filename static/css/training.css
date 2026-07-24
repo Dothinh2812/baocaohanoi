@@ -65,6 +65,150 @@
     margin: 4px 0 0;
 }
 
+.training-question-bank {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid #e9ecef;
+}
+
+.training-question-bank-heading p,
+.training-question-import > p,
+#question-batch-help {
+    color: #6c757d;
+}
+
+.training-question-filters {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(130px, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+    margin: 20px 0 12px;
+}
+
+.training-question-filters label,
+.training-question-import label {
+    display: grid;
+    gap: 5px;
+    font-weight: 600;
+}
+
+.training-question-filters input,
+.training-question-filters select,
+.training-question-import textarea {
+    width: 100%;
+    min-height: 38px;
+    padding: 7px 9px;
+    border: 1px solid #adb5bd;
+    border-radius: 6px;
+    font: inherit;
+}
+
+.training-question-import textarea {
+    resize: vertical;
+    font-family: monospace;
+}
+
+.training-action-row,
+.training-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.training-action,
+.training-pagination button {
+    min-height: 38px;
+    padding: 7px 12px;
+    border: 1px solid #1a5089;
+    border-radius: 6px;
+    color: #fff;
+    background: #1a5089;
+    cursor: pointer;
+    font: inherit;
+}
+
+.training-action-secondary,
+.training-pagination button:disabled {
+    color: #1a5089;
+    background: #fff;
+}
+
+.training-pagination button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.training-form-errors:empty {
+    display: none;
+}
+
+.training-form-errors {
+    margin: 12px 0;
+    padding: 10px 12px;
+    color: #842029;
+    background: #f8d7da;
+    border: 1px solid #f5c2c7;
+    border-radius: 6px;
+}
+
+.training-form-errors ul {
+    margin: 8px 0 0;
+    padding-left: 20px;
+}
+
+.training-question-table {
+    width: 100%;
+    margin-top: 16px;
+    border-collapse: collapse;
+}
+
+.training-question-table th,
+.training-question-table td {
+    padding: 10px;
+    border-bottom: 1px solid #e9ecef;
+    text-align: left;
+    vertical-align: top;
+}
+
+.training-question-detail,
+.training-question-import {
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid #d7e3f0;
+    border-radius: 8px;
+    background: #f8fbff;
+}
+
+.training-question-detail h4,
+.training-question-detail h5,
+.training-question-import h4 {
+    margin: 0 0 10px;
+}
+
+.training-detail-list {
+    margin: 8px 0;
+}
+
+.training-empty-state {
+    padding: 18px;
+    color: #6c757d;
+    background: #f8f9fa;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
 .training-toast {
     position: fixed;
     right: 20px;
@@ -136,5 +280,42 @@
 
     .training-workspace-panel {
         padding: 18px;
+    }
+
+    .training-question-filters {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .training-question-table,
+    .training-question-table tbody,
+    .training-question-table tr,
+    .training-question-table td {
+        display: block;
+    }
+
+    .training-question-table thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+    }
+
+    .training-question-table tr {
+        margin-bottom: 12px;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+    }
+
+    .training-question-table td {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 8px;
+        border: 0;
+    }
+
+    .training-question-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
     }
 }

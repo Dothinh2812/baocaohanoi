@@ -28,7 +28,10 @@ def _module_role_required(role, message):
             username = session.get("username")
             user = get_user_by_username(username) if username else None
             is_dashboard_admin = user and user.get("role") == "admin"
-            if not is_dashboard_admin and not has_module_role(config.TRAINING_DB_PATH, username, role):
+            roles = role if isinstance(role, tuple) else (role,)
+            if not is_dashboard_admin and not any(
+                has_module_role(config.TRAINING_DB_PATH, username, item) for item in roles
+            ):
                 return _error_response(TrainingError("PERMISSION_SCOPE_DENIED", message, status=403))
             return view(*args, **kwargs)
         return wrapped
@@ -38,6 +41,9 @@ def _module_role_required(role, message):
 _learner_required = _module_role_required("learner", "Không có quyền làm bài thi.")
 _editor_required = _module_role_required("editor", "Không có quyền biên soạn nội dung.")
 _exam_manager_required = _module_role_required("exam_manager", "Không có quyền quản lý kỳ thi.")
+_question_reader_required = _module_role_required(
+    ("editor", "exam_manager"), "Không có quyền xem ngân hàng câu hỏi."
+)
 
 
 def _attempt_owned_by_current_user(attempt_id):
@@ -107,6 +113,44 @@ def import_questions():
         return _error_response(exc)
 
 
+@training_bp.route("/api/training/questions/validate", methods=["POST"])
+@csrf_protect
+@_editor_required
+def validate_questions():
+    payload = request.get_json(silent=True)
+    errors = questions.validate_question_batch(payload)
+    if errors:
+        return _error_response(TrainingError(
+            "VALIDATION_ERROR", "Dữ liệu lô câu hỏi không hợp lệ.", status=400,
+            details={"errors": errors},
+        ))
+    return jsonify({"valid": True, "errors": []})
+
+
+@training_bp.route("/api/training/questions")
+@_question_reader_required
+def list_question_bank():
+    try:
+        return jsonify(questions.list_questions(
+            config.TRAINING_DB_PATH,
+            status=request.args.get("status"), audience=request.args.get("audience"),
+            domain=request.args.get("domain"), topic=request.args.get("topic"),
+            q=request.args.get("q"), page=max(1, request.args.get("page", 1, type=int)),
+            page_size=min(100, max(1, request.args.get("page_size", 25, type=int))),
+        ))
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/questions/<version_id>")
+@_question_reader_required
+def get_question_bank_detail(version_id):
+    try:
+        return jsonify(questions.get_question_management_detail(config.TRAINING_DB_PATH, version_id))
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
 @training_bp.route("/api/training/questions/<version_id>/approve", methods=["POST"])
 @csrf_protect
 @_exam_manager_required
@@ -115,6 +159,26 @@ def approve_question(version_id):
         questions.add_review_action(config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE,
                                     actor=session["username"], version_id=version_id, action="approve")
         return jsonify({"version_id": version_id, "review_status": "approved"})
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/questions/<version_id>/reject", methods=["POST"])
+@csrf_protect
+@_exam_manager_required
+def reject_question(version_id):
+    payload = request.get_json(silent=True) or {}
+    comment = payload.get("comment")
+    if comment is not None and not isinstance(comment, str):
+        return _error_response(TrainingError(
+            "VALIDATION_ERROR", "Nhận xét từ chối phải là chuỗi ký tự.", status=400,
+        ))
+    try:
+        questions.add_review_action(
+            config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE,
+            actor=session["username"], version_id=version_id, action="reject", comment=comment,
+        )
+        return jsonify({"version_id": version_id, "review_status": "rejected"})
     except TrainingError as exc:
         return _error_response(exc)
 
@@ -240,7 +304,9 @@ def get_attempt(attempt_id):
             raise TrainingError("PERMISSION_SCOPE_DENIED", "Bạn không sở hữu bài làm này.", status=403)
         view = attempts.get_attempt_learner_view(config.TRAINING_DB_PATH, attempt_id)
         response = jsonify(view)
-        return add_no_cache_headers(response)
+        add_no_cache_headers(response)
+        response.headers["Cache-Control"] = "no-store"
+        return response
     except TrainingError as exc:
         return _error_response(exc)
 

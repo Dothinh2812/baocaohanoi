@@ -16,7 +16,7 @@
       <a class="training-nav-item active" href="#training-overview"><i class="fas fa-chart-pie"></i> Tổng quan</a>
       {% if 'editor' in module_roles or 'admin' in module_roles %}
       <a class="training-nav-item" href="#training-pending"><i class="fas fa-book"></i> Kho tri thức</a>
-      <a class="training-nav-item" href="#training-pending"><i class="fas fa-list-check"></i> Ngân hàng câu hỏi</a>
+       <a class="training-nav-item" href="#training-question-bank"><i class="fas fa-list-check"></i> Ngân hàng câu hỏi</a>
       {% endif %}
       {% if 'exam_manager' in module_roles or 'admin' in module_roles %}
       <a class="training-nav-item" href="#training-pending"><i class="fas fa-copy"></i> Mẫu đề</a>
@@ -40,10 +40,63 @@
           <p>Các màn hình nghiệp vụ sẽ được bổ sung theo từng đợt.</p>
         </div>
       </div>
+
+      {% if 'editor' in module_roles or 'exam_manager' in module_roles or 'admin' in module_roles %}
+      <section class="training-question-bank" id="training-question-bank"
+               data-can-import="{{ 'true' if 'editor' in module_roles or 'admin' in module_roles else 'false' }}"
+               data-can-review="{{ 'true' if 'exam_manager' in module_roles or 'admin' in module_roles else 'false' }}"
+               aria-labelledby="training-question-bank-title">
+        <div class="training-question-bank-heading">
+          <div>
+            <h3 id="training-question-bank-title"><i class="fas fa-list-check"></i> Ngân hàng câu hỏi</h3>
+            <p>Tra cứu, nhập nháp và duyệt câu hỏi theo quyền được cấp.</p>
+          </div>
+        </div>
+
+        <form id="question-bank-filters" class="training-question-filters">
+          <label>Trạng thái
+            <select name="status">
+              <option value="">Tất cả</option>
+              <option value="draft">Nháp</option>
+              <option value="approved">Đã duyệt</option>
+              <option value="published">Đã phát hành</option>
+            </select>
+          </label>
+          <label>Đối tượng <input name="audience" type="search" autocomplete="off"></label>
+          <label>Lĩnh vực <input name="domain" type="search" autocomplete="off"></label>
+          <label>Chủ đề <input name="topic" type="search" autocomplete="off"></label>
+          <label>Từ khóa <input name="q" type="search" autocomplete="off"></label>
+          <button type="submit" class="training-action">Lọc</button>
+        </form>
+        <div id="question-bank-errors" class="training-form-errors" role="alert" aria-live="assertive"></div>
+        <div id="question-bank-list" aria-live="polite"></div>
+        <nav id="question-bank-pagination" class="training-pagination" aria-label="Phân trang câu hỏi"></nav>
+
+        <section id="question-bank-detail" class="training-question-detail" hidden tabindex="-1" aria-live="polite"></section>
+
+        {% if 'editor' in module_roles or 'admin' in module_roles %}
+        <section class="training-question-import" aria-labelledby="question-batch-title">
+          <h4 id="question-batch-title">Nhập lô JSON</h4>
+          <p>Kiểm tra trước khi nhập. Câu hợp lệ luôn được tạo ở trạng thái nháp.</p>
+          <label for="question-batch-json">Nội dung Question Batch JSON</label>
+          <textarea id="question-batch-json" rows="12" spellcheck="false" aria-describedby="question-batch-help"></textarea>
+          <p id="question-batch-help">Lỗi kiểm tra hiển thị bên dưới và không xóa nội dung đang nhập.</p>
+          <div class="training-action-row">
+            <button id="question-batch-validate" type="button" class="training-action training-action-secondary">Kiểm tra JSON</button>
+            <button id="question-batch-import" type="button" class="training-action">Nhập câu hỏi nháp</button>
+          </div>
+          <div id="question-batch-errors" class="training-form-errors" role="alert" aria-live="assertive"></div>
+        </section>
+        {% endif %}
+      </section>
+      {% endif %}
     </section>
   </div>
 </div>
 {% endblock %}
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/training-ui.js') }}"></script>
+{% if 'editor' in module_roles or 'exam_manager' in module_roles or 'admin' in module_roles %}
+<script src="{{ url_for('static', filename='js/training-question-bank.js') }}"></script>
+{% endif %}
 {% endblock %}

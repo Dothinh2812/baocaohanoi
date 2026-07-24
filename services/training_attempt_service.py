@@ -393,7 +393,6 @@ def get_attempt_learner_view(db_path, attempt_id):
                 "stem": item["stem"],
                 "stimulus": item["stimulus"],
                 "options": opts,
-                "points": item["points"],
                 "response": {
                     "selected_option_ids": json.loads(response["selected_option_ids_json"]) if response else [],
                     "client_revision": response["client_revision"] if response else 0,

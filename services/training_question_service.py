@@ -137,7 +137,10 @@ def import_question_batch(db_path, *, unit_code, actor, batch, status="draft", c
     """
     errors = validate_question_batch(batch)
     if errors:
-        raise TrainingError(ErrorCode.VALIDATION_ERROR, "; ".join(errors[:5]), status=400)
+        raise TrainingError(
+            ErrorCode.VALIDATION_ERROR, "; ".join(errors[:5]), status=400,
+            details={"errors": errors},
+        )
     now = time_policy.utc_now_ms()
     version_ids = []
     owns_connection = conn is None
@@ -236,17 +239,81 @@ def get_question_version(db_path, version_id):
         conn.close()
 
 
-def list_questions(db_path, *, status=None, domain_code=None, page=1, page_size=25, q=None):
+def _question_status(review_status, publication_status):
+    if publication_status == constants.PublicationStatus.PUBLISHED:
+        return constants.PublicationStatus.PUBLISHED
+    if review_status == constants.QuestionReviewStatus.APPROVED:
+        return constants.QuestionReviewStatus.APPROVED
+    if review_status == constants.QuestionReviewStatus.REJECTED:
+        return constants.QuestionReviewStatus.REJECTED
+    return constants.QuestionReviewStatus.DRAFT
+
+
+def _question_classification(conn, version_id):
+    domains = conn.execute(
+        """SELECT DISTINCT kb.domain_code FROM question_sources qs
+           JOIN knowledge_blocks kb ON kb.document_version_id=qs.document_version_id
+             AND kb.extraction_revision=qs.extraction_revision AND kb.block_id=qs.block_id
+           WHERE qs.question_version_id=? AND kb.domain_code IS NOT NULL
+           ORDER BY kb.domain_code""",
+        (version_id,),
+    ).fetchall()
+    mappings = {}
+    for key, table, column in (
+        ("topic_codes", "question_topics", "topic_code"),
+        ("audience_codes", "question_audiences", "audience_code"),
+        ("indicator_codes", "question_indicators", "indicator_code"),
+    ):
+        mappings[key] = [row[column] for row in conn.execute(
+            f"SELECT {column} FROM {table} WHERE question_version_id=? ORDER BY {column}",
+            (version_id,),
+        ).fetchall()]
+    return {"domain_codes": [row["domain_code"] for row in domains], **mappings}
+
+
+def list_questions(
+    db_path, *, status=None, audience=None, domain=None, topic=None,
+    domain_code=None, page=1, page_size=25, q=None,
+):
+    """Return paginated, non-sensitive management list DTOs."""
+    if domain is None:
+        domain = domain_code
+    if status not in (None, "draft", "approved", "published"):
+        raise TrainingError(ErrorCode.VALIDATION_ERROR, "Trạng thái lọc không hợp lệ.", status=400)
     conn = read_connection(db_path)
     try:
         where = []
         params = []
         if status:
-            where.append("v.publication_status = ?")
-            params.append(status)
+            if status == "draft":
+                where.append("v.publication_status='unpublished' AND v.review_status IN ('draft', 'needs_review')")
+            elif status == "approved":
+                where.append("v.publication_status='unpublished' AND v.review_status='approved'")
+            else:
+                where.append("v.publication_status='published'")
         if q:
             where.append("v.stem LIKE ?")
             params.append(f"%{q}%")
+        if audience:
+            where.append(
+                "EXISTS (SELECT 1 FROM question_audiences qa "
+                "WHERE qa.question_version_id=v.id AND qa.audience_code=?)"
+            )
+            params.append(audience)
+        if topic:
+            where.append(
+                "EXISTS (SELECT 1 FROM question_topics qt "
+                "WHERE qt.question_version_id=v.id AND qt.topic_code=?)"
+            )
+            params.append(topic)
+        if domain:
+            where.append(
+                """EXISTS (SELECT 1 FROM question_sources qs
+                   JOIN knowledge_blocks kb ON kb.document_version_id=qs.document_version_id
+                     AND kb.extraction_revision=qs.extraction_revision AND kb.block_id=qs.block_id
+                   WHERE qs.question_version_id=v.id AND kb.domain_code=?)"""
+            )
+            params.append(domain)
         clause = ("WHERE " + " AND ".join(where)) if where else ""
         total = conn.execute(
             f"SELECT COUNT(*) AS c FROM question_versions v {clause}", params
@@ -259,8 +326,80 @@ def list_questions(db_path, *, status=None, domain_code=None, page=1, page_size=
                 ORDER BY v.created_at_ms DESC LIMIT ? OFFSET ?""",
             params + [page_size, offset],
         ).fetchall()
-        return {"items": [dict(r) for r in rows], "page": page,
+        items = []
+        for row in rows:
+            classification = _question_classification(conn, row["id"])
+            items.append({
+                "id": row["id"], "stem": row["stem"], "type": row["type"],
+                "difficulty": row["difficulty"],
+                "audience": classification["audience_codes"],
+                "topic": classification["topic_codes"],
+                "status": _question_status(row["review_status"], row["publication_status"]),
+                "version": row["version_number"],
+            })
+        return {"items": items, "page": page,
                 "page_size": page_size, "total": total}
+    finally:
+        conn.close()
+
+
+def get_question_management_detail(db_path, version_id):
+    """Return the management-only detail DTO for a question version."""
+    conn = read_connection(db_path)
+    try:
+        row = conn.execute(
+            """SELECT id, question_item_id, version_number, type, stem, stimulus, language,
+                      correct_option_ids_json, explanation, distractor_rationales_json, difficulty,
+                      cognitive_level, criticality, estimated_seconds, review_status,
+                      publication_status, created_by, created_at_ms, approved_by, approved_at_ms
+               FROM question_versions WHERE id=?""",
+            (version_id,),
+        ).fetchone()
+        if not row:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Không tìm thấy câu hỏi", status=404)
+        options = [
+            {"id": option["option_code"], "text": option["option_text"], "order": option["display_order"]}
+            for option in conn.execute(
+                "SELECT option_code, option_text, display_order FROM question_options "
+                "WHERE question_version_id=? ORDER BY display_order", (version_id,)
+            ).fetchall()
+        ]
+        evidence = [dict(source) for source in conn.execute(
+            """SELECT document_version_id, block_id, extraction_revision, quoted_text,
+                      quote_start, quote_end, supports FROM question_sources
+               WHERE question_version_id=? ORDER BY id""",
+            (version_id,),
+        ).fetchall()]
+        reviews = [dict(review) for review in conn.execute(
+            """SELECT action, reviewer, comment, created_at_ms FROM question_reviews
+               WHERE question_version_id=? ORDER BY created_at_ms""",
+            (version_id,),
+        ).fetchall()]
+        publications = [dict(event) for event in conn.execute(
+            """SELECT action, actor, created_at_ms FROM training_audit_log
+               WHERE entity_type='question_version' AND entity_id=? AND action='publish'
+               ORDER BY created_at_ms""",
+            (version_id,),
+        ).fetchall()]
+        return {
+            "id": row["id"], "question_item_id": row["question_item_id"],
+            "version": row["version_number"], "type": row["type"], "stem": row["stem"],
+            "stimulus": row["stimulus"], "language": row["language"], "options": options,
+            "correct_option_ids": json.loads(row["correct_option_ids_json"]),
+            "explanation": row["explanation"],
+            "distractor_rationales": json.loads(row["distractor_rationales_json"] or "{}"),
+            "classification": _question_classification(conn, version_id),
+            "difficulty": row["difficulty"], "cognitive_level": row["cognitive_level"],
+            "criticality": row["criticality"], "estimated_seconds": row["estimated_seconds"],
+            "evidence": evidence, "review_status": row["review_status"],
+            "review_history": reviews,
+            "publication": {
+                "status": row["publication_status"], "approved_by": row["approved_by"],
+                "approved_at_ms": row["approved_at_ms"],
+            },
+            "publication_history": publications, "created_by": row["created_by"],
+            "created_at_ms": row["created_at_ms"],
+        }
     finally:
         conn.close()
 
