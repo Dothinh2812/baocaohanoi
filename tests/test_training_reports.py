@@ -61,6 +61,25 @@ def test_finalize_rejects_open_exam_before_its_end_without_closing(monkeypatch, 
     assert reports.get_report_snapshot(db_path, exam_id) is None
 
 
+@pytest.mark.parametrize("status", ["draft", "ready", "cancelled"])
+def test_finalize_rejects_non_finalizable_exam_states(monkeypatch, tmp_path, status):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, _ = _make_open_exam_with_assignment(db_path)
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_events SET status=? WHERE id=?", (status, exam_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(TrainingError) as exc_info:
+        reports.finalize_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    assert exc_info.value.code == ErrorCode.CONFLICT
+    assert exc_info.value.status == 409
+    assert reports.get_report_snapshot(db_path, exam_id) is None
+
+
 def test_finalize_expired_open_exam_times_out_active_attempt_before_closing(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     exam_id, assignment_id = _make_open_exam_with_assignment(db_path)

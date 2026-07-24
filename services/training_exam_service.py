@@ -226,6 +226,7 @@ def _compare_and_set_exam_status(conn, exam_id, from_status, to_status):
 def ready_exam(db_path, *, unit_code, actor, exam_id):
     conn = write_connection(db_path)
     try:
+        conn.execute("BEGIN IMMEDIATE")
         ok = _compare_and_set_exam_status(conn, exam_id, constants.ExamStatus.DRAFT, constants.ExamStatus.READY)
         if not ok:
             exam = conn.execute("SELECT status FROM exam_events WHERE id=?", (exam_id,)).fetchone()
@@ -236,6 +237,10 @@ def ready_exam(db_path, *, unit_code, actor, exam_id):
         write_audit(conn, actor=actor, unit_code=unit_code, action="ready_exam",
                     entity_type="exam_event", entity_id=exam_id)
         conn.commit()
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -253,18 +258,21 @@ def open_exam(db_path, *, unit_code, actor, exam_id):
         now = time_policy.utc_now_ms()
         if exam["status"] == constants.ExamStatus.OPEN:
             return
-        if exam["status"] not in (constants.ExamStatus.READY, constants.ExamStatus.DRAFT):
-            raise TrainingError(ErrorCode.EXAM_NOT_OPEN,
+        if exam["status"] != constants.ExamStatus.READY:
+            raise TrainingError(ErrorCode.CONFLICT,
                                 f"Kỳ thi không thể mở: trạng thái {exam['status']}", status=409)
         if now < exam["start_at_ms"] or now >= exam["end_at_ms"]:
             raise TrainingError(ErrorCode.EXAM_NOT_OPEN,
                                 "Chưa đến hoặc đã hết thời gian thi", status=409)
         if not _compare_and_set_exam_status(conn, exam_id, exam["status"], constants.ExamStatus.OPEN):
-            conn.rollback()
-            return
+            raise TrainingError(ErrorCode.CONFLICT, "Kỳ thi đã thay đổi trạng thái", status=409)
         write_audit(conn, actor=actor, unit_code=unit_code, action="open_exam",
                     entity_type="exam_event", entity_id=exam_id)
         conn.commit()
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
     finally:
         conn.close()
 
@@ -323,17 +331,20 @@ def cancel_exam(db_path, *, unit_code, actor, exam_id):
         exam = conn.execute("SELECT status FROM exam_events WHERE id=?", (exam_id,)).fetchone()
         if not exam:
             raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
-        if exam["status"] in constants.EXAM_TERMINAL_STATUSES:
+        if exam["status"] not in (constants.ExamStatus.DRAFT, constants.ExamStatus.READY):
             raise TrainingError(ErrorCode.CONFLICT,
                                 f"Không thể hủy: trạng thái {exam['status']}", status=409)
         if not _compare_and_set_exam_status(
             conn, exam_id, exam["status"], constants.ExamStatus.CANCELLED,
         ):
-            conn.rollback()
-            return
+            raise TrainingError(ErrorCode.CONFLICT, "Kỳ thi đã thay đổi trạng thái", status=409)
         write_audit(conn, actor=actor, unit_code=unit_code, action="cancel_exam",
                     entity_type="exam_event", entity_id=exam_id)
         conn.commit()
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
     finally:
         conn.close()
 

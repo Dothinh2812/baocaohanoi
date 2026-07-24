@@ -60,6 +60,21 @@ def _publish_questions(db_path):
     return result["version_ids"]
 
 
+def _create_transition_exam(db_path, *, code="EXAM-TRANSITION"):
+    version_ids = _publish_questions(db_path)
+    template = es.create_template(
+        db_path, unit_code="son_tay", actor="alice", code=f"TPL-{code}", title="Template",
+        target_audience_code="nvkt", question_version_ids=version_ids,
+        duration_seconds=600, pass_score_percent=80.0,
+    )
+    now = time_policy.utc_now_ms()
+    return es.create_exam(
+        db_path, unit_code="son_tay", actor="alice", code=code, title="Exam",
+        template_id=template["id"], target_audience_code="nvkt", start_at_ms=now - 1_000,
+        end_at_ms=now + 3_600_000, duration_seconds=600, pass_score_percent=80.0,
+    )
+
+
 def test_create_template_from_published_versions(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     version_ids = _publish_questions(db_path)
@@ -249,6 +264,163 @@ def test_exam_state_transitions(monkeypatch, tmp_path):
     es.open_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
     exam = es.get_exam(db_path, exam["id"])
     assert exam["status"] == "open"
+
+
+def test_open_requires_ready_and_does_not_audit_draft(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path)
+
+    with pytest.raises(TrainingError) as exc_info:
+        es.open_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+
+    assert exc_info.value.code == "CONFLICT"
+    assert exc_info.value.status == 409
+    assert es.get_exam(db_path, exam["id"])["status"] == "draft"
+    conn = training_db.read_connection(db_path)
+    try:
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='open_exam' AND entity_id=?",
+            (exam["id"],),
+        ).fetchone()["c"] == 0
+    finally:
+        conn.close()
+
+
+def test_close_requires_open_and_is_idempotent_after_closed(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path)
+
+    with pytest.raises(TrainingError) as exc_info:
+        es.close_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    assert exc_info.value.code == "CONFLICT"
+    assert exc_info.value.status == 409
+
+    es.ready_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    es.open_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    es.close_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    es.close_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    assert es.get_exam(db_path, exam["id"])["status"] == "closed"
+
+
+@pytest.mark.parametrize("initial_status", ["draft", "ready"])
+def test_cancel_allows_only_pre_open_states(monkeypatch, tmp_path, initial_status):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code=f"EXAM-CANCEL-{initial_status}")
+    if initial_status == "ready":
+        es.ready_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+
+    es.cancel_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+
+    assert es.get_exam(db_path, exam["id"])["status"] == "cancelled"
+
+
+def test_cancel_open_exam_is_conflict_and_cannot_be_reversed(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-CANCEL-OPEN")
+    es.ready_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    es.open_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+
+    with pytest.raises(TrainingError) as exc_info:
+        es.cancel_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    assert exc_info.value.code == "CONFLICT"
+    assert exc_info.value.status == 409
+    assert es.get_exam(db_path, exam["id"])["status"] == "open"
+
+    es.close_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    with pytest.raises(TrainingError) as reopen_error:
+        es.open_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    assert reopen_error.value.code == "CONFLICT"
+    assert reopen_error.value.status == 409
+
+
+@pytest.mark.parametrize(
+    ("action", "status"),
+    [
+        ("ready", "ready"), ("ready", "open"), ("ready", "closed"), ("ready", "cancelled"),
+        ("open", "closed"), ("open", "cancelled"),
+        ("close", "ready"), ("close", "cancelled"),
+        ("cancel", "closed"), ("cancel", "cancelled"),
+    ],
+)
+def test_invalid_exam_transitions_are_conflicts(monkeypatch, tmp_path, action, status):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code=f"EXAM-INVALID-{action}-{status}")
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_events SET status=? WHERE id=?", (status, exam["id"]))
+        conn.commit()
+    finally:
+        conn.close()
+
+    service = {
+        "ready": es.ready_exam,
+        "open": es.open_exam,
+        "close": es.close_exam,
+        "cancel": es.cancel_exam,
+    }[action]
+    with pytest.raises(TrainingError) as exc_info:
+        service(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+
+    assert exc_info.value.code == "CONFLICT"
+    assert exc_info.value.status == 409
+    assert es.get_exam(db_path, exam["id"])["status"] == status
+
+
+def test_concurrent_ready_writes_one_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-CONCURRENT-READY")
+    barrier = threading.Barrier(2)
+
+    def ready_exam():
+        barrier.wait()
+        try:
+            es.ready_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+        except TrainingError:
+            pass
+
+    threads = [threading.Thread(target=ready_exam) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+
+    conn = training_db.read_connection(db_path)
+    try:
+        audit_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='ready_exam' AND entity_id=?", (exam["id"],)
+        ).fetchone()["c"]
+    finally:
+        conn.close()
+    assert es.get_exam(db_path, exam["id"])["status"] == "ready"
+    assert audit_count == 1
+
+
+def test_concurrent_close_writes_one_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-CONCURRENT-CLOSE")
+    es.ready_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    es.open_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+    barrier = threading.Barrier(2)
+
+    def close_exam():
+        barrier.wait()
+        es.close_exam(db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"])
+
+    threads = [threading.Thread(target=close_exam) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+
+    conn = training_db.read_connection(db_path)
+    try:
+        audit_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='close_exam' AND entity_id=?", (exam["id"],)
+        ).fetchone()["c"]
+    finally:
+        conn.close()
+    assert es.get_exam(db_path, exam["id"])["status"] == "closed"
+    assert audit_count == 1
 
 
 def test_open_exam_idempotent(monkeypatch, tmp_path):

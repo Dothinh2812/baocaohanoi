@@ -69,6 +69,11 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
                 "Kỳ thi vẫn đang trong thời gian làm bài", status=409,
             )
         exams.close_exam(db_path, unit_code=unit_code, actor=actor, exam_id=exam_id)
+    elif exam["status"] != constants.ExamStatus.CLOSED:
+        raise TrainingError(
+            ErrorCode.CONFLICT,
+            f"Không thể finalize: trạng thái {exam['status']}", status=409,
+        )
 
     conn = read_connection(db_path)
     try:
