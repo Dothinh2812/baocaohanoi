@@ -793,7 +793,7 @@ Payload tối thiểu:
 - Client tự nộp khi hết thời lượng.
 - Server là nguồn thời gian chuẩn.
 - Nếu client đóng/mất mạng, lần truy cập tiếp theo hoặc finalize chuyển attempt quá hạn sang `timed_out` và chấm response đã lưu.
-- `close` thủ công kết thúc kỳ thi ngay: ngăn attempt/response mới và chuyển attempt đang active thành `administratively_submitted` từ các response đã lưu; không tạo report snapshot.
+- `close` thủ công kết thúc kỳ thi ngay: ngăn attempt/response mới và, nếu đóng trước deadline, chuyển attempt đang active thành `administratively_submitted` với `ended_reason=exam_closed`; nếu đóng tại hoặc sau deadline, chuyển `timed_out` với `ended_reason=timeout`. Không tạo report snapshot.
 - Nếu chỉ hết `end_at` mà chưa bấm close/finalize, API vẫn từ chối attempt/response mới theo time policy; finalize sẽ chuyển attempt active thành `timed_out`.
 - `finalize` phục hồi mọi transition còn dang dở, chuyển assignment chưa bắt đầu thành `expired`, bảo đảm attempt đã kết thúc/chấm, rồi tạo report snapshot.
 - Mặc định không mở lại kỳ thi đã `closed`; nếu có sai sót vận hành, admin tạo kỳ thi mới hoặc quy trình correction có audit, không đổi ngược trạng thái.

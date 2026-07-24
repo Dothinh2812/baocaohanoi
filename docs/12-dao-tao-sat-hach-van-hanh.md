@@ -36,7 +36,7 @@ Chưa có cleanup job MVP. Giữ document version, raw AI response, audit, attem
 
 - Knowledge: `POST /api/training/knowledge`.
 - Question draft/review/publish: `/api/training/questions/import`, `/<version>/approve`, `/<version>/publish`.
-- Template/exam/assignment: `/api/training/templates`, `/api/training/exams`, `/api/training/exams/<id>/assignments`.
+- Template/exam/assignment: `/api/training/templates`, `/api/training/exams`, `/api/training/exams/<id>/assignments`, `/api/training/exams/<id>/cancel`.
 - Close/finalize/report/export: `/api/training/exams/<id>/close`, `/api/training/exams/<id>/finalize`, `/api/training/exams/<id>/report`, `/download/training/exams/<id>/report.xlsx`.
 
 ## Chính sách engine đã triển khai
@@ -49,6 +49,7 @@ Chưa có cleanup job MVP. Giữ document version, raw AI response, audit, attem
 - Finalize chỉ nhận kỳ thi `closed`, hoặc kỳ thi `open` đã đến/hết `end_at`; finalize sớm giữ nguyên trạng thái `open` và không tạo report. Với kỳ thi open đã hết giờ, finalize close trước, nên attempt active được phân loại `timed_out` ngay cả khi deadline cá nhân còn muộn hơn `end_at`.
 - Recovery trả `processed_attempt_ids`, `already_completed_ids` và `failed_attempts`. Lỗi snapshot của một attempt không rollback các attempt khác; nhưng finalize chặn report khi `failed_attempts` còn phần tử và trả `blocking_attempts` cùng `recovery_summary`.
 - Chuỗi audience là question version -> template -> exam -> assignment. Question đã cấu hình audience phải khớp audience template; audience exam và assignment phải khớp audience trước đó. User đã có cấu hình audience phải thuộc audience được giao; user chưa cấu hình vẫn được giao và audience được snapshot vào assignment.
+- Assignment chỉ tạo khi exam chưa finalized và ở `draft` hoặc `ready`. Username trùng trong một request hoặc đã có assignment cùng `(exam_event_id, username, audience_code)` trả `ASSIGNMENT_ALREADY_EXISTS` (409); batch không ghi một phần.
 
 ## Phạm vi smoke đồng thời
 

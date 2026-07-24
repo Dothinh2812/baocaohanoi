@@ -191,7 +191,12 @@ def create_assignments(exam_id):
 @csrf_protect
 @_exam_manager_required
 def transition_exam(exam_id, action):
-    handlers = {"ready": exams.ready_exam, "open": exams.open_exam, "close": exams.close_exam}
+    handlers = {
+        "ready": exams.ready_exam,
+        "open": exams.open_exam,
+        "close": exams.close_exam,
+        "cancel": exams.cancel_exam,
+    }
     handler = handlers.get(action)
     if handler is None:
         return jsonify({"error": {"code": "NOT_FOUND", "message": "Thao tác không tồn tại.", "details": {}}}), 404

@@ -180,11 +180,13 @@ def test_finalize_recovers_active_closed_exam_with_exam_closed_reason(monkeypatc
 
 def test_close_and_finalize_isolate_corrupt_attempt_recovery(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
-    exam_id, first_assignment_id = _make_open_exam_with_assignment(db_path)
-    assignment_ids = [first_assignment_id, *exams.create_assignments(
-        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-        users=[{"username": "learner2"}, {"username": "learner3"}], audience_code="nvkt",
-    )]
+    exam_id, first_assignment_id = _make_open_exam_with_assignment(
+        db_path, additional_users=({"username": "learner2"}, {"username": "learner3"}),
+    )
+    assignment_ids = [first_assignment_id, *[
+        exams.get_assignment_for_user(db_path, exam_id, username)[0]["id"]
+        for username in ("learner2", "learner3")
+    ]]
     attempt_ids = [attempts.start_attempt(
         db_path, unit_code="son_tay", actor=f"learner{index}", assignment_id=assignment_id,
     )["attempt_id"] for index, assignment_id in enumerate(assignment_ids, start=1)]

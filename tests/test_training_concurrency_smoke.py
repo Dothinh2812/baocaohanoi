@@ -65,12 +65,12 @@ def _setup_attempt(monkeypatch, tmp_path):
         template_id=template["id"], target_audience_code="nvkt", start_at_ms=now - 1_000,
         end_at_ms=now + 3_600_000, duration_seconds=600, pass_score_percent=80.0,
     )
-    exams.ready_exam(db_path, unit_code="son_tay", actor="manager", exam_id=exam["id"])
-    exams.open_exam(db_path, unit_code="son_tay", actor="manager", exam_id=exam["id"])
     assignment_id = exams.create_assignments(
         db_path, unit_code="son_tay", actor="manager", exam_id=exam["id"],
         users=[{"username": "learner", "display_name": "Learner"}], audience_code="nvkt",
     )[0]
+    exams.ready_exam(db_path, unit_code="son_tay", actor="manager", exam_id=exam["id"])
+    exams.open_exam(db_path, unit_code="son_tay", actor="manager", exam_id=exam["id"])
     started = attempts.start_attempt(
         db_path, unit_code="son_tay", actor="learner", assignment_id=assignment_id,
     )

@@ -656,6 +656,88 @@ def test_assignment_unique_per_exam_username_audience(monkeypatch, tmp_path):
         duration_seconds=600, pass_score_percent=80.0)
     es.create_assignments(db_path, unit_code="son_tay", actor="a", exam_id=exam["id"],
         users=[{"username": "u1", "display_name": "U1"}], audience_code="nvkt")
-    with pytest.raises(Exception):
+    with pytest.raises(TrainingError) as exc_info:
         es.create_assignments(db_path, unit_code="son_tay", actor="a", exam_id=exam["id"],
             users=[{"username": "u1", "display_name": "U1 dup"}], audience_code="nvkt")
+
+    assert exc_info.value.code == "ASSIGNMENT_ALREADY_EXISTS"
+    assert exc_info.value.status == 409
+
+
+@pytest.mark.parametrize("status", ["open", "closed", "cancelled"])
+def test_create_assignments_rejects_non_preparation_exam_states(monkeypatch, tmp_path, status):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code=f"EXAM-ASSIGN-{status}")
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_events SET status=? WHERE id=?", (status, exam["id"]))
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(TrainingError) as exc_info:
+        es.create_assignments(
+            db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+            users=[{"username": "u1"}], audience_code="nvkt",
+        )
+
+    assert exc_info.value.code == "CONFLICT"
+    assert exc_info.value.status == 409
+    assert es.get_assignments_for_exam(db_path, exam["id"]) == []
+
+
+def test_create_assignments_rejects_finalized_exam(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-ASSIGN-FINALIZED")
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute(
+            "UPDATE exam_events SET finalized_at_ms=? WHERE id=?",
+            (time_policy.utc_now_ms(), exam["id"]),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(TrainingError) as exc_info:
+        es.create_assignments(
+            db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+            users=[{"username": "u1"}], audience_code="nvkt",
+        )
+
+    assert exc_info.value.code == "CONFLICT"
+    assert exc_info.value.status == 409
+
+
+def test_create_assignments_rejects_duplicate_username_in_batch_atomically(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-ASSIGN-BATCH-DUPLICATE")
+
+    with pytest.raises(TrainingError) as exc_info:
+        es.create_assignments(
+            db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+            users=[{"username": "u1"}, {"username": "u1"}], audience_code="nvkt",
+        )
+
+    assert exc_info.value.code == "ASSIGNMENT_ALREADY_EXISTS"
+    assert exc_info.value.status == 409
+    assert es.get_assignments_for_exam(db_path, exam["id"]) == []
+
+
+def test_create_assignments_rejects_existing_assignment_atomically(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-ASSIGN-EXISTING")
+    es.create_assignments(
+        db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+        users=[{"username": "u1"}], audience_code="nvkt",
+    )
+
+    with pytest.raises(TrainingError) as exc_info:
+        es.create_assignments(
+            db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+            users=[{"username": "u2"}, {"username": "u1"}], audience_code="nvkt",
+        )
+
+    assert exc_info.value.code == "ASSIGNMENT_ALREADY_EXISTS"
+    assert exc_info.value.status == 409
+    assert [row["username"] for row in es.get_assignments_for_exam(db_path, exam["id"])] == ["u1"]

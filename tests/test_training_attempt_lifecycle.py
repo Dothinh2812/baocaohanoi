@@ -51,7 +51,8 @@ def _setup(monkeypatch, tmp_path):
 
 
 def _make_open_exam_with_assignment(
-    db_path, username="learner1", *, shuffle_questions=False, shuffle_options=False,
+    db_path, username="learner1", *, additional_users=(), shuffle_questions=False,
+    shuffle_options=False,
 ):
     result = qs.import_question_batch(db_path, unit_code="son_tay", actor="ed",
                                        batch=VALID_BATCH, status="draft")
@@ -67,12 +68,12 @@ def _make_open_exam_with_assignment(
         code="E", title="E", template_id=tpl["id"], target_audience_code="nvkt",
         start_at_ms=now - 1000, end_at_ms=now + 3600_000,
         duration_seconds=600, pass_score_percent=80.0)
-    es.ready_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam["id"])
-    es.open_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam["id"])
     assignment_ids = es.create_assignments(db_path, unit_code="son_tay", actor="mgr",
         exam_id=exam["id"],
-        users=[{"username": username, "display_name": "Learner"}],
+        users=[{"username": username, "display_name": "Learner"}, *additional_users],
         audience_code="nvkt")
+    es.ready_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam["id"])
+    es.open_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam["id"])
     return exam["id"], assignment_ids[0]
 
 
@@ -209,12 +210,10 @@ def _snapshot_presentation(db_path, attempt_id):
 def test_shuffle_snapshot_is_reproducible_and_includes_order_in_checksum(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     exam_id, assignment_id = _make_open_exam_with_assignment(
-        db_path, shuffle_questions=True, shuffle_options=True,
+        db_path, additional_users=({"username": "learner2", "display_name": "Learner 2"},),
+        shuffle_questions=True, shuffle_options=True,
     )
-    second_assignment_id = es.create_assignments(
-        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-        users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
-    )[0]
+    second_assignment_id = es.get_assignment_for_user(db_path, exam_id, "learner2")[0]["id"]
     monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
     monkeypatch.setattr(att, "SHUFFLE_ALGORITHM_VERSION", "persisted-v1")
 
@@ -454,11 +453,10 @@ def test_autosave_rejects_non_positive_or_non_integer_revision(monkeypatch, tmp_
 
 def test_autosave_rejects_item_from_another_attempt_without_response_mutation(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
-    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
-    other_assignment_id = es.create_assignments(
-        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-        users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
-    )[0]
+    exam_id, assignment_id = _make_open_exam_with_assignment(
+        db_path, additional_users=({"username": "learner2", "display_name": "Learner 2"},),
+    )
+    other_assignment_id = es.get_assignment_for_user(db_path, exam_id, "learner2")[0]["id"]
     attempt = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
     other_attempt = att.start_attempt(
         db_path, unit_code="son_tay", actor="learner2", assignment_id=other_assignment_id,
@@ -629,13 +627,16 @@ def test_burst_submit_one_result(monkeypatch, tmp_path):
 
 def test_close_administratively_submits_all_active_attempts_once(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
-    exam_id, first_assignment_id = _make_open_exam_with_assignment(db_path)
-    assignment_ids = [first_assignment_id] + es.create_assignments(
-        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-        users=[{"username": "learner2", "display_name": "Learner 2"},
-               {"username": "learner3", "display_name": "Learner 3"}],
-        audience_code="nvkt",
+    exam_id, first_assignment_id = _make_open_exam_with_assignment(
+        db_path, additional_users=(
+            {"username": "learner2", "display_name": "Learner 2"},
+            {"username": "learner3", "display_name": "Learner 3"},
+        ),
     )
+    assignment_ids = [first_assignment_id, *[
+        es.get_assignment_for_user(db_path, exam_id, username)[0]["id"]
+        for username in ("learner2", "learner3")
+    ]]
     attempt_ids = []
     for index, assignment_id in enumerate(assignment_ids, start=1):
         attempt = att.start_attempt(
@@ -763,11 +764,10 @@ def test_autosave_rejects_response_at_exact_deadline(monkeypatch, tmp_path):
 
 def test_close_retry_recovers_attempts_left_active_by_failed_close(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
-    exam_id, first_assignment_id = _make_open_exam_with_assignment(db_path)
-    second_assignment_id = es.create_assignments(
-        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-        users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
-    )[0]
+    exam_id, first_assignment_id = _make_open_exam_with_assignment(
+        db_path, additional_users=({"username": "learner2", "display_name": "Learner 2"},),
+    )
+    second_assignment_id = es.get_assignment_for_user(db_path, exam_id, "learner2")[0]["id"]
     for actor, assignment_id in (("learner1", first_assignment_id), ("learner2", second_assignment_id)):
         att.start_attempt(db_path, unit_code="son_tay", actor=actor, assignment_id=assignment_id)
 
@@ -872,11 +872,10 @@ def test_finalize_after_exam_end_times_out_active_attempt(monkeypatch, tmp_path)
 
 def test_close_mixed_expiry_assigns_one_terminal_result_per_attempt(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
-    exam_id, first_assignment_id = _make_open_exam_with_assignment(db_path)
-    second_assignment_id = es.create_assignments(
-        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-        users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
-    )[0]
+    exam_id, first_assignment_id = _make_open_exam_with_assignment(
+        db_path, additional_users=({"username": "learner2", "display_name": "Learner 2"},),
+    )
+    second_assignment_id = es.get_assignment_for_user(db_path, exam_id, "learner2")[0]["id"]
     first = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=first_assignment_id)
     second = att.start_attempt(db_path, unit_code="son_tay", actor="learner2", assignment_id=second_assignment_id)
     close_at = 2_000_000

@@ -43,17 +43,17 @@ def _learner_client_with_attempt(monkeypatch, tmp_path, *, second_attempt=False)
     grant_role(db_path, "son_tay", "seed", "learner2", "learner")
     monkeypatch.setattr(training_routes.config, "TRAINING_DB_PATH", db_path)
     monkeypatch.setattr(training_routes.config, "UNIT_CODE", "son_tay")
-    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(
+        db_path,
+        additional_users=([{"username": "learner2", "display_name": "Learner 2"}] if second_attempt else ()),
+    )
     attempt = attempts.start_attempt(
         db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id,
     )
     item_id = attempts.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["item_id"]
     other_item_id = None
     if second_attempt:
-        second_assignment_id = exams.create_assignments(
-            db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-            users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
-        )[0]
+        second_assignment_id = exams.get_assignment_for_user(db_path, exam_id, "learner2")[0]["id"]
         second_attempt_result = attempts.start_attempt(
             db_path, unit_code="son_tay", actor="learner2", assignment_id=second_assignment_id,
         )
@@ -236,11 +236,10 @@ def test_editor_cannot_publish_question(monkeypatch, tmp_path):
 
 def test_manager_cannot_load_owned_attempt_without_learner_role(monkeypatch, tmp_path):
     for client, db_path in _role_client(monkeypatch, tmp_path, username="manager", roles=("exam_manager",)):
-        exam_id, _ = _make_open_exam_with_assignment(db_path)
-        assignment_id = exams.create_assignments(
-            db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-            users=[{"username": "manager", "display_name": "Manager"}], audience_code="nvkt",
-        )[0]
+        exam_id, _ = _make_open_exam_with_assignment(
+            db_path, additional_users=({"username": "manager", "display_name": "Manager"},),
+        )
+        assignment_id = exams.get_assignment_for_user(db_path, exam_id, "manager")[0]["id"]
         attempt = attempts.start_attempt(
             db_path, unit_code="son_tay", actor="manager", assignment_id=assignment_id,
         )
@@ -252,11 +251,10 @@ def test_manager_cannot_load_owned_attempt_without_learner_role(monkeypatch, tmp
 
 def test_attempt_routes_require_learner_role_before_ownership(monkeypatch, tmp_path):
     for client, db_path in _role_client(monkeypatch, tmp_path, username="manager", roles=("exam_manager",)):
-        exam_id, _ = _make_open_exam_with_assignment(db_path)
-        assignment_id = exams.create_assignments(
-            db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
-            users=[{"username": "manager", "display_name": "Manager"}], audience_code="nvkt",
-        )[0]
+        exam_id, _ = _make_open_exam_with_assignment(
+            db_path, additional_users=({"username": "manager", "display_name": "Manager"},),
+        )
+        assignment_id = exams.get_assignment_for_user(db_path, exam_id, "manager")[0]["id"]
         attempt = attempts.start_attempt(
             db_path, unit_code="son_tay", actor="manager", assignment_id=assignment_id,
         )
@@ -369,3 +367,69 @@ def test_create_assignments_route_returns_audience_mismatch(monkeypatch, tmp_pat
 
     assert response.status_code == 400
     assert response.get_json()["error"]["code"] == "AUDIENCE_MISMATCH"
+
+
+def _make_draft_exam(db_path, *, code):
+    version_ids = _publish_questions(db_path)
+    template = exams.create_template(
+        db_path, unit_code="son_tay", actor="admin", code=f"TPL-{code}", title="Template",
+        target_audience_code="nvkt", question_version_ids=version_ids,
+        duration_seconds=600, pass_score_percent=80.0,
+    )
+    now = time_policy.utc_now_ms()
+    return exams.create_exam(
+        db_path, unit_code="son_tay", actor="admin", code=code, title="Kỳ thi",
+        template_id=template["id"], target_audience_code="nvkt", start_at_ms=now,
+        end_at_ms=now + 3_600_000, duration_seconds=600, pass_score_percent=80.0,
+    )
+
+
+def test_cancel_exam_route_allows_exam_manager(monkeypatch, tmp_path):
+    for client, db_path in _role_client(monkeypatch, tmp_path, username="manager", roles=("exam_manager",)):
+        exam = _make_draft_exam(db_path, code="EXAM-CANCEL-ROUTE")
+        response = client.post(
+            f"/api/training/exams/{exam['id']}/cancel", headers={"X-CSRF-Token": "csrf"},
+        )
+
+    assert response.status_code == 200
+    assert response.get_json() == {"exam_id": exam["id"], "action": "cancel"}
+    assert exams.get_exam(db_path, exam["id"])["status"] == "cancelled"
+
+
+def test_cancel_exam_route_rejects_invalid_state_without_audit(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        db_path = str(tmp_path / "training.db")
+        exam = _make_draft_exam(db_path, code="EXAM-CANCEL-ROUTE-FAIL")
+        response = client.post(
+            f"/api/training/exams/{exam['id']}/cancel", headers={"X-CSRF-Token": "csrf"},
+        )
+        failed_response = client.post(
+            f"/api/training/exams/{exam['id']}/cancel", headers={"X-CSRF-Token": "csrf"},
+        )
+
+    assert response.status_code == 200
+    assert failed_response.status_code == 409
+    assert failed_response.get_json()["error"]["code"] == "CONFLICT"
+    conn = training_db.read_connection(db_path)
+    try:
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='cancel_exam' AND entity_id=?",
+            (exam["id"],),
+        ).fetchone()["c"] == 1
+    finally:
+        conn.close()
+
+
+def test_cancel_exam_route_requires_exam_manager_role_and_csrf(monkeypatch, tmp_path):
+    for client, db_path in _role_client(monkeypatch, tmp_path, username="learner", roles=("learner",)):
+        exam = _make_draft_exam(db_path, code="EXAM-CANCEL-RBAC")
+        forbidden = client.post(
+            f"/api/training/exams/{exam['id']}/cancel", headers={"X-CSRF-Token": "csrf"},
+        )
+    for client, _ in _role_client(monkeypatch, tmp_path, username="manager", roles=("exam_manager",)):
+        csrf_invalid = client.post(f"/api/training/exams/{exam['id']}/cancel")
+
+    assert forbidden.status_code == 403
+    assert forbidden.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED"
+    assert csrf_invalid.status_code == 400
+    assert csrf_invalid.get_json()["error"] == "CSRF token không hợp lệ"

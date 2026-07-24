@@ -6,6 +6,7 @@ Open/close dùng compare-and-set + audit.
 """
 
 import json
+import sqlite3
 
 from training import constants, time_policy
 from training.db import read_connection, write_connection
@@ -388,20 +389,45 @@ def create_assignments(db_path, *, unit_code, actor, exam_id, users, audience_co
     now = time_policy.utc_now_ms()
     conn = write_connection(db_path)
     try:
+        conn.execute("BEGIN IMMEDIATE")
         exam = conn.execute(
-            "SELECT duration_seconds, target_audience_code FROM exam_events WHERE id=?",
+            "SELECT duration_seconds, target_audience_code, status, finalized_at_ms FROM exam_events WHERE id=?",
             (exam_id,),
         ).fetchone()
         if not exam:
             raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
+        if exam["status"] not in (constants.ExamStatus.DRAFT, constants.ExamStatus.READY) or exam["finalized_at_ms"] is not None:
+            raise TrainingError(
+                ErrorCode.CONFLICT,
+                f"Không thể giao bài: trạng thái hiện tại {exam['status']}",
+                status=409,
+            )
         if exam["target_audience_code"] != audience_code:
             raise TrainingError(
                 ErrorCode.AUDIENCE_MISMATCH,
                 "Đối tượng giao bài phải trùng với đối tượng kỳ thi",
             )
         usernames = [user["username"] for user in users]
+        if len(set(usernames)) != len(usernames):
+            raise TrainingError(
+                ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
+                "Không được giao trùng người dùng trong cùng yêu cầu",
+                status=409,
+            )
         if usernames:
             placeholders = ",".join("?" * len(usernames))
+            existing_assignment = conn.execute(
+                f"""SELECT username FROM exam_assignments
+                WHERE exam_event_id=? AND audience_code=? AND username IN ({placeholders})
+                LIMIT 1""",
+                [exam_id, audience_code, *usernames],
+            ).fetchone()
+            if existing_assignment:
+                raise TrainingError(
+                    ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
+                    f"Người dùng {existing_assignment['username']} đã được giao bài",
+                    status=409,
+                )
             mismatched_user = conn.execute(
                 f"""SELECT configured.username
                 FROM (
@@ -441,6 +467,18 @@ def create_assignments(db_path, *, unit_code, actor, exam_id, users, audience_co
                     after={"count": len(assignment_ids)})
         conn.commit()
         return assignment_ids
+    except sqlite3.IntegrityError as exc:
+        if conn.in_transaction:
+            conn.rollback()
+        raise TrainingError(
+            ErrorCode.ASSIGNMENT_ALREADY_EXISTS,
+            "Người dùng đã được giao bài",
+            status=409,
+        ) from exc
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
     finally:
         conn.close()
 
