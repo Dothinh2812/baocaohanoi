@@ -117,3 +117,14 @@ def test_workspace_references_shared_client_helper(monkeypatch, tmp_path):
 
     assert response.status_code == 200
     assert b"js/training-ui.js" in response.data
+
+
+def test_workspace_question_bank_panel_is_only_rendered_for_operators(monkeypatch, tmp_path):
+    for editor in _workspace_client(monkeypatch, tmp_path, username="editor", roles=("editor",)):
+        editor_page = editor.get("/dao-tao-sat-hach").get_data(as_text=True)
+    for learner in _workspace_client(monkeypatch, tmp_path, username="learner", roles=("learner",)):
+        learner_page = learner.get("/dao-tao-sat-hach").get_data(as_text=True)
+
+    assert 'id="training-question-bank"' in editor_page
+    assert 'id="training-question-bank"' not in learner_page
+    assert "js/training-question-bank.js" in editor_page

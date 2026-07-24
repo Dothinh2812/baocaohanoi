@@ -1,3 +1,5 @@
+import copy
+
 from flask import Flask
 
 from app_helpers import configure_app
@@ -10,6 +12,23 @@ from services.training_catalog_service import grant_role, seed_defaults
 from tests.test_training_attempt_lifecycle import _make_open_exam_with_assignment
 from tests.test_training_exam_states import _publish_questions
 from training import time_policy
+
+
+QUESTION_BATCH = {
+    "schema_version": "1.0",
+    "batch": {
+        "title": "Draft", "language": "vi", "source_document_version_ids": ["docver-001"],
+        "target_audience_codes": ["nvkt"], "requested_count": 1,
+    },
+    "questions": [{
+        "local_ref": "Q1", "type": "single_choice", "stem": "Câu test?",
+        "options": [{"id": "A", "text": "Sai"}, {"id": "B", "text": "Đúng"}],
+        "correct_option_ids": ["B"],
+        "classification": {"domain_code": "quality", "topic_codes": ["test_topic"], "audience_codes": ["nvkt"]},
+        "difficulty": "easy",
+        "evidence": [{"document_version_id": "docver-001", "block_id": "DOC-B001", "extraction_revision": 1, "supports": "correct_answer"}],
+    }],
+}
 
 
 def _client(monkeypatch, tmp_path):
@@ -162,6 +181,96 @@ def test_operator_can_import_question_batch_as_draft(monkeypatch, tmp_path):
     assert len(response.get_json()["version_ids"]) == 1
 
 
+def test_question_bank_routes_reject_users_without_operator_role(monkeypatch, tmp_path):
+    for username, roles in (("learner", ("learner",)), ("unassigned", ())):
+        for client, _ in _role_client(monkeypatch, tmp_path, username=username, roles=roles):
+            responses = [
+                client.get("/api/training/questions"),
+                client.get("/api/training/questions/question-1"),
+                client.post("/api/training/questions/validate", headers={"X-CSRF-Token": "csrf"}, json={}),
+                client.post("/api/training/questions/import", headers={"X-CSRF-Token": "csrf"}, json={}),
+                client.post("/api/training/questions/question-1/approve", headers={"X-CSRF-Token": "csrf"}),
+                client.post("/api/training/questions/question-1/reject", headers={"X-CSRF-Token": "csrf"}, json={}),
+                client.post("/api/training/questions/question-1/publish", headers={"X-CSRF-Token": "csrf"}),
+            ]
+
+        assert [response.status_code for response in responses] == [403] * 7
+        assert all(response.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED" for response in responses)
+
+
+def test_question_bank_validate_returns_question_errors_in_stable_envelope(monkeypatch, tmp_path):
+    invalid_batch = copy.deepcopy(QUESTION_BATCH)
+    invalid_batch["questions"][0]["correct_option_ids"] = ["missing"]
+
+    for client in _client(monkeypatch, tmp_path):
+        response = client.post(
+            "/api/training/questions/validate", headers={"X-CSRF-Token": "csrf"}, json=invalid_batch,
+        )
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "VALIDATION_ERROR"
+    assert "question[0]" in " ".join(response.get_json()["error"]["details"]["errors"])
+
+
+def test_question_bank_list_is_paginated_and_returns_short_dto(monkeypatch, tmp_path):
+    batch = copy.deepcopy(QUESTION_BATCH)
+    batch["questions"] *= 2
+    batch["questions"][1] = dict(batch["questions"][1], local_ref="Q2", stem="Câu test 2?")
+
+    for client in _client(monkeypatch, tmp_path):
+        imported = client.post(
+            "/api/training/questions/import", headers={"X-CSRF-Token": "csrf"}, json=batch,
+        )
+        response = client.get("/api/training/questions?status=draft&audience=nvkt&topic=test_topic&page=1&page_size=1")
+
+    assert imported.status_code == 201
+    assert response.status_code == 200
+    assert response.get_json()["total"] == 2
+    assert set(response.get_json()["items"][0]) == {
+        "id", "stem", "type", "difficulty", "audience", "topic", "status", "version",
+    }
+
+
+def test_question_bank_returns_stable_errors_for_invalid_status_and_missing_detail(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        invalid_status = client.get("/api/training/questions?status=unknown")
+        missing_detail = client.get("/api/training/questions/missing")
+
+    assert invalid_status.status_code == 400
+    assert invalid_status.get_json()["error"]["code"] == "VALIDATION_ERROR"
+    assert missing_detail.status_code == 404
+    assert missing_detail.get_json()["error"]["code"] == "NOT_FOUND"
+
+
+def test_manager_can_reject_approve_and_publish_question(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        imported = client.post(
+            "/api/training/questions/import", headers={"X-CSRF-Token": "csrf"}, json=QUESTION_BATCH,
+        )
+        version_id = imported.get_json()["version_ids"][0]
+        rejected = client.post(
+            f"/api/training/questions/{version_id}/reject", headers={"X-CSRF-Token": "csrf"},
+            json={"comment": "Cần rà lại dẫn chứng"},
+        )
+        blocked_publish = client.post(
+            f"/api/training/questions/{version_id}/publish", headers={"X-CSRF-Token": "csrf"},
+        )
+        approved = client.post(
+            f"/api/training/questions/{version_id}/approve", headers={"X-CSRF-Token": "csrf"},
+        )
+        published = client.post(
+            f"/api/training/questions/{version_id}/publish", headers={"X-CSRF-Token": "csrf"},
+        )
+        detail = client.get(f"/api/training/questions/{version_id}")
+
+    assert rejected.get_json()["review_status"] == "rejected"
+    assert blocked_publish.status_code == 409
+    assert blocked_publish.get_json()["error"]["code"] == "CONFLICT"
+    assert approved.get_json()["review_status"] == "approved"
+    assert published.get_json()["publication_status"] == "published"
+    assert [review["action"] for review in detail.get_json()["review_history"]] == ["reject", "approve"]
+
+
 def test_autosave_route_rejects_item_from_another_attempt(monkeypatch, tmp_path):
     for client, attempt_id, _, foreign_item_id in _learner_client_with_attempt(
         monkeypatch, tmp_path, second_attempt=True,
@@ -248,6 +357,19 @@ def test_manager_cannot_load_owned_attempt_without_learner_role(monkeypatch, tmp
     assert response.status_code == 403
     assert response.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED"
 
+
+def test_learner_attempt_route_hides_question_secrets_and_scoring_metadata(monkeypatch, tmp_path):
+    for client, attempt_id, _, _ in _learner_client_with_attempt(monkeypatch, tmp_path):
+        response = client.get(f"/api/training/attempts/{attempt_id}")
+
+    serialized = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert response.headers["Cache-Control"] == "no-store"
+    for key in (
+        "correct_option_ids", "explanation", "evidence", "distractor_rationales",
+        "scoring_policy", "max_score", "points",
+    ):
+        assert f'"{key}"' not in serialized
 
 def test_attempt_routes_require_learner_role_before_ownership(monkeypatch, tmp_path):
     for client, db_path in _role_client(monkeypatch, tmp_path, username="manager", roles=("exam_manager",)):

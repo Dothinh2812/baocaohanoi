@@ -1,3 +1,5 @@
+import copy
+
 import pytest
 
 from training import db as training_db
@@ -6,12 +8,14 @@ from services import training_question_service as qs
 from services.training_question_service import (
     import_question_batch,
     list_questions,
+    get_question_management_detail,
     get_question_version,
     publish_question_version,
     update_question_draft,
     add_review_action,
 )
 from services.training_catalog_service import seed_defaults
+from services.training_knowledge_service import create_document
 from training.errors import TrainingError
 
 
@@ -155,6 +159,64 @@ def test_list_questions_pagination(monkeypatch, tmp_path):
     assert len(result["items"]) == 2
     result2 = list_questions(db_path, page=2, page_size=2)
     assert len(result2["items"]) == 1
+
+
+def test_question_bank_list_derives_classification_and_filters(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    document = create_document(
+        db_path, unit_code="son_tay", actor="alice", document_code="DOC",
+        title="Tài liệu", content_text="Nội dung", classification={"domain_code": "quality"},
+    )
+    batch = copy.deepcopy(VALID_BATCH)
+    batch["batch"]["source_document_version_ids"] = [document["version_id"]]
+    batch["questions"][0]["classification"]["audience_codes"] = ["nvkt"]
+    batch["questions"][0]["evidence"][0]["document_version_id"] = document["version_id"]
+    imported = import_question_batch(db_path, unit_code="son_tay", actor="alice", batch=batch)
+
+    result = list_questions(
+        db_path, status="draft", audience="nvkt", domain="quality", topic="test_topic",
+        q="hỏi test", page=1, page_size=1,
+    )
+
+    assert result["total"] == 1
+    assert result["items"] == [{
+        "id": imported["version_ids"][0], "stem": "Câu hỏi test?", "type": "single_choice",
+        "difficulty": "easy", "audience": ["nvkt"], "topic": ["test_topic"],
+        "status": "draft", "version": 1,
+    }]
+
+
+def test_question_bank_detail_is_explicit_management_dto(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    imported = import_question_batch(db_path, unit_code="son_tay", actor="alice", batch=VALID_BATCH)
+
+    detail = get_question_management_detail(db_path, imported["version_ids"][0])
+
+    assert detail["correct_option_ids"] == ["B"]
+    assert detail["distractor_rationales"] == {"A": "Sai"}
+    assert detail["classification"] == {
+        "domain_codes": [], "topic_codes": ["test_topic"], "audience_codes": [], "indicator_codes": [],
+    }
+    assert detail["evidence"] == [{
+        "document_version_id": "docver-001", "block_id": "DOC-B001", "extraction_revision": 1,
+        "quoted_text": "quote", "quote_start": None, "quote_end": None, "supports": "correct_answer",
+    }]
+    assert detail["review_history"] == []
+    assert detail["publication"] == {"status": "unpublished", "approved_by": None, "approved_at_ms": None}
+
+
+def test_question_bank_list_keeps_rejected_state_distinct_from_draft(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    imported = import_question_batch(db_path, unit_code="son_tay", actor="alice", batch=VALID_BATCH)
+    add_review_action(
+        db_path, unit_code="son_tay", actor="manager", version_id=imported["version_ids"][0],
+        action="reject", comment="Chưa đạt",
+    )
+
+    result = list_questions(db_path)
+
+    assert result["items"][0]["status"] == "rejected"
+    assert list_questions(db_path, status="draft")["items"] == []
 
 
 def test_update_draft_with_expected_version(monkeypatch, tmp_path):
