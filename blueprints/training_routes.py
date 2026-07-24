@@ -146,7 +146,9 @@ def list_question_bank():
 @_question_reader_required
 def get_question_bank_detail(version_id):
     try:
-        return jsonify(questions.get_question_management_detail(config.TRAINING_DB_PATH, version_id))
+        resp = jsonify(questions.get_question_management_detail(config.TRAINING_DB_PATH, version_id))
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
     except TrainingError as exc:
         return _error_response(exc)
 
