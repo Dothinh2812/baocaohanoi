@@ -111,6 +111,34 @@ def test_audit_log_index_exists(monkeypatch, tmp_path):
     assert "idx_audit_entity" in indexes
 
 
+def test_migration_008_rolls_back_when_recording_fails(monkeypatch, tmp_path):
+    db_path = _config(monkeypatch, tmp_path)
+    migrations.run_migrations(db_path, unit_code="son_tay", migrations=migrations._MIGRATIONS[:7])
+
+    def fail_to_record(*args):
+        raise RuntimeError("record migration failed")
+
+    monkeypatch.setattr(migrations, "_record_migration", fail_to_record)
+    with pytest.raises(RuntimeError, match="record migration failed"):
+        migrations.run_migrations(db_path, unit_code="son_tay")
+
+    conn = training_db.write_connection(db_path)
+    try:
+        versions = {row["version"] for row in conn.execute(
+            "SELECT version FROM training_schema_migrations"
+        ).fetchall()}
+        foreign_keys = conn.execute("PRAGMA foreign_key_list('exam_template_items')").fetchall()
+        schema_version = conn.execute(
+            "SELECT schema_version FROM training_instance_metadata"
+        ).fetchone()["schema_version"]
+    finally:
+        conn.close()
+
+    assert 8 not in versions
+    assert schema_version == 7
+    assert not any(fk["table"] == "question_versions" for fk in foreign_keys)
+
+
 def test_migration_008_preserves_template_items_and_locks_question_versions(monkeypatch, tmp_path):
     db_path = _config(monkeypatch, tmp_path)
     migrations.run_migrations(db_path, unit_code="son_tay", migrations=migrations._MIGRATIONS[:7])
