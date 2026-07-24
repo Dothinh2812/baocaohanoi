@@ -350,7 +350,7 @@ def get_question_management_detail(db_path, version_id):
         row = conn.execute(
             """SELECT id, question_item_id, version_number, type, stem, stimulus, language,
                       correct_option_ids_json, explanation, distractor_rationales_json, difficulty,
-                      cognitive_level, criticality, estimated_seconds, review_status,
+                      cognitive_level, criticality, estimated_seconds, max_score, scoring_policy_json, review_status,
                       publication_status, created_by, created_at_ms, approved_by, approved_at_ms
                FROM question_versions WHERE id=?""",
             (version_id,),
@@ -391,6 +391,8 @@ def get_question_management_detail(db_path, version_id):
             "classification": _question_classification(conn, version_id),
             "difficulty": row["difficulty"], "cognitive_level": row["cognitive_level"],
             "criticality": row["criticality"], "estimated_seconds": row["estimated_seconds"],
+            "max_score": row["max_score"],
+            "scoring_policy": json.loads(row["scoring_policy_json"]) if row["scoring_policy_json"] else None,
             "evidence": evidence, "review_status": row["review_status"],
             "review_history": reviews,
             "publication": {
@@ -414,13 +416,32 @@ def add_review_action(db_path, *, unit_code, actor, version_id, action, comment=
         ).fetchone()
         if not ver:
             raise TrainingError(ErrorCode.NOT_FOUND, "Không tìm thấy câu hỏi", status=404)
-        new_review = ver["review_status"]
-        if action == "approve":
-            new_review = constants.QuestionReviewStatus.APPROVED
-        elif action == "reject":
-            new_review = constants.QuestionReviewStatus.REJECTED
-        elif action == "request_review":
-            new_review = constants.QuestionReviewStatus.NEEDS_REVIEW
+        if ver["publication_status"] != constants.PublicationStatus.UNPUBLISHED:
+            raise TrainingError(
+                ErrorCode.CONFLICT, "Câu hỏi đã phát hành không thể duyệt hoặc từ chối.", status=409,
+            )
+        transitions = {
+            "approve": (
+                constants.QuestionReviewStatus.APPROVED,
+                {constants.QuestionReviewStatus.DRAFT, constants.QuestionReviewStatus.NEEDS_REVIEW,
+                 constants.QuestionReviewStatus.REJECTED},
+            ),
+            "reject": (
+                constants.QuestionReviewStatus.REJECTED,
+                {constants.QuestionReviewStatus.DRAFT, constants.QuestionReviewStatus.NEEDS_REVIEW,
+                 constants.QuestionReviewStatus.APPROVED},
+            ),
+            "request_review": (
+                constants.QuestionReviewStatus.NEEDS_REVIEW,
+                {constants.QuestionReviewStatus.DRAFT, constants.QuestionReviewStatus.REJECTED},
+            ),
+        }
+        transition = transitions.get(action)
+        if transition is None:
+            raise TrainingError(ErrorCode.VALIDATION_ERROR, "Thao tác duyệt không hợp lệ.", status=400)
+        new_review, allowed_states = transition
+        if ver["review_status"] not in allowed_states:
+            raise TrainingError(ErrorCode.CONFLICT, "Trạng thái duyệt hiện tại không cho phép thao tác này.", status=409)
         conn.execute(
             "UPDATE question_versions SET review_status=? WHERE id=?",
             (new_review, version_id),
@@ -452,6 +473,10 @@ def publish_question_version(db_path, *, unit_code, actor, version_id):
         ).fetchone()
         if not ver:
             raise TrainingError(ErrorCode.NOT_FOUND, "Không tìm thấy câu hỏi", status=404)
+        if ver["publication_status"] != constants.PublicationStatus.UNPUBLISHED:
+            raise TrainingError(
+                ErrorCode.CONFLICT, "Câu hỏi đã được phát hành.", status=409,
+            )
         if ver["review_status"] != constants.QuestionReviewStatus.APPROVED:
             raise TrainingError(
                 ErrorCode.CONFLICT,

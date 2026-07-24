@@ -136,6 +136,8 @@
         title.textContent = 'Chi tiết câu hỏi';
         detail.appendChild(title);
         appendText(detail, 'p', 'Câu hỏi', question.stem);
+        appendText(detail, 'p', 'Tình huống / ngữ cảnh', question.stimulus);
+        appendText(detail, 'p', 'Ngôn ngữ', question.language);
         appendText(detail, 'p', 'Phiên bản', question.version);
         appendText(detail, 'p', 'Loại / độ khó', question.type + ' / ' + question.difficulty);
         appendText(detail, 'p', 'Trạng thái', statusLabel(question.publication.status === 'published' ? 'published' : question.review_status));
@@ -144,7 +146,12 @@
         appendText(detail, 'p', 'Phân loại', 'Lĩnh vực: ' + question.classification.domain_codes.join(', ') + '; Đối tượng: ' + question.classification.audience_codes.join(', ') + '; Chủ đề: ' + question.classification.topic_codes.join(', ') + '; Chỉ tiêu: ' + question.classification.indicator_codes.join(', '));
         appendText(detail, 'p', 'Nhận thức / mức độ quan trọng', (question.cognitive_level || 'Chưa có') + ' / ' + (question.criticality || 'Chưa có'));
         appendText(detail, 'p', 'Thời gian ước tính', question.estimated_seconds ? question.estimated_seconds + ' giây' : null);
+        appendText(detail, 'p', 'Điểm tối đa', question.max_score);
+        appendText(detail, 'p', 'Chính sách chấm', question.scoring_policy ? JSON.stringify(question.scoring_policy) : null);
         appendText(detail, 'p', 'Lý do phương án nhiễu', JSON.stringify(question.distractor_rationales));
+        appendText(detail, 'p', 'Người tạo / thời gian tạo', question.created_by + ' / ' + TrainingUI.formatTime(question.created_at_ms));
+        appendText(detail, 'p', 'Người duyệt / thời gian duyệt', (question.publication.approved_by || 'Chưa có') + ' / ' + TrainingUI.formatTime(question.publication.approved_at_ms));
+        appendText(detail, 'p', 'Trạng thái phát hành', question.publication.status);
 
         var options = document.createElement('ol');
         options.className = 'training-detail-list';
@@ -195,11 +202,19 @@
         var controls = document.createElement('div');
         controls.className = 'training-action-row';
         if (question.review_status !== 'approved') {
-            controls.appendChild(actionButton('Duyệt', function () { runReviewAction(question, 'approve'); }));
+            controls.appendChild(actionButton('Duyệt', function () {
+                TrainingUI.confirm('Duyệt câu hỏi này?').then(function (confirmed) {
+                    if (confirmed) runReviewAction(question, 'approve');
+                });
+            }));
         }
         controls.appendChild(actionButton('Từ chối', function () {
             var comment = window.prompt('Nhận xét từ chối (không bắt buộc):', '');
-            if (comment !== null) runReviewAction(question, 'reject', { comment: comment });
+            if (comment !== null) {
+                TrainingUI.confirm('Từ chối câu hỏi này?').then(function (confirmed) {
+                    if (confirmed) runReviewAction(question, 'reject', { comment: comment });
+                });
+            }
         }));
         if (question.review_status === 'approved') {
             controls.appendChild(actionButton('Phát hành', function () {
