@@ -29,6 +29,15 @@ def _import_draft(db_path, *, version_index=0):
     return result["version_ids"][version_index]
 
 
+def _import_approved_unpublished(db_path, *, version_index=0):
+    version_id = _import_draft(db_path, version_index=version_index)
+    qs.add_review_action(
+        db_path, unit_code="son_tay", actor="bob",
+        version_id=version_id, action="approve",
+    )
+    return version_id
+
+
 def test_concurrent_approve_writes_one_audit_and_one_review(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     version_id = _import_draft(db_path)
@@ -108,3 +117,71 @@ def test_failed_review_transition_writes_no_audit_or_review(monkeypatch, tmp_pat
         conn.close()
     assert audit_count == 1
     assert review_count == 1
+
+
+def test_concurrent_publish_writes_one_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_id = _import_approved_unpublished(db_path)
+    barrier = threading.Barrier(2)
+    successes = []
+    errors = []
+
+    def publish():
+        barrier.wait()
+        try:
+            qs.publish_question_version(
+                db_path, unit_code="son_tay", actor="bob", version_id=version_id,
+            )
+            successes.append(1)
+        except TrainingError as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=publish) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+
+    assert len(successes) == 1
+    assert len(errors) == 1
+    assert errors[0].code == "CONFLICT"
+    assert errors[0].status == 409
+
+    conn = training_db.read_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT publication_status FROM question_versions WHERE id=?", (version_id,),
+        ).fetchone()
+        audit_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log "
+            "WHERE action='publish' AND entity_id=?", (version_id,),
+        ).fetchone()["c"]
+    finally:
+        conn.close()
+    assert row["publication_status"] == "published"
+    assert audit_count == 1
+
+
+def test_failed_publish_writes_no_additional_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_id = _import_approved_unpublished(db_path)
+    qs.publish_question_version(
+        db_path, unit_code="son_tay", actor="bob", version_id=version_id,
+    )
+
+    with pytest.raises(TrainingError) as exc_info:
+        qs.publish_question_version(
+            db_path, unit_code="son_tay", actor="bob", version_id=version_id,
+        )
+    assert exc_info.value.code == "CONFLICT"
+    assert exc_info.value.status == 409
+
+    conn = training_db.read_connection(db_path)
+    try:
+        audit_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log "
+            "WHERE action='publish' AND entity_id=?", (version_id,),
+        ).fetchone()["c"]
+    finally:
+        conn.close()
+    assert audit_count == 1

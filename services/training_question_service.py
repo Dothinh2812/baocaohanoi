@@ -480,9 +480,16 @@ def add_review_action(db_path, *, unit_code, actor, version_id, action, comment=
 
 
 def publish_question_version(db_path, *, unit_code, actor, version_id):
-    """Publish: approved → published. Chặn duplicate, chặn thiếu evidence."""
+    """Publish: approved → published.
+
+    CAS với BEGIN IMMEDIATE: đọc, kiểm tra (đã unpublished, đã approved, có
+    evidence, không trùng stem) và UPDATE ... WHERE id=? AND publication_status=?
+    đều trong cùng transaction giữ write lock. Duplicate check truy vấn DB trong
+    transaction là nguồn xác thực (in-memory cache chỉ phụ).
+    """
     conn = write_connection(db_path)
     try:
+        conn.execute("BEGIN IMMEDIATE")
         ver = conn.execute(
             "SELECT review_status, publication_status, normalized_stem_hash, stem FROM question_versions WHERE id=?",
             (version_id,),
@@ -519,10 +526,14 @@ def publish_question_version(db_path, *, unit_code, actor, version_id):
                 "Không thể phát hành câu hỏi thiếu evidence.",
                 status=409,
             )
-        conn.execute(
-            "UPDATE question_versions SET publication_status=? WHERE id=?",
-            (constants.PublicationStatus.PUBLISHED, version_id),
+        cursor = conn.execute(
+            "UPDATE question_versions SET publication_status=? WHERE id=? AND publication_status=?",
+            (constants.PublicationStatus.PUBLISHED, version_id, constants.PublicationStatus.UNPUBLISHED),
         )
+        if cursor.rowcount == 0:
+            raise TrainingError(
+                ErrorCode.CONFLICT, "Câu hỏi đã được phát hành bởi phiên khác.", status=409,
+            )
         conn.execute(
             "UPDATE question_items SET current_version_id=? WHERE current_version_id=?",
             (version_id, version_id),
@@ -530,6 +541,10 @@ def publish_question_version(db_path, *, unit_code, actor, version_id):
         write_audit(conn, actor=actor, unit_code=unit_code, action="publish",
                     entity_type="question_version", entity_id=version_id)
         conn.commit()
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
     finally:
         conn.close()
 
