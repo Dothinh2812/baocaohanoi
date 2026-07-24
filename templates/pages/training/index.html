@@ -22,7 +22,7 @@
       <a class="training-nav-item" href="#training-templates" data-panel="training-templates"><i class="fas fa-copy"></i> Mẫu đề</a>
       <a class="training-nav-item" href="#training-exams" data-panel="training-exams"><i class="fas fa-clipboard-list"></i> Kỳ thi</a>
       <a class="training-nav-item" href="#training-exams" data-panel="training-exams"><i class="fas fa-user-check"></i> Giao bài</a>
-      <a class="training-nav-item" href="#training-pending"><i class="fas fa-chart-bar"></i> Báo cáo</a>
+      <a class="training-nav-item" href="#training-report" data-panel="training-report"><i class="fas fa-chart-bar"></i> Báo cáo</a>
       {% endif %}
       {% if 'learner' in module_roles or 'admin' in module_roles %}
       <a class="training-nav-item" href="#training-my-exams" data-panel="training-my-exams"><i class="fas fa-pen-to-square"></i> Bài thi của tôi</a>
@@ -195,6 +195,20 @@
 
         <section id="exam-detail" class="training-question-detail" hidden tabindex="-1" aria-live="polite"></section>
       </section>
+
+      <section class="training-workspace-panel" id="training-report" aria-labelledby="training-report-title" hidden>
+        <h3 id="training-report-title"><i class="fas fa-chart-bar"></i> Báo cáo kỳ thi</h3>
+        <p class="training-section-hint">Xem báo cáo các kỳ thi đã chốt và tải file Excel.</p>
+        <div id="report-errors" class="training-form-errors" role="alert" aria-live="assertive"></div>
+        <div id="report-list-view">
+          <div class="training-report-filters">
+            <label>Tìm kiếm <input type="search" id="report-search" placeholder="Mã hoặc tên kỳ thi..." autocomplete="off"></label>
+          </div>
+          <div id="report-list" aria-live="polite"></div>
+          <nav id="report-pagination" class="training-pagination" aria-label="Phân trang báo cáo"></nav>
+        </div>
+        <section id="report-detail" class="training-question-detail" hidden tabindex="-1" aria-live="polite"></section>
+      </section>
       {% endif %}
 
       {% if 'learner' in module_roles or 'admin' in module_roles %}
@@ -255,6 +269,7 @@
 {% if 'exam_manager' in module_roles or 'admin' in module_roles %}
 <script src="{{ url_for('static', filename='js/training-templates.js') }}"></script>
 <script src="{{ url_for('static', filename='js/training-exams.js') }}"></script>
+<script src="{{ url_for('static', filename='js/training-reports.js') }}"></script>
 {% endif %}
 {% if 'learner' in module_roles or 'admin' in module_roles %}
 <script src="{{ url_for('static', filename='js/training-my-exams.js') }}"></script>
