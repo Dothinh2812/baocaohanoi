@@ -200,12 +200,14 @@ def close_exam(db_path, *, unit_code, actor, exam_id):
             if not exam:
                 raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
             if exam["status"] == constants.ExamStatus.CLOSED:
-                return
-            raise TrainingError(ErrorCode.CONFLICT,
-                                f"Không thể đóng: trạng thái {exam['status']}", status=409)
-        write_audit(conn, actor=actor, unit_code=unit_code, action="close_exam",
-                    entity_type="exam_event", entity_id=exam_id)
-        conn.commit()
+                pass
+            else:
+                raise TrainingError(ErrorCode.CONFLICT,
+                                    f"Không thể đóng: trạng thái {exam['status']}", status=409)
+        else:
+            write_audit(conn, actor=actor, unit_code=unit_code, action="close_exam",
+                        entity_type="exam_event", entity_id=exam_id)
+            conn.commit()
     finally:
         conn.close()
     _administratively_finish_active_attempts(db_path, unit_code=unit_code, actor=actor, exam_id=exam_id)

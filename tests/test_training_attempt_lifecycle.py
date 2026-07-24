@@ -692,3 +692,59 @@ def test_autosave_rejects_response_at_exact_deadline(monkeypatch, tmp_path):
                           selected_option_ids=["B"], client_revision=1)
 
     assert exc_info.value.code == ErrorCode.ATTEMPT_EXPIRED
+
+
+def test_close_retry_recovers_attempts_left_active_by_failed_close(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, first_assignment_id = _make_open_exam_with_assignment(db_path)
+    second_assignment_id = es.create_assignments(
+        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
+        users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
+    )[0]
+    for actor, assignment_id in (("learner1", first_assignment_id), ("learner2", second_assignment_id)):
+        att.start_attempt(db_path, unit_code="son_tay", actor=actor, assignment_id=assignment_id)
+
+    original_submit = att.administratively_submit_attempt
+    monkeypatch.setattr(att, "administratively_submit_attempt", lambda *_, **__: (_ for _ in ()).throw(RuntimeError("boom")))
+    with pytest.raises(RuntimeError, match="boom"):
+        es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+    monkeypatch.setattr(att, "administratively_submit_attempt", original_submit)
+
+    es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    conn = training_db.read_connection(db_path)
+    try:
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM exam_attempts WHERE status='active'"
+        ).fetchone()["c"] == 0
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='close_exam' AND entity_id=?", (exam_id,)
+        ).fetchone()["c"] == 1
+    finally:
+        conn.close()
+
+
+def test_administrative_submit_returns_existing_result_without_duplicate_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+
+    first = att.administratively_submit_attempt(
+        db_path, unit_code="son_tay", actor="mgr", attempt_id=started["attempt_id"],
+    )
+    second = att.administratively_submit_attempt(
+        db_path, unit_code="son_tay", actor="mgr", attempt_id=started["attempt_id"],
+    )
+
+    conn = training_db.read_connection(db_path)
+    try:
+        audit_rows = conn.execute(
+            "SELECT after_json FROM training_audit_log WHERE action='administratively_submit_attempt' "
+            "AND entity_id=?", (started["attempt_id"],)
+        ).fetchall()
+    finally:
+        conn.close()
+    assert first == second
+    assert first["attempt_id"] == started["attempt_id"]
+    assert len(audit_rows) == 1
+    assert json.loads(audit_rows[0]["after_json"])["ended_reason"] == "exam_closed"

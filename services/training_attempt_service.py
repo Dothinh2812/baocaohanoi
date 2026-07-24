@@ -548,15 +548,18 @@ def administratively_submit_attempt(db_path, *, unit_code, actor, attempt_id, en
             raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
         attempt = dict(attempt)
         if attempt["status"] != constants.AttemptStatus.ACTIVE:
+            result = conn.execute(
+                "SELECT * FROM exam_results WHERE attempt_id=?", (attempt_id,)
+            ).fetchone()
             conn.rollback()
-            return False
-        _complete_active_attempt(
+            return dict(result) if result else None
+        result = _complete_active_attempt(
             conn, unit_code=unit_code, actor=actor, attempt=attempt,
             status=constants.AttemptStatus.ADMIN_SUBMITTED, ended_reason=ended_reason,
             action="administratively_submit_attempt",
         )
         conn.commit()
-        return True
+        return dict(result)
     except TrainingError:
         if conn.in_transaction:
             conn.rollback()
@@ -588,8 +591,11 @@ def _complete_active_attempt(conn, *, unit_code, actor, attempt, status, ended_r
         conn, attempt["id"], score_result, pass_score_percent=exam["pass_score_percent"],
     )
     conn.execute("UPDATE exam_assignments SET status='completed' WHERE id=?", (attempt["assignment_id"],))
-    write_audit(conn, actor=actor, unit_code=unit_code, action=action,
-                entity_type="exam_attempt", entity_id=attempt["id"])
+    write_audit(
+        conn, actor=actor, unit_code=unit_code, action=action,
+        entity_type="exam_attempt", entity_id=attempt["id"],
+        after={"ended_reason": ended_reason} if action == "administratively_submit_attempt" else None,
+    )
     return conn.execute("SELECT * FROM exam_results WHERE id=?", (result_id,)).fetchone()
 
 
