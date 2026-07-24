@@ -226,6 +226,88 @@
     background: #b71c1c;
 }
 
+.training-status-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #fff;
+    background: #6c757d;
+    white-space: nowrap;
+}
+
+.training-status-draft { background: #6c757d; }
+.training-status-ready { background: #1a5089; }
+.training-status-open { background: #2e7d32; }
+.training-status-closed { background: #ef6c00; }
+.training-status-cancelled { background: #c62828; }
+.training-status-finalized { background: #6a1b9a; }
+
+.training-section-hint {
+    color: #6c757d;
+    margin: 0 0 14px;
+}
+
+.training-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin: 10px 0 18px;
+}
+
+.training-summary-card {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    text-align: center;
+    background: #f8fbff;
+    border: 1px solid #d7e3f0;
+    border-radius: 8px;
+}
+
+.training-summary-card strong {
+    font-size: 1.4em;
+    color: #1a5089;
+}
+
+.training-summary-card span {
+    color: #6c757d;
+    font-size: 0.85em;
+}
+
+.training-user-results {
+    margin: 10px 0;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.training-user-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.training-user-list label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 400;
+}
+
+.training-selected-count {
+    color: #1a5089;
+    font-weight: 600;
+}
+
+#exam-detail h5,
+#template-detail h5 {
+    margin: 16px 0 6px;
+    color: #1a5089;
+}
+
 .training-confirm-overlay {
     position: fixed;
     inset: 0;

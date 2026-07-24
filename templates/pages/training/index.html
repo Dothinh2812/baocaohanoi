@@ -13,15 +13,15 @@
 
   <div class="training-workspace-grid">
     <nav class="training-workspace-nav" aria-label="Chức năng đào tạo">
-      <a class="training-nav-item active" href="#training-overview"><i class="fas fa-chart-pie"></i> Tổng quan</a>
+      <a class="training-nav-item active" href="#training-overview" data-panel="training-overview"><i class="fas fa-chart-pie"></i> Tổng quan</a>
       {% if 'editor' in module_roles or 'admin' in module_roles %}
       <a class="training-nav-item" href="#training-pending"><i class="fas fa-book"></i> Kho tri thức</a>
-       <a class="training-nav-item" href="#training-question-bank"><i class="fas fa-list-check"></i> Ngân hàng câu hỏi</a>
+      <a class="training-nav-item" href="#training-question-bank" data-panel="training-overview"><i class="fas fa-list-check"></i> Ngân hàng câu hỏi</a>
       {% endif %}
       {% if 'exam_manager' in module_roles or 'admin' in module_roles %}
-      <a class="training-nav-item" href="#training-pending"><i class="fas fa-copy"></i> Mẫu đề</a>
-      <a class="training-nav-item" href="#training-pending"><i class="fas fa-clipboard-list"></i> Kỳ thi</a>
-      <a class="training-nav-item" href="#training-pending"><i class="fas fa-user-check"></i> Giao bài</a>
+      <a class="training-nav-item" href="#training-templates" data-panel="training-templates"><i class="fas fa-copy"></i> Mẫu đề</a>
+      <a class="training-nav-item" href="#training-exams" data-panel="training-exams"><i class="fas fa-clipboard-list"></i> Kỳ thi</a>
+      <a class="training-nav-item" href="#training-exams" data-panel="training-exams"><i class="fas fa-user-check"></i> Giao bài</a>
       <a class="training-nav-item" href="#training-pending"><i class="fas fa-chart-bar"></i> Báo cáo</a>
       {% endif %}
       {% if 'learner' in module_roles or 'admin' in module_roles %}
@@ -90,13 +90,157 @@
         {% endif %}
       </section>
       {% endif %}
+
+      {% if 'exam_manager' in module_roles or 'admin' in module_roles %}
+      <section class="training-workspace-panel" id="training-templates"
+               data-can-edit="true"
+               data-audiences='[{"code":"to_truong","name":"Tổ trưởng"},{"code":"nvkt","name":"Nhân viên kỹ thuật"},{"code":"b2a","name":"Nhân viên B2A"}]'
+               data-domains='[{"code":"quality","name":"Chất lượng dịch vụ"},{"code":"subscriber_growth","name":"Phát triển thuê bao"},{"code":"automatic_configuration","name":"Cấu hình tự động"},{"code":"subscriber_marketing","name":"Tiếp thị thuê bao"},{"code":"retention","name":"Gia hạn và duy trì thuê bao"},{"code":"technical_operations","name":"Điều hành kỹ thuật"},{"code":"materials","name":"Vật tư và tài sản"}]'
+               aria-labelledby="training-templates-title" hidden>
+        <h3 id="training-templates-title"><i class="fas fa-copy"></i> Mẫu đề</h3>
+        <p class="training-section-hint">Tạo mẫu đề cố định từ câu hỏi đã phát hành.</p>
+
+        <div class="training-action-row">
+          <button type="button" class="training-action" id="template-create-btn">Tạo mẫu đề mới</button>
+          <button type="button" class="training-action-secondary" id="template-list-btn">Danh sách mẫu đề</button>
+        </div>
+
+        <div id="template-create-form" hidden>
+          <div class="training-question-filters">
+            <label>Mã đề <input type="text" id="template-code" required></label>
+            <label>Tiêu đề <input type="text" id="template-title" required></label>
+            <label>Nhóm đối tượng
+              <select id="template-audience" required></select>
+            </label>
+            <label>Thời lượng (phút) <input type="number" id="template-duration" value="30" min="1" required></label>
+            <label>Điểm đạt (%) <input type="number" id="template-pass-score" value="80" min="0" max="100" step="0.1" required></label>
+          </div>
+          <div class="training-question-filters">
+            <label><input type="checkbox" id="template-shuffle-questions"> Trộn câu hỏi</label>
+            <label><input type="checkbox" id="template-shuffle-options"> Trộn đáp án</label>
+          </div>
+
+          <h4>Chọn câu hỏi đã phát hành</h4>
+          <div class="training-question-filters" id="template-question-filters">
+            <label>Từ khóa <input type="search" id="template-question-q" placeholder="Tìm câu hỏi..." autocomplete="off"></label>
+            <label>Lĩnh vực <select id="template-question-domain"><option value="">Tất cả</option></select></label>
+            <label>Chủ đề <input type="search" id="template-question-topic" autocomplete="off"></label>
+            <button type="button" class="training-action-secondary" id="template-question-search">Lọc</button>
+          </div>
+          <p id="template-selected-count">Đã chọn: 0 câu</p>
+          <div id="template-question-list" role="region" aria-live="polite"></div>
+          <nav id="template-question-pagination" class="training-pagination" aria-label="Phân trang câu hỏi"></nav>
+          <div class="training-form-errors" id="template-errors" role="alert" aria-live="assertive"></div>
+          <div class="training-action-row">
+            <button type="button" class="training-action" id="template-submit-btn">Tạo mẫu đề</button>
+            <button type="button" class="training-action-secondary" id="template-cancel-btn">Hủy</button>
+          </div>
+        </div>
+
+        <div id="template-list-view">
+          <table class="training-question-table" id="template-list-table">
+            <thead><tr><th>Mã</th><th>Tiêu đề</th><th>Nhóm đối tượng</th><th>Số câu</th><th>Thời lượng</th><th>Trạng thái</th><th><span class="sr-only">Thao tác</span></th></tr></thead>
+            <tbody id="template-list-body"></tbody>
+          </table>
+          <nav id="template-pagination" class="training-pagination" aria-label="Phân trang mẫu đề"></nav>
+        </div>
+
+        <section id="template-detail" class="training-question-detail" hidden tabindex="-1" aria-live="polite"></section>
+      </section>
+
+      <section class="training-workspace-panel" id="training-exams"
+               data-audiences='[{"code":"to_truong","name":"Tổ trưởng"},{"code":"nvkt","name":"Nhân viên kỹ thuật"},{"code":"b2a","name":"Nhân viên B2A"}]'
+               aria-labelledby="training-exams-title" hidden>
+        <h3 id="training-exams-title"><i class="fas fa-clipboard-list"></i> Kỳ thi</h3>
+        <p class="training-section-hint">Tạo kỳ thi, giao bài và theo dõi vòng đời.</p>
+
+        <div class="training-action-row">
+          <button type="button" class="training-action" id="exam-create-btn">Tạo kỳ thi mới</button>
+          <button type="button" class="training-action-secondary" id="exam-list-btn">Danh sách kỳ thi</button>
+        </div>
+
+        <div id="exam-create-form" hidden>
+          <div class="training-question-filters">
+            <label>Mã kỳ thi <input type="text" id="exam-code" required></label>
+            <label>Tiêu đề <input type="text" id="exam-title" required></label>
+            <label>Mẫu đề
+              <select id="exam-template-select" required><option value="">Chọn mẫu đề</option></select>
+            </label>
+            <label>Nhóm đối tượng <select id="exam-audience" disabled></select></label>
+          </div>
+          <div class="training-question-filters">
+            <label>Mô tả <input type="text" id="exam-description"></label>
+            <label>Thời lượng (phút) <input type="number" id="exam-duration" value="30" min="1" required></label>
+            <label>Điểm đạt (%) <input type="number" id="exam-pass-score" value="80" min="0" max="100" step="0.1" required></label>
+          </div>
+          <div class="training-question-filters">
+            <label>Bắt đầu <input type="datetime-local" id="exam-start" required></label>
+            <label>Kết thúc <input type="datetime-local" id="exam-end" required></label>
+            <label><input type="checkbox" id="exam-reveal" checked> Công bố đáp án sau chốt</label>
+          </div>
+          <div class="training-form-errors" id="exam-errors" role="alert" aria-live="assertive"></div>
+          <div class="training-action-row">
+            <button type="button" class="training-action" id="exam-submit-btn">Tạo kỳ thi</button>
+            <button type="button" class="training-action-secondary" id="exam-cancel-btn">Hủy</button>
+          </div>
+        </div>
+
+        <div id="exam-list-view">
+          <table class="training-question-table">
+            <thead><tr><th>Mã</th><th>Tiêu đề</th><th>Trạng thái</th><th>Nhóm đối tượng</th><th>Bắt đầu</th><th>Kết thúc</th><th><span class="sr-only">Thao tác</span></th></tr></thead>
+            <tbody id="exam-list-body"></tbody>
+          </table>
+          <nav id="exam-pagination" class="training-pagination" aria-label="Phân trang kỳ thi"></nav>
+        </div>
+
+        <section id="exam-detail" class="training-question-detail" hidden tabindex="-1" aria-live="polite"></section>
+      </section>
+      {% endif %}
     </section>
   </div>
 </div>
 {% endblock %}
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/training-ui.js') }}"></script>
+<script>
+  (function () {
+    'use strict';
+    var panels = document.querySelectorAll('.training-workspace-grid > .training-workspace-panel');
+    function showPanel(panelId) {
+      panels.forEach(function (p) { p.hidden = (p.id !== panelId); });
+      document.querySelectorAll('.training-workspace-nav a[data-panel]').forEach(function (link) {
+        link.classList.toggle('active', link.getAttribute('data-panel') === panelId);
+      });
+      var shown = document.getElementById(panelId);
+      if (shown && typeof CustomEvent === 'function') {
+        shown.dispatchEvent(new CustomEvent('training:panel-show'));
+      }
+    }
+    document.querySelectorAll('.training-workspace-nav a[data-panel]').forEach(function (link) {
+      link.addEventListener('click', function (event) {
+        event.preventDefault();
+        var target = link.getAttribute('data-panel');
+        if (window.history && window.history.pushState) {
+          window.history.pushState(null, '', '#' + target);
+        } else {
+          window.location.hash = target;
+        }
+        showPanel(target);
+      });
+    });
+    window.addEventListener('hashchange', function () {
+      var hash = (window.location.hash || '').replace('#', '');
+      if (hash && document.getElementById(hash)) showPanel(hash);
+    });
+    var initial = (window.location.hash || '').replace('#', '');
+    if (initial && document.getElementById(initial)) { showPanel(initial); }
+  })();
+</script>
 {% if 'editor' in module_roles or 'exam_manager' in module_roles or 'admin' in module_roles %}
 <script src="{{ url_for('static', filename='js/training-question-bank.js') }}"></script>
+{% endif %}
+{% if 'exam_manager' in module_roles or 'admin' in module_roles %}
+<script src="{{ url_for('static', filename='js/training-templates.js') }}"></script>
+<script src="{{ url_for('static', filename='js/training-exams.js') }}"></script>
 {% endif %}
 {% endblock %}

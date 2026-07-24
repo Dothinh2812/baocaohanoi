@@ -142,3 +142,40 @@ def test_question_bank_client_renders_full_detail_and_confirms_all_review_action
         assert field in script
     for prompt in ("Duyệt câu hỏi này?", "Từ chối câu hỏi này?", "Phát hành câu hỏi này?"):
         assert prompt in script
+
+
+def test_workspace_renders_template_and_exam_panels_for_exam_manager(monkeypatch, tmp_path):
+    for client in _workspace_client(
+        monkeypatch, tmp_path, username="manager", roles=("exam_manager",),
+    ):
+        page = client.get("/dao-tao-sat-hach").get_data(as_text=True)
+
+    assert 'id="training-templates"' in page
+    assert 'id="training-exams"' in page
+    assert "js/training-templates.js" in page
+    assert "js/training-exams.js" in page
+
+
+def test_workspace_hides_template_and_exam_panels_for_learners(monkeypatch, tmp_path):
+    for client in _workspace_client(monkeypatch, tmp_path, username="learner", roles=("learner",)):
+        page = client.get("/dao-tao-sat-hach").get_data(as_text=True)
+
+    assert 'id="training-templates"' not in page
+    assert 'id="training-exams"' not in page
+    assert "js/training-templates.js" not in page
+    assert "js/training-exams.js" not in page
+
+
+def test_workspace_nav_points_template_and_exam_panels_to_real_ids(monkeypatch, tmp_path):
+    for client in _workspace_client(
+        monkeypatch, tmp_path, username="manager", roles=("exam_manager",),
+    ):
+        page = client.get("/dao-tao-sat-hach").get_data(as_text=True)
+
+    assert 'href="#training-templates"' in page
+    assert 'data-panel="training-templates"' in page
+    assert 'href="#training-exams"' in page
+    assert 'data-panel="training-exams"' in page
+    # Mẫu đề nav must no longer fall back to the shared placeholder.
+    templates_nav = page.split('Mẫu đề')[0].rsplit('<a', 1)[-1]
+    assert "#training-pending" not in templates_nav
