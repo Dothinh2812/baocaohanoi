@@ -95,6 +95,106 @@ def import_questions():
         return _error_response(exc)
 
 
+@training_bp.route("/api/training/questions/<version_id>/approve", methods=["POST"])
+@csrf_protect
+@_manager_required
+def approve_question(version_id):
+    try:
+        questions.add_review_action(config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE,
+                                    actor=session["username"], version_id=version_id, action="approve")
+        return jsonify({"version_id": version_id, "review_status": "approved"})
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/questions/<version_id>/publish", methods=["POST"])
+@csrf_protect
+@_manager_required
+def publish_question(version_id):
+    try:
+        questions.publish_question_version(config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE,
+                                           actor=session["username"], version_id=version_id)
+        return jsonify({"version_id": version_id, "publication_status": "published"})
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/templates", methods=["POST"])
+@csrf_protect
+@_manager_required
+def create_template():
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = exams.create_template(
+            config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE, actor=session["username"],
+            code=payload["code"], title=payload["title"],
+            target_audience_code=payload["target_audience_code"],
+            question_version_ids=payload["question_version_ids"],
+            duration_seconds=payload["duration_seconds"],
+            pass_score_percent=payload.get("pass_score_percent", 80.0),
+            shuffle_questions=bool(payload.get("shuffle_questions")),
+            shuffle_options=bool(payload.get("shuffle_options")),
+        )
+        return jsonify(result), 201
+    except (KeyError, ValueError) as exc:
+        return jsonify({"error": {"code": "VALIDATION_ERROR", "message": str(exc), "details": {}}}), 400
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/exams", methods=["POST"])
+@csrf_protect
+@_manager_required
+def create_exam():
+    payload = request.get_json(silent=True) or {}
+    try:
+        result = exams.create_exam(
+            config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE, actor=session["username"],
+            code=payload["code"], title=payload["title"], template_id=payload["template_id"],
+            target_audience_code=payload["target_audience_code"], start_at_ms=payload["start_at_ms"],
+            end_at_ms=payload["end_at_ms"], duration_seconds=payload["duration_seconds"],
+            pass_score_percent=payload.get("pass_score_percent", 80.0),
+            description=payload.get("description"),
+        )
+        return jsonify(result), 201
+    except (KeyError, ValueError) as exc:
+        return jsonify({"error": {"code": "VALIDATION_ERROR", "message": str(exc), "details": {}}}), 400
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/exams/<exam_id>/assignments", methods=["POST"])
+@csrf_protect
+@_manager_required
+def create_assignments(exam_id):
+    payload = request.get_json(silent=True) or {}
+    try:
+        assignment_ids = exams.create_assignments(
+            config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE, actor=session["username"],
+            exam_id=exam_id, users=payload["users"], audience_code=payload["audience_code"],
+        )
+        return jsonify({"assignment_ids": assignment_ids}), 201
+    except (KeyError, ValueError) as exc:
+        return jsonify({"error": {"code": "VALIDATION_ERROR", "message": str(exc), "details": {}}}), 400
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
+@training_bp.route("/api/training/exams/<exam_id>/<action>", methods=["POST"])
+@csrf_protect
+@_manager_required
+def transition_exam(exam_id, action):
+    handlers = {"ready": exams.ready_exam, "open": exams.open_exam, "close": exams.close_exam}
+    handler = handlers.get(action)
+    if handler is None:
+        return jsonify({"error": {"code": "NOT_FOUND", "message": "Thao tác không tồn tại.", "details": {}}}), 404
+    try:
+        handler(config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE, actor=session["username"], exam_id=exam_id)
+        return jsonify({"exam_id": exam_id, "action": action})
+    except TrainingError as exc:
+        return _error_response(exc)
+
+
 @training_bp.route("/api/training/assignments/<assignment_id>/attempts", methods=["POST"])
 @csrf_protect
 def start_attempt(assignment_id):
