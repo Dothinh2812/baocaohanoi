@@ -6,6 +6,7 @@ from pathlib import Path
 
 from training import constants, time_policy
 from training.db import read_connection, write_connection
+from training.errors import ErrorCode, TrainingError
 from repositories.training_repository import gen_id, write_audit
 from services import training_attempt_service as attempts
 from services import training_exam_service as exams
@@ -60,7 +61,7 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
     """Chốt kỳ thi idempotently; không giữ transaction qua scoring/report build."""
     exam = exams.get_exam(db_path, exam_id)
     if not exam:
-        raise ValueError("Kỳ thi không tồn tại")
+        raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
     if exam["status"] == constants.ExamStatus.OPEN:
         exams.close_exam(db_path, unit_code=unit_code, actor=actor, exam_id=exam_id)
 
@@ -76,7 +77,14 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
         conn.close()
 
     for attempt_id in active_attempt_ids:
-        attempts.submit_attempt(db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id)
+        attempt = attempts.get_attempt(db_path, attempt_id)
+        if time_policy.utc_now_ms() >= attempt["deadline_at_ms"]:
+            attempts.submit_attempt(db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id)
+        else:
+            attempts.administratively_submit_attempt(
+                db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id,
+                ended_reason="finalize_recovery",
+            )
 
     conn = write_connection(db_path)
     try:

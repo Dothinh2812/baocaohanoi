@@ -165,6 +165,7 @@ def ready_exam(db_path, *, unit_code, actor, exam_id):
 def open_exam(db_path, *, unit_code, actor, exam_id):
     conn = write_connection(db_path)
     try:
+        conn.execute("BEGIN IMMEDIATE")
         exam = conn.execute(
             "SELECT status, start_at_ms, end_at_ms FROM exam_events WHERE id=?",
             (exam_id,),
@@ -180,7 +181,9 @@ def open_exam(db_path, *, unit_code, actor, exam_id):
         if now < exam["start_at_ms"] or now >= exam["end_at_ms"]:
             raise TrainingError(ErrorCode.EXAM_NOT_OPEN,
                                 "Chưa đến hoặc đã hết thời gian thi", status=409)
-        _compare_and_set_exam_status(conn, exam_id, exam["status"], constants.ExamStatus.OPEN)
+        if not _compare_and_set_exam_status(conn, exam_id, exam["status"], constants.ExamStatus.OPEN):
+            conn.rollback()
+            return
         write_audit(conn, actor=actor, unit_code=unit_code, action="open_exam",
                     entity_type="exam_event", entity_id=exam_id)
         conn.commit()
@@ -205,19 +208,42 @@ def close_exam(db_path, *, unit_code, actor, exam_id):
         conn.commit()
     finally:
         conn.close()
+    _administratively_finish_active_attempts(db_path, unit_code=unit_code, actor=actor, exam_id=exam_id)
+
+
+def _administratively_finish_active_attempts(db_path, *, unit_code, actor, exam_id, ended_reason="exam_closed"):
+    """Enumerate after close; each attempt is finalized in its own short transaction."""
+    from services import training_attempt_service as attempts
+
+    conn = read_connection(db_path)
+    try:
+        attempt_ids = [row["id"] for row in conn.execute(
+            """SELECT a.id FROM exam_attempts a JOIN exam_assignments x ON x.id=a.assignment_id
+               WHERE x.exam_event_id=? AND a.status='active'""", (exam_id,)
+        ).fetchall()]
+    finally:
+        conn.close()
+    for attempt_id in attempt_ids:
+        attempts.administratively_submit_attempt(
+            db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id, ended_reason=ended_reason,
+        )
 
 
 def cancel_exam(db_path, *, unit_code, actor, exam_id):
     conn = write_connection(db_path)
     try:
+        conn.execute("BEGIN IMMEDIATE")
         exam = conn.execute("SELECT status FROM exam_events WHERE id=?", (exam_id,)).fetchone()
         if not exam:
             raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
         if exam["status"] in constants.EXAM_TERMINAL_STATUSES:
             raise TrainingError(ErrorCode.CONFLICT,
                                 f"Không thể hủy: trạng thái {exam['status']}", status=409)
-        conn.execute("UPDATE exam_events SET status=? WHERE id=?",
-                     (constants.ExamStatus.CANCELLED, exam_id))
+        if not _compare_and_set_exam_status(
+            conn, exam_id, exam["status"], constants.ExamStatus.CANCELLED,
+        ):
+            conn.rollback()
+            return
         write_audit(conn, actor=actor, unit_code=unit_code, action="cancel_exam",
                     entity_type="exam_event", entity_id=exam_id)
         conn.commit()

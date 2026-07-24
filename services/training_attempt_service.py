@@ -48,6 +48,19 @@ def start_attempt(db_path, *, unit_code, actor, assignment_id):
             "SELECT * FROM exam_attempts WHERE assignment_id=?", (assignment_id,)
         ).fetchone()
         if existing:
+            exam_window = conn.execute(
+                "SELECT status, start_at_ms, end_at_ms FROM exam_events WHERE id=?",
+                (assignment["exam_event_id"],),
+            ).fetchone()
+            now = time_policy.utc_now_ms()
+            if (
+                exam_window["status"] != constants.ExamStatus.OPEN
+                or now < exam_window["start_at_ms"]
+                or now >= exam_window["end_at_ms"]
+            ):
+                conn.execute("ROLLBACK")
+                raise TrainingError(ErrorCode.EXAM_NOT_OPEN,
+                                    "Kỳ thi chưa mở hoặc đã đóng", status=409)
             conn.execute("ROLLBACK")
             if existing["status"] == constants.AttemptStatus.CREATED:
                 _activate_attempt(conn, existing, assignment)
@@ -222,6 +235,13 @@ def _snapshot_checksum_for_attempt(conn, attempt_id):
     return _snapshot_checksum(items)
 
 
+def _verify_snapshot_checksum_with_conn(conn, attempt_id):
+    stored = conn.execute(
+        "SELECT snapshot_checksum FROM exam_attempts WHERE id=?", (attempt_id,)
+    ).fetchone()
+    return bool(stored) and stored["snapshot_checksum"] == _snapshot_checksum_for_attempt(conn, attempt_id)
+
+
 def snapshot_order(db_path, attempt_id):
     """Đọc presentation order đã snapshot của attempt."""
     conn = read_connection(db_path)
@@ -264,7 +284,7 @@ def verify_snapshot_checksum(db_path, attempt_id):
         ).fetchone()
         if not attempt:
             raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
-        return attempt["snapshot_checksum"] == _snapshot_checksum_for_attempt(conn, attempt_id)
+        return _verify_snapshot_checksum_with_conn(conn, attempt_id)
     finally:
         conn.close()
 
@@ -474,6 +494,9 @@ def submit_attempt(db_path, *, unit_code, actor, attempt_id):
             "SELECT * FROM exam_results WHERE attempt_id=?", (attempt_id,)
         ).fetchone()
         if existing_result:
+            if attempt["ended_reason"] == "exam_closed":
+                raise TrainingError(ErrorCode.ATTEMPT_ALREADY_COMPLETED,
+                                    "Kỳ thi đã đóng", status=409)
             conn.rollback()
             return _build_submit_response(attempt, existing_result, conn)
 
@@ -483,45 +506,20 @@ def submit_attempt(db_path, *, unit_code, actor, attempt_id):
 
         now = time_policy.utc_now_ms()
         is_timeout = now >= attempt["deadline_at_ms"]
+        exam_status = conn.execute(
+            """SELECT ee.status FROM exam_events ee JOIN exam_assignments x
+               ON x.exam_event_id=ee.id WHERE x.id=?""",
+            (attempt["assignment_id"],),
+        ).fetchone()["status"]
+        if exam_status != constants.ExamStatus.OPEN and not is_timeout:
+            raise TrainingError(ErrorCode.ATTEMPT_ALREADY_COMPLETED,
+                                "Kỳ thi đã đóng", status=409)
         new_status = constants.AttemptStatus.TIMED_OUT if is_timeout else constants.AttemptStatus.SUBMITTED
         ended_reason = "timeout" if is_timeout else "submit"
-
-        cursor = conn.execute(
-            "UPDATE exam_attempts SET status=?, submitted_at_ms=?, ended_reason=? "
-            "WHERE id=? AND status='active'",
-            (new_status, now, ended_reason, attempt_id),
+        result = _complete_active_attempt(
+            conn, unit_code=unit_code, actor=actor, attempt=attempt,
+            status=new_status, ended_reason=ended_reason, action="submit_attempt",
         )
-        if cursor.rowcount == 0:
-            existing_result = conn.execute(
-                "SELECT * FROM exam_results WHERE attempt_id=?", (attempt_id,)
-            ).fetchone()
-            if existing_result:
-                conn.rollback()
-                return _build_submit_response(attempt, existing_result, conn)
-            raise TrainingError(ErrorCode.ATTEMPT_ALREADY_COMPLETED,
-                                "Bài làm không ở trạng thái active", status=409)
-
-        assignment = conn.execute(
-            "SELECT exam_event_id FROM exam_assignments WHERE id=?",
-            (attempt["assignment_id"],),
-        ).fetchone()
-        exam = conn.execute(
-            "SELECT pass_score_percent FROM exam_events WHERE id=?",
-            (assignment["exam_event_id"],),
-        ).fetchone()
-
-        score_result = scoring.score_attempt_with_conn(conn, attempt_id)
-        result_id = scoring.store_result(conn, attempt_id, score_result,
-                                         pass_score_percent=exam["pass_score_percent"])
-        conn.execute(
-            "UPDATE exam_assignments SET status='completed' WHERE id=?",
-            (attempt["assignment_id"],),
-        )
-        result = conn.execute(
-            "SELECT * FROM exam_results WHERE id=?", (result_id,)
-        ).fetchone()
-        write_audit(conn, actor=actor, unit_code=unit_code, action="submit_attempt",
-                    entity_type="exam_attempt", entity_id=attempt_id)
         conn.commit()
         return _build_submit_response(
             attempt | {"status": new_status, "submitted_at_ms": now}, result, conn
@@ -538,6 +536,61 @@ def submit_attempt(db_path, *, unit_code, actor, attempt_id):
         raise
     finally:
         conn.close()
+
+
+def administratively_submit_attempt(db_path, *, unit_code, actor, attempt_id, ended_reason="exam_closed"):
+    """Kết thúc attempt active theo thao tác quản trị, idempotently."""
+    conn = write_connection(db_path)
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        attempt = conn.execute("SELECT * FROM exam_attempts WHERE id=?", (attempt_id,)).fetchone()
+        if not attempt:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
+        attempt = dict(attempt)
+        if attempt["status"] != constants.AttemptStatus.ACTIVE:
+            conn.rollback()
+            return False
+        _complete_active_attempt(
+            conn, unit_code=unit_code, actor=actor, attempt=attempt,
+            status=constants.AttemptStatus.ADMIN_SUBMITTED, ended_reason=ended_reason,
+            action="administratively_submit_attempt",
+        )
+        conn.commit()
+        return True
+    except TrainingError:
+        if conn.in_transaction:
+            conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+
+def _complete_active_attempt(conn, *, unit_code, actor, attempt, status, ended_reason, action):
+    """CAS terminal transition, immutable-snapshot scoring, result and audit in one transaction."""
+    if not _verify_snapshot_checksum_with_conn(conn, attempt["id"]):
+        raise TrainingError(ErrorCode.CONFLICT, "Snapshot bài làm không toàn vẹn", status=409)
+    now = time_policy.utc_now_ms()
+    cursor = conn.execute(
+        "UPDATE exam_attempts SET status=?, submitted_at_ms=?, ended_reason=? WHERE id=? AND status='active'",
+        (status, now, ended_reason, attempt["id"]),
+    )
+    if cursor.rowcount == 0:
+        raise TrainingError(ErrorCode.ATTEMPT_ALREADY_COMPLETED,
+                            "Bài làm không ở trạng thái active", status=409)
+    assignment = conn.execute(
+        "SELECT exam_event_id FROM exam_assignments WHERE id=?", (attempt["assignment_id"],)
+    ).fetchone()
+    exam = conn.execute(
+        "SELECT pass_score_percent FROM exam_events WHERE id=?", (assignment["exam_event_id"],)
+    ).fetchone()
+    score_result = scoring.score_attempt_with_conn(conn, attempt["id"])
+    result_id = scoring.store_result(
+        conn, attempt["id"], score_result, pass_score_percent=exam["pass_score_percent"],
+    )
+    conn.execute("UPDATE exam_assignments SET status='completed' WHERE id=?", (attempt["assignment_id"],))
+    write_audit(conn, actor=actor, unit_code=unit_code, action=action,
+                entity_type="exam_attempt", entity_id=attempt["id"])
+    return conn.execute("SELECT * FROM exam_results WHERE id=?", (result_id,)).fetchone()
 
 
 def _build_submit_response(attempt, result, conn):

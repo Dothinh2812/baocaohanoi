@@ -558,3 +558,101 @@ def test_burst_submit_one_result(monkeypatch, tmp_path):
     conn.close()
     assert count == 1
     assert len(results) == 5
+
+
+def test_close_administratively_submits_all_active_attempts_once(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, first_assignment_id = _make_open_exam_with_assignment(db_path)
+    assignment_ids = [first_assignment_id] + es.create_assignments(
+        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
+        users=[{"username": "learner2", "display_name": "Learner 2"},
+               {"username": "learner3", "display_name": "Learner 3"}],
+        audience_code="nvkt",
+    )
+    attempt_ids = []
+    for index, assignment_id in enumerate(assignment_ids, start=1):
+        attempt = att.start_attempt(
+            db_path, unit_code="son_tay", actor=f"learner{index}", assignment_id=assignment_id,
+        )
+        item_id = att.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["item_id"]
+        att.save_response(db_path, attempt_id=attempt["attempt_id"], attempt_item_id=item_id,
+                          selected_option_ids=["B"], client_revision=1)
+        attempt_ids.append(attempt["attempt_id"])
+
+    es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+    es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    conn = training_db.read_connection(db_path)
+    try:
+        attempts = conn.execute(
+            "SELECT status, ended_reason FROM exam_attempts WHERE assignment_id IN (?, ?, ?) ORDER BY assignment_id",
+            assignment_ids,
+        ).fetchall()
+        assert {(row["status"], row["ended_reason"]) for row in attempts} == {
+            ("administratively_submitted", "exam_closed"),
+        }
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM exam_results WHERE attempt_id IN (?, ?, ?)", attempt_ids,
+        ).fetchone()["c"] == 3
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='close_exam' AND entity_id=?", (exam_id,),
+        ).fetchone()["c"] == 1
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='administratively_submit_attempt'"
+        ).fetchone()["c"] == 3
+    finally:
+        conn.close()
+    assert all(es.get_assignment(db_path, assignment_id)["status"] == "completed" for assignment_id in assignment_ids)
+
+
+def test_close_racing_autosave_leaves_administrative_result(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    item_id = att.get_attempt_learner_view(db_path, started["attempt_id"])["items"][0]["item_id"]
+    barrier = threading.Barrier(2)
+    errors = []
+
+    def autosave():
+        barrier.wait()
+        try:
+            att.save_response(db_path, attempt_id=started["attempt_id"], attempt_item_id=item_id,
+                              selected_option_ids=["B"], client_revision=1)
+        except TrainingError as exc:
+            errors.append(exc.code)
+
+    def close():
+        barrier.wait()
+        es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    threads = [threading.Thread(target=autosave), threading.Thread(target=close)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+
+    attempt = att.get_attempt(db_path, started["attempt_id"])
+    assert attempt["status"] == "administratively_submitted"
+    assert attempt["ended_reason"] == "exam_closed"
+    assert att.get_result(db_path, started["attempt_id"]) is not None
+    assert not errors or errors == ["ATTEMPT_ALREADY_COMPLETED"]
+
+
+def test_closed_exam_blocks_start_autosave_and_learner_submit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    item_id = att.get_attempt_learner_view(db_path, started["attempt_id"])["items"][0]["item_id"]
+    es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    with pytest.raises(TrainingError) as autosave_error:
+        att.save_response(db_path, attempt_id=started["attempt_id"], attempt_item_id=item_id,
+                          selected_option_ids=["B"], client_revision=1)
+    with pytest.raises(TrainingError) as submit_error:
+        att.submit_attempt(db_path, unit_code="son_tay", actor="learner1", attempt_id=started["attempt_id"])
+    with pytest.raises(TrainingError) as start_error:
+        att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+
+    assert autosave_error.value.code == ErrorCode.ATTEMPT_ALREADY_COMPLETED
+    assert submit_error.value.code == ErrorCode.ATTEMPT_ALREADY_COMPLETED
+    assert start_error.value.code == ErrorCode.EXAM_NOT_OPEN

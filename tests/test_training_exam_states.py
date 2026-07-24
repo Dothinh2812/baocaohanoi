@@ -1,3 +1,5 @@
+import threading
+
 import pytest
 
 from training import db as training_db
@@ -214,6 +216,79 @@ def test_open_exam_idempotent(monkeypatch, tmp_path):
     es.open_exam(db_path, unit_code="son_tay", actor="a", exam_id=exam["id"])
     exam = es.get_exam(db_path, exam["id"])
     assert exam["status"] == "open"
+
+
+def test_concurrent_open_writes_one_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_ids = _publish_questions(db_path)
+    tpl = es.create_template(db_path, unit_code="son_tay", actor="a", code="T", title="T",
+        target_audience_code="nvkt", question_version_ids=version_ids,
+        duration_seconds=600, pass_score_percent=80.0)
+    now = time_policy.utc_now_ms()
+    exam = es.create_exam(db_path, unit_code="son_tay", actor="a", code="E", title="E",
+        template_id=tpl["id"], target_audience_code="nvkt", start_at_ms=now - 1000,
+        end_at_ms=now + 3600_000, duration_seconds=600, pass_score_percent=80.0)
+    es.ready_exam(db_path, unit_code="son_tay", actor="a", exam_id=exam["id"])
+    barrier = threading.Barrier(2)
+    errors = []
+
+    def open_exam():
+        barrier.wait()
+        try:
+            es.open_exam(db_path, unit_code="son_tay", actor="a", exam_id=exam["id"])
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=open_exam) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+    conn = training_db.read_connection(db_path)
+    try:
+        audit_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='open_exam' AND entity_id=?", (exam["id"],)
+        ).fetchone()["c"]
+    finally:
+        conn.close()
+    assert not errors
+    assert es.get_exam(db_path, exam["id"])["status"] == "open"
+    assert audit_count == 1
+
+
+def test_concurrent_cancel_writes_one_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_ids = _publish_questions(db_path)
+    tpl = es.create_template(db_path, unit_code="son_tay", actor="a", code="T", title="T",
+        target_audience_code="nvkt", question_version_ids=version_ids,
+        duration_seconds=600, pass_score_percent=80.0)
+    now = time_policy.utc_now_ms()
+    exam = es.create_exam(db_path, unit_code="son_tay", actor="a", code="E", title="E",
+        template_id=tpl["id"], target_audience_code="nvkt", start_at_ms=now,
+        end_at_ms=now + 3600_000, duration_seconds=600, pass_score_percent=80.0)
+    barrier = threading.Barrier(2)
+
+    def cancel_exam():
+        barrier.wait()
+        try:
+            es.cancel_exam(db_path, unit_code="son_tay", actor="a", exam_id=exam["id"])
+        except TrainingError:
+            pass
+
+    threads = [threading.Thread(target=cancel_exam) for _ in range(2)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=15)
+    conn = training_db.read_connection(db_path)
+    try:
+        audit_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='cancel_exam' AND entity_id=?", (exam["id"],)
+        ).fetchone()["c"]
+    finally:
+        conn.close()
+    assert es.get_exam(db_path, exam["id"])["status"] == "cancelled"
+    assert audit_count == 1
 
 
 def test_open_exam_rejected_before_start(monkeypatch, tmp_path):
