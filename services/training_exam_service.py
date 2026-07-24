@@ -530,3 +530,238 @@ def get_assignment_for_user(db_path, exam_id, username):
         return [dict(r) for r in rows]
     finally:
         conn.close()
+
+
+_TEMPLATE_COLUMNS = (
+    "id, code, title, target_audience_code, total_questions, duration_seconds, "
+    "pass_score_percent, shuffle_questions, shuffle_options, locked, "
+    "created_by, created_at_ms"
+)
+
+
+def _template_dto(row):
+    return {
+        "id": row["id"], "code": row["code"], "title": row["title"],
+        "target_audience_code": row["target_audience_code"],
+        "total_questions": row["total_questions"],
+        "duration_seconds": row["duration_seconds"],
+        "pass_score_percent": row["pass_score_percent"],
+        "shuffle_questions": bool(row["shuffle_questions"]),
+        "shuffle_options": bool(row["shuffle_options"]),
+        "locked": bool(row["locked"]),
+        "created_by": row["created_by"],
+        "created_at_ms": row["created_at_ms"],
+    }
+
+
+def list_templates(db_path, *, page=1, page_size=25):
+    """Return paginated template DTOs with explicit allowlist columns."""
+    conn = read_connection(db_path)
+    try:
+        total = conn.execute(
+            "SELECT COUNT(*) AS c FROM exam_templates"
+        ).fetchone()["c"]
+        offset = (page - 1) * page_size
+        rows = conn.execute(
+            f"""SELECT {_TEMPLATE_COLUMNS} FROM exam_templates
+                ORDER BY created_at_ms DESC LIMIT ? OFFSET ?""",
+            (page_size, offset),
+        ).fetchall()
+        return {
+            "items": [_template_dto(row) for row in rows],
+            "page": page, "page_size": page_size, "total": total,
+        }
+    finally:
+        conn.close()
+
+
+def get_template_detail(db_path, template_id):
+    """Return template DTO + ordered items joined with question metadata."""
+    conn = read_connection(db_path)
+    try:
+        row = conn.execute(
+            f"SELECT {_TEMPLATE_COLUMNS} FROM exam_templates WHERE id=?",
+            (template_id,),
+        ).fetchone()
+        if not row:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Mẫu đề không tồn tại.", status=404)
+        item_rows = conn.execute(
+            """SELECT ti.sequence_number, ti.question_version_id, qv.stem, qv.type,
+                      qv.difficulty, ti.section_label, ti.points
+               FROM exam_template_items ti
+               JOIN question_versions qv ON qv.id = ti.question_version_id
+               WHERE ti.template_id = ?
+               ORDER BY ti.sequence_number""",
+            (template_id,),
+        ).fetchall()
+        items = [{
+            "sequence_number": r["sequence_number"],
+            "question_version_id": r["question_version_id"],
+            "stem": r["stem"], "type": r["type"], "difficulty": r["difficulty"],
+            "section_label": r["section_label"], "points": r["points"],
+        } for r in item_rows]
+        detail = _template_dto(row)
+        detail["items"] = items
+        return detail
+    finally:
+        conn.close()
+
+
+_EXAM_COLUMNS = (
+    "id, code, title, template_id, target_audience_code, status, "
+    "start_at_ms, end_at_ms, duration_seconds, pass_score_percent, "
+    "reveal_answers_after_finalize, created_by, created_at_ms, finalized_at_ms"
+)
+
+
+def _exam_dto(row):
+    return {
+        "id": row["id"], "code": row["code"], "title": row["title"],
+        "template_id": row["template_id"],
+        "target_audience_code": row["target_audience_code"],
+        "status": row["status"], "start_at_ms": row["start_at_ms"],
+        "end_at_ms": row["end_at_ms"], "duration_seconds": row["duration_seconds"],
+        "pass_score_percent": row["pass_score_percent"],
+        "reveal_answers_after_finalize": bool(row["reveal_answers_after_finalize"]),
+        "created_by": row["created_by"], "created_at_ms": row["created_at_ms"],
+        "finalized_at_ms": row["finalized_at_ms"],
+    }
+
+
+def list_exams(db_path, *, page=1, page_size=25, status=None):
+    """Return paginated exam DTOs; optional status filter."""
+    conn = read_connection(db_path)
+    try:
+        where = []
+        params = []
+        if status:
+            where.append("status = ?")
+            params.append(status)
+        clause = ("WHERE " + " AND ".join(where)) if where else ""
+        total = conn.execute(
+            f"SELECT COUNT(*) AS c FROM exam_events {clause}", params
+        ).fetchone()["c"]
+        offset = (page - 1) * page_size
+        rows = conn.execute(
+            f"""SELECT {_EXAM_COLUMNS} FROM exam_events {clause}
+                ORDER BY created_at_ms DESC LIMIT ? OFFSET ?""",
+            params + [page_size, offset],
+        ).fetchall()
+        return {
+            "items": [_exam_dto(row) for row in rows],
+            "page": page, "page_size": page_size, "total": total,
+        }
+    finally:
+        conn.close()
+
+
+def _assignment_summary(conn, exam_id):
+    def _count(status_value):
+        return conn.execute(
+            "SELECT COUNT(*) AS c FROM exam_assignments "
+            "WHERE exam_event_id=? AND status=?",
+            (exam_id, status_value),
+        ).fetchone()["c"]
+
+    total = conn.execute(
+        "SELECT COUNT(*) AS c FROM exam_assignments WHERE exam_event_id=?", (exam_id,)
+    ).fetchone()["c"]
+    in_progress = conn.execute(
+        """SELECT COUNT(*) AS c FROM exam_assignments a
+           JOIN exam_attempts att ON att.assignment_id = a.id
+           WHERE a.exam_event_id=? AND att.status IN ('created', 'active')""",
+        (exam_id,),
+    ).fetchone()["c"]
+    return {
+        "total": total, "assigned": _count("assigned"),
+        "completed": _count("completed"), "expired": _count("expired"),
+        "cancelled": _count("cancelled"), "in_progress": in_progress,
+    }
+
+
+def get_exam_detail(db_path, exam_id):
+    """Return exam DTO + nested template + assignment_summary."""
+    conn = read_connection(db_path)
+    try:
+        row = conn.execute(
+            f"SELECT {_EXAM_COLUMNS} FROM exam_events WHERE id=?", (exam_id,),
+        ).fetchone()
+        if not row:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại.", status=404)
+        template_row = conn.execute(
+            "SELECT id, code, title FROM exam_templates WHERE id=?", (row["template_id"],),
+        ).fetchone()
+        template = (
+            {"id": template_row["id"], "code": template_row["code"], "title": template_row["title"]}
+            if template_row else None
+        )
+        detail = _exam_dto(row)
+        detail["template"] = template
+        detail["assignment_summary"] = _assignment_summary(conn, exam_id)
+        return detail
+    finally:
+        conn.close()
+
+
+def get_exam_assignments_dto(db_path, exam_id):
+    """Return stripped assignment DTOs (never exposes internal/technical columns)."""
+    conn = read_connection(db_path)
+    try:
+        rows = conn.execute(
+            """SELECT a.id, a.username, a.display_name, a.team_code, a.team_name,
+                      a.organization_code, a.organization_name, a.audience_code,
+                      a.status, a.assigned_at_ms, att.status AS attempt_status
+               FROM exam_assignments a
+               LEFT JOIN exam_attempts att ON att.assignment_id = a.id
+               WHERE a.exam_event_id = ?
+               ORDER BY a.username, a.assigned_at_ms""",
+            (exam_id,),
+        ).fetchall()
+        return [{
+            "id": r["id"], "username": r["username"], "display_name": r["display_name"],
+            "team_code": r["team_code"], "team_name": r["team_name"],
+            "organization_code": r["organization_code"],
+            "organization_name": r["organization_name"],
+            "audience_code": r["audience_code"], "status": r["status"],
+            "assigned_at_ms": r["assigned_at_ms"],
+            "attempt_status": r["attempt_status"],
+        } for r in rows]
+    finally:
+        conn.close()
+
+
+def _get_all_users():
+    """Indirection over auth.get_all_users for testability."""
+    from auth import get_all_users
+    return get_all_users()
+
+
+def list_assignable_users(db_path, *, q=""):
+    """Return stripped user DTOs ({username, display_name}); never exposes password.
+
+    Phải tách biệt rõ: dữ liệu user từ auth (Excel) chỉ trả ra trường công khai.
+    """
+    users = _get_all_users()
+    if users is None:
+        return []
+    try:
+        records = users.to_dict("records")
+    except AttributeError:
+        records = list(users)
+    needle = (q or "").lower()
+    items = []
+    for user in records:
+        if not isinstance(user, dict):
+            continue
+        username = user.get("username")
+        if not username:
+            continue
+        display_name = user.get("display_name") or user.get("name") or username
+        is_active = user.get("is_active")
+        if is_active in (0, "0", False, None):
+            continue
+        if needle and needle not in str(username).lower() \
+                and needle not in str(display_name).lower():
+            continue
+        items.append({"username": username, "display_name": display_name})
+    return items
