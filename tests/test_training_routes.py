@@ -17,6 +17,7 @@ def _client(monkeypatch, tmp_path):
     migrations.run_migrations(db_path, "son_tay")
     seed_defaults(db_path, "son_tay")
     grant_role(db_path, "son_tay", "seed", "admin", "exam_manager")
+    grant_role(db_path, "son_tay", "seed", "admin", "editor")
     monkeypatch.setattr(training_routes.config, "TRAINING_DB_PATH", db_path)
     monkeypatch.setattr(training_routes.config, "UNIT_CODE", "son_tay")
 
@@ -36,6 +37,8 @@ def _learner_client_with_attempt(monkeypatch, tmp_path, *, second_attempt=False)
     db_path = str(tmp_path / "training.db")
     migrations.run_migrations(db_path, "son_tay")
     seed_defaults(db_path, "son_tay")
+    grant_role(db_path, "son_tay", "seed", "learner1", "learner")
+    grant_role(db_path, "son_tay", "seed", "learner2", "learner")
     monkeypatch.setattr(training_routes.config, "TRAINING_DB_PATH", db_path)
     monkeypatch.setattr(training_routes.config, "UNIT_CODE", "son_tay")
     exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
@@ -64,6 +67,32 @@ def _learner_client_with_attempt(monkeypatch, tmp_path, *, second_attempt=False)
             sess["username"] = "learner1"
             sess["_csrf_token"] = "csrf"
         yield client, attempt["attempt_id"], item_id, other_item_id
+
+
+def _role_client(monkeypatch, tmp_path, *, username, roles=(), dashboard_role=None):
+    from blueprints import training_routes
+
+    db_path = str(tmp_path / "training.db")
+    migrations.run_migrations(db_path, "son_tay")
+    seed_defaults(db_path, "son_tay")
+    for role in roles:
+        grant_role(db_path, "son_tay", "seed", username, role)
+    monkeypatch.setattr(training_routes.config, "TRAINING_DB_PATH", db_path)
+    monkeypatch.setattr(training_routes.config, "UNIT_CODE", "son_tay")
+    monkeypatch.setattr(
+        training_routes,
+        "get_user_by_username",
+        lambda candidate: {"role": dashboard_role} if candidate == username and dashboard_role else None,
+    )
+
+    app = Flask(__name__)
+    app.config["SECRET_KEY"] = "test"
+    app.register_blueprint(training_bp)
+    with app.test_client() as client:
+        with client.session_transaction() as sess:
+            sess["username"] = username
+            sess["_csrf_token"] = "csrf"
+        yield client, db_path
 
 
 def test_operator_can_create_paste_text_knowledge(monkeypatch, tmp_path):
@@ -146,3 +175,108 @@ def test_autosave_route_rejects_multiple_single_choice_options(monkeypatch, tmp_
 
     assert response.status_code == 400
     assert response.get_json()["error"]["code"] == "SINGLE_CHOICE_REQUIRES_ONE_OPTION"
+
+
+def test_knowledge_create_requires_editor_role(monkeypatch, tmp_path):
+    for client, _ in _role_client(monkeypatch, tmp_path, username="unassigned"):
+        response = client.post(
+            "/api/training/knowledge",
+            headers={"X-CSRF-Token": "csrf"},
+            json={"document_code": "C1", "title": "Tài liệu", "content_text": "Nội dung"},
+        )
+
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED"
+
+
+def test_editor_can_create_knowledge(monkeypatch, tmp_path):
+    for client, _ in _role_client(monkeypatch, tmp_path, username="editor", roles=("editor",)):
+        response = client.post(
+            "/api/training/knowledge",
+            headers={"X-CSRF-Token": "csrf"},
+            json={"document_code": "C1", "title": "Tài liệu", "content_text": "Nội dung"},
+        )
+
+    assert response.status_code == 201
+
+
+def test_editor_cannot_publish_question(monkeypatch, tmp_path):
+    for client, _ in _role_client(monkeypatch, tmp_path, username="editor", roles=("editor",)):
+        response = client.post(
+            "/api/training/questions/question-1/publish",
+            headers={"X-CSRF-Token": "csrf"},
+        )
+
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED"
+
+
+def test_manager_cannot_load_owned_attempt_without_learner_role(monkeypatch, tmp_path):
+    for client, db_path in _role_client(monkeypatch, tmp_path, username="manager", roles=("exam_manager",)):
+        exam_id, _ = _make_open_exam_with_assignment(db_path)
+        assignment_id = exams.create_assignments(
+            db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
+            users=[{"username": "manager", "display_name": "Manager"}], audience_code="nvkt",
+        )[0]
+        attempt = attempts.start_attempt(
+            db_path, unit_code="son_tay", actor="manager", assignment_id=assignment_id,
+        )
+        response = client.get(f"/api/training/attempts/{attempt['attempt_id']}")
+
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED"
+
+
+def test_attempt_routes_require_learner_role_before_ownership(monkeypatch, tmp_path):
+    for client, db_path in _role_client(monkeypatch, tmp_path, username="manager", roles=("exam_manager",)):
+        exam_id, _ = _make_open_exam_with_assignment(db_path)
+        assignment_id = exams.create_assignments(
+            db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
+            users=[{"username": "manager", "display_name": "Manager"}], audience_code="nvkt",
+        )[0]
+        attempt = attempts.start_attempt(
+            db_path, unit_code="son_tay", actor="manager", assignment_id=assignment_id,
+        )
+        item_id = attempts.get_attempt_learner_view(db_path, attempt["attempt_id"])["items"][0]["item_id"]
+        responses = [
+            client.post(f"/api/training/assignments/{assignment_id}/attempts", headers={"X-CSRF-Token": "csrf"}),
+            client.get(f"/api/training/attempts/{attempt['attempt_id']}"),
+            client.put(
+                f"/api/training/attempts/{attempt['attempt_id']}/responses/{item_id}",
+                headers={"X-CSRF-Token": "csrf"},
+                json={"selected_option_ids": ["B"], "client_revision": 0},
+            ),
+            client.post(f"/api/training/attempts/{attempt['attempt_id']}/submit", headers={"X-CSRF-Token": "csrf"}),
+        ]
+
+    assert [response.status_code for response in responses] == [403, 403, 403, 403]
+    assert all(response.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED" for response in responses)
+
+
+def test_learner_cannot_load_foreign_attempt(monkeypatch, tmp_path):
+    for client, attempt_id, _, other_attempt_item_id in _learner_client_with_attempt(
+        monkeypatch, tmp_path, second_attempt=True,
+    ):
+        # The second fixture creates learner2's attempt; recover its ID from its item.
+        conn = training_db.read_connection(str(tmp_path / "training.db"))
+        try:
+            foreign_attempt_id = conn.execute(
+                "SELECT attempt_id FROM exam_attempt_items WHERE id=?", (other_attempt_item_id,),
+            ).fetchone()["attempt_id"]
+        finally:
+            conn.close()
+        response = client.get(f"/api/training/attempts/{foreign_attempt_id}")
+
+    assert response.status_code == 403
+    assert response.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED"
+
+
+def test_dashboard_admin_bypasses_module_role_requirement(monkeypatch, tmp_path):
+    for client, _ in _role_client(monkeypatch, tmp_path, username="dashboard-admin", dashboard_role="admin"):
+        response = client.post(
+            "/api/training/knowledge",
+            headers={"X-CSRF-Token": "csrf"},
+            json={"document_code": "C1", "title": "Tài liệu", "content_text": "Nội dung"},
+        )
+
+    assert response.status_code == 201

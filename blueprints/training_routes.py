@@ -21,17 +21,23 @@ def _error_response(exc):
     return jsonify(exc.to_envelope()), exc.status
 
 
-def _manager_required(view):
-    @wraps(view)
-    def wrapped(*args, **kwargs):
-        username = session.get("username")
-        user = get_user_by_username(username) if username else None
-        if not (user and user.get("role") == "admin") and not has_module_role(
-            config.TRAINING_DB_PATH, username, "exam_manager"
-        ):
-            return jsonify({"error": {"code": "PERMISSION_SCOPE_DENIED", "message": "Không có quyền quản lý kỳ thi.", "details": {}}}), 403
-        return view(*args, **kwargs)
-    return wrapped
+def _module_role_required(role, message):
+    def decorator(view):
+        @wraps(view)
+        def wrapped(*args, **kwargs):
+            username = session.get("username")
+            user = get_user_by_username(username) if username else None
+            is_dashboard_admin = user and user.get("role") == "admin"
+            if not is_dashboard_admin and not has_module_role(config.TRAINING_DB_PATH, username, role):
+                return _error_response(TrainingError("PERMISSION_SCOPE_DENIED", message, status=403))
+            return view(*args, **kwargs)
+        return wrapped
+    return decorator
+
+
+_learner_required = _module_role_required("learner", "Không có quyền làm bài thi.")
+_editor_required = _module_role_required("editor", "Không có quyền biên soạn nội dung.")
+_exam_manager_required = _module_role_required("exam_manager", "Không có quyền quản lý kỳ thi.")
 
 
 def _attempt_owned_by_current_user(attempt_id):
@@ -48,7 +54,7 @@ def page_index():
 
 
 @training_bp.route("/api/training/knowledge", methods=["GET", "POST"])
-@_manager_required
+@_editor_required
 def knowledge_collection():
     if request.method == "GET":
         result = knowledge.list_documents(
@@ -83,7 +89,7 @@ def knowledge_collection():
 
 @training_bp.route("/api/training/questions/import", methods=["POST"])
 @csrf_protect
-@_manager_required
+@_editor_required
 def import_questions():
     payload = request.get_json(silent=True) or {}
     try:
@@ -98,7 +104,7 @@ def import_questions():
 
 @training_bp.route("/api/training/questions/<version_id>/approve", methods=["POST"])
 @csrf_protect
-@_manager_required
+@_exam_manager_required
 def approve_question(version_id):
     try:
         questions.add_review_action(config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE,
@@ -110,7 +116,7 @@ def approve_question(version_id):
 
 @training_bp.route("/api/training/questions/<version_id>/publish", methods=["POST"])
 @csrf_protect
-@_manager_required
+@_exam_manager_required
 def publish_question(version_id):
     try:
         questions.publish_question_version(config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE,
@@ -122,7 +128,7 @@ def publish_question(version_id):
 
 @training_bp.route("/api/training/templates", methods=["POST"])
 @csrf_protect
-@_manager_required
+@_exam_manager_required
 def create_template():
     payload = request.get_json(silent=True) or {}
     try:
@@ -145,7 +151,7 @@ def create_template():
 
 @training_bp.route("/api/training/exams", methods=["POST"])
 @csrf_protect
-@_manager_required
+@_exam_manager_required
 def create_exam():
     payload = request.get_json(silent=True) or {}
     try:
@@ -166,7 +172,7 @@ def create_exam():
 
 @training_bp.route("/api/training/exams/<exam_id>/assignments", methods=["POST"])
 @csrf_protect
-@_manager_required
+@_exam_manager_required
 def create_assignments(exam_id):
     payload = request.get_json(silent=True) or {}
     try:
@@ -183,7 +189,7 @@ def create_assignments(exam_id):
 
 @training_bp.route("/api/training/exams/<exam_id>/<action>", methods=["POST"])
 @csrf_protect
-@_manager_required
+@_exam_manager_required
 def transition_exam(exam_id, action):
     handlers = {"ready": exams.ready_exam, "open": exams.open_exam, "close": exams.close_exam}
     handler = handlers.get(action)
@@ -198,6 +204,7 @@ def transition_exam(exam_id, action):
 
 @training_bp.route("/api/training/assignments/<assignment_id>/attempts", methods=["POST"])
 @csrf_protect
+@_learner_required
 def start_attempt(assignment_id):
     try:
         result = attempts.start_attempt(
@@ -210,6 +217,7 @@ def start_attempt(assignment_id):
 
 
 @training_bp.route("/api/training/attempts/<attempt_id>")
+@_learner_required
 def get_attempt(attempt_id):
     try:
         if not _attempt_owned_by_current_user(attempt_id):
@@ -223,6 +231,7 @@ def get_attempt(attempt_id):
 
 @training_bp.route("/api/training/attempts/<attempt_id>/responses/<item_id>", methods=["PUT"])
 @csrf_protect
+@_learner_required
 def save_response(attempt_id, item_id):
     payload = request.get_json(silent=True) or {}
     try:
@@ -240,6 +249,7 @@ def save_response(attempt_id, item_id):
 
 @training_bp.route("/api/training/attempts/<attempt_id>/submit", methods=["POST"])
 @csrf_protect
+@_learner_required
 def submit_attempt(attempt_id):
     try:
         if not _attempt_owned_by_current_user(attempt_id):
@@ -254,7 +264,7 @@ def submit_attempt(attempt_id):
 
 @training_bp.route("/api/training/exams/<exam_id>/finalize", methods=["POST"])
 @csrf_protect
-@_manager_required
+@_exam_manager_required
 def finalize_exam(exam_id):
     try:
         return jsonify(reports.finalize_exam(
@@ -266,7 +276,7 @@ def finalize_exam(exam_id):
 
 
 @training_bp.route("/api/training/exams/<exam_id>/report")
-@_manager_required
+@_exam_manager_required
 def get_report(exam_id):
     try:
         report = reports.get_report_snapshot(config.TRAINING_DB_PATH, exam_id)
@@ -278,7 +288,7 @@ def get_report(exam_id):
 
 
 @training_bp.route("/download/training/exams/<exam_id>/report.xlsx")
-@_manager_required
+@_exam_manager_required
 def download_report_excel(exam_id):
     report = reports.get_report_snapshot(config.TRAINING_DB_PATH, exam_id)
     if report is None:
