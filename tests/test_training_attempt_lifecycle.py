@@ -49,7 +49,9 @@ def _setup(monkeypatch, tmp_path):
     return db_path
 
 
-def _make_open_exam_with_assignment(db_path, username="learner1"):
+def _make_open_exam_with_assignment(
+    db_path, username="learner1", *, shuffle_questions=False, shuffle_options=False,
+):
     result = qs.import_question_batch(db_path, unit_code="son_tay", actor="ed",
                                        batch=VALID_BATCH, status="draft")
     for vid in result["version_ids"]:
@@ -57,7 +59,8 @@ def _make_open_exam_with_assignment(db_path, username="learner1"):
         qs.publish_question_version(db_path, unit_code="son_tay", actor="mgr", version_id=vid)
     tpl = es.create_template(db_path, unit_code="son_tay", actor="mgr",
         code="T", title="T", target_audience_code="nvkt",
-        question_version_ids=result["version_ids"], duration_seconds=600, pass_score_percent=80.0)
+        question_version_ids=result["version_ids"], duration_seconds=600, pass_score_percent=80.0,
+        shuffle_questions=shuffle_questions, shuffle_options=shuffle_options)
     now = time_policy.utc_now_ms()
     exam = es.create_exam(db_path, unit_code="son_tay", actor="mgr",
         code="E", title="E", template_id=tpl["id"], target_audience_code="nvkt",
@@ -155,6 +158,64 @@ def test_snapshot_has_correct_data(monkeypatch, tmp_path):
     conn.close()
     assert len(items) == 3
     assert len(opts) == 6
+
+
+def _snapshot_order(db_path, attempt_id):
+    conn = training_db.read_connection(db_path)
+    try:
+        items = conn.execute(
+            "SELECT question_version_id FROM exam_attempt_items WHERE attempt_id=? ORDER BY sequence_number",
+            (attempt_id,),
+        ).fetchall()
+        options = conn.execute(
+            """SELECT o.option_code FROM exam_attempt_options o
+            JOIN exam_attempt_items i ON i.id=o.attempt_item_id
+            WHERE i.attempt_id=? ORDER BY i.sequence_number, o.display_order""",
+            (attempt_id,),
+        ).fetchall()
+        checksum = conn.execute(
+            "SELECT snapshot_checksum FROM exam_attempts WHERE id=?", (attempt_id,)
+        ).fetchone()["snapshot_checksum"]
+        return [row["question_version_id"] for row in items], [row["option_code"] for row in options], checksum
+    finally:
+        conn.close()
+
+
+def test_shuffle_snapshot_is_reproducible_and_includes_order_in_checksum(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(
+        db_path, shuffle_questions=True, shuffle_options=True,
+    )
+    second_assignment_id = es.create_assignments(
+        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
+        users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
+    )[0]
+    monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
+
+    first = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    second = att.start_attempt(db_path, unit_code="son_tay", actor="learner2", assignment_id=second_assignment_id)
+
+    first_order = _snapshot_order(db_path, first["attempt_id"])
+    second_order = _snapshot_order(db_path, second["attempt_id"])
+    assert first_order == second_order
+    template_items = es.get_template_items(db_path, es.get_exam(db_path, exam_id)["template_id"])
+    assert first_order[0] != [item["question_version_id"] for item in template_items]
+    assert first_order[1] != ["A", "B"] * 3
+
+
+def test_shuffle_flags_false_preserve_template_and_option_order(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(
+        db_path, shuffle_questions=False, shuffle_options=False,
+    )
+    monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
+
+    result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+
+    item_order, option_order, _ = _snapshot_order(db_path, result["attempt_id"])
+    template_items = es.get_template_items(db_path, es.get_exam(db_path, exam_id)["template_id"])
+    assert item_order == [item["question_version_id"] for item in template_items]
+    assert option_order == ["A", "B"] * 3
 
 
 # --- M3.4: autosave ---

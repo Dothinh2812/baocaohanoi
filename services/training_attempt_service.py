@@ -7,6 +7,7 @@ Submit dùng compare-and-set. Chấm chỉ từ snapshot.
 import hashlib
 import json
 import random
+import secrets
 
 from training import constants, time_policy
 from training.db import read_connection, write_connection
@@ -55,7 +56,10 @@ def start_attempt(db_path, *, unit_code, actor, assignment_id):
             return _attempt_start_result(existing["id"], conn, assignment_id)
 
         exam = conn.execute(
-            "SELECT * FROM exam_events WHERE id=?", (assignment["exam_event_id"],)
+            """SELECT ee.*, et.shuffle_questions, et.shuffle_options
+            FROM exam_events ee
+            JOIN exam_templates et ON et.id=ee.template_id
+            WHERE ee.id=?""", (assignment["exam_event_id"],)
         ).fetchone()
         now = time_policy.utc_now_ms()
         if exam["status"] != constants.ExamStatus.OPEN:
@@ -66,7 +70,7 @@ def start_attempt(db_path, *, unit_code, actor, assignment_id):
             raise TrainingError(ErrorCode.EXAM_NOT_OPEN, "Chưa đến hoặc đã hết thời gian thi", status=409)
 
         attempt_id = gen_id("att")
-        random_seed = random.randint(0, 2**31 - 1)
+        random_seed = secrets.randbits(31)
         now = time_policy.utc_now_ms()
         deadline = time_policy.compute_attempt_deadline_ms(
             now, exam["end_at_ms"], assignment["duration_seconds"] * 1000,
@@ -121,19 +125,20 @@ def _build_snapshot(conn, attempt_id, exam, random_seed):
         (exam["template_id"],),
     ).fetchall()
 
+    items = list(items)
+    if exam["shuffle_questions"]:
+        _snapshot_rng(random_seed, "questions").shuffle(items)
+
     snapshot_data = []
-    for item in items:
+    for sequence_number, item in enumerate(items, start=1):
         item_id = gen_id("atti")
         opts = [dict(r) for r in conn.execute(
             "SELECT option_code, option_text, display_order FROM question_options "
             "WHERE question_version_id=? ORDER BY display_order",
             (item["id"],),
         ).fetchall()]
-        if exam["target_audience_code"]:
-            pass
-        rng = random.Random(random_seed + item["sequence_number"])
-        if exam_row_has_shuffle(exam):
-            rng.shuffle(opts)
+        if exam["shuffle_options"]:
+            _snapshot_rng(random_seed, f"options:{item['id']}").shuffle(opts)
         topics = [r["topic_code"] for r in conn.execute(
             "SELECT topic_code FROM question_topics WHERE question_version_id=?",
             (item["id"],),
@@ -149,7 +154,7 @@ def _build_snapshot(conn, attempt_id, exam, random_seed):
              language, correct_option_ids_json, explanation, distractor_rationales_json,
              difficulty, section_label, topic_codes_json, points, max_score, evidence_json)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (item_id, attempt_id, item["sequence_number"], item["id"],
+            (item_id, attempt_id, sequence_number, item["id"],
              item["type"], item["stem"], item["stimulus"], item["language"],
              item["correct_option_ids_json"], item["explanation"],
              item["distractor_rationales_json"], item["difficulty"],
@@ -166,6 +171,7 @@ def _build_snapshot(conn, attempt_id, exam, random_seed):
         snapshot_data.append({
             "qv": item["id"], "correct": item["correct_option_ids_json"],
             "topics": topics,
+            "options": [opt["option_code"] for opt in opts],
         })
     checksum = _snapshot_checksum(snapshot_data)
     conn.execute(
@@ -174,10 +180,10 @@ def _build_snapshot(conn, attempt_id, exam, random_seed):
     )
 
 
-def exam_row_has_shuffle(exam_row):
-    conn_row = exam_row
-    template = None
-    return False
+def _snapshot_rng(random_seed, scope):
+    """Tạo stream cục bộ ổn định cho từng phần snapshot."""
+    material = f"{SHUFFLE_ALGORITHM_VERSION}:{random_seed}:{scope}".encode("utf-8")
+    return random.Random(int.from_bytes(hashlib.sha256(material).digest(), "big"))
 
 
 def _attempt_start_result(attempt_id, conn, assignment_id):
