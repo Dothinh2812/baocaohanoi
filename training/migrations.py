@@ -11,7 +11,7 @@ import time
 from training import time_policy
 from training.db import write_connection
 
-CURRENT_SCHEMA_VERSION = 5
+CURRENT_SCHEMA_VERSION = 7
 
 
 class UnitCodeMismatchError(Exception):
@@ -436,12 +436,216 @@ def migration_005(conn):
     )
 
 
+def migration_006(conn):
+    """Đề và kỳ thi: templates, template_items, events, assignments."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS exam_templates (
+            id TEXT NOT NULL PRIMARY KEY,
+            code TEXT NOT NULL,
+            title TEXT NOT NULL,
+            target_audience_code TEXT NOT NULL,
+            total_questions INTEGER NOT NULL,
+            duration_seconds INTEGER NOT NULL,
+            pass_score_percent REAL NOT NULL DEFAULT 80.0,
+            shuffle_questions INTEGER NOT NULL DEFAULT 0,
+            shuffle_options INTEGER NOT NULL DEFAULT 0,
+            locked INTEGER NOT NULL DEFAULT 0,
+            created_by TEXT NOT NULL,
+            created_at_ms INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_templates_code ON exam_templates (code);
+
+        CREATE TABLE IF NOT EXISTS exam_template_items (
+            id TEXT NOT NULL PRIMARY KEY,
+            template_id TEXT NOT NULL,
+            sequence_number INTEGER NOT NULL,
+            question_version_id TEXT NOT NULL,
+            section_label TEXT,
+            points REAL NOT NULL DEFAULT 1.0,
+            FOREIGN KEY (template_id) REFERENCES exam_templates(id),
+            UNIQUE (template_id, sequence_number)
+        );
+        CREATE INDEX IF NOT EXISTS idx_titems_template_qv
+            ON exam_template_items (template_id, question_version_id);
+
+        CREATE TABLE IF NOT EXISTS exam_events (
+            id TEXT NOT NULL PRIMARY KEY,
+            code TEXT NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            template_id TEXT NOT NULL,
+            target_audience_code TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'draft',
+            start_at_ms INTEGER NOT NULL,
+            end_at_ms INTEGER NOT NULL,
+            duration_seconds INTEGER NOT NULL,
+            pass_score_percent REAL NOT NULL,
+            reveal_answers_after_finalize INTEGER NOT NULL DEFAULT 1,
+            created_by TEXT NOT NULL,
+            created_at_ms INTEGER NOT NULL,
+            finalized_at_ms INTEGER,
+            finalized_by TEXT,
+            FOREIGN KEY (template_id) REFERENCES exam_templates(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_events_status ON exam_events (status);
+        CREATE INDEX IF NOT EXISTS idx_events_start ON exam_events (start_at_ms);
+
+        CREATE TABLE IF NOT EXISTS exam_assignments (
+            id TEXT NOT NULL PRIMARY KEY,
+            exam_event_id TEXT NOT NULL,
+            username TEXT NOT NULL,
+            display_name TEXT NOT NULL,
+            team_code TEXT,
+            team_name TEXT,
+            organization_code TEXT,
+            organization_name TEXT,
+            audience_code TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'assigned',
+            duration_seconds INTEGER NOT NULL,
+            retake_of_assignment_id TEXT,
+            assigned_at_ms INTEGER NOT NULL,
+            user_source_updated_at_ms INTEGER,
+            FOREIGN KEY (exam_event_id) REFERENCES exam_events(id),
+            UNIQUE (exam_event_id, username, audience_code)
+        );
+        CREATE INDEX IF NOT EXISTS idx_assignments_event_user_status
+            ON exam_assignments (exam_event_id, username, status);
+        """
+    )
+
+
+def migration_007(conn):
+    """Bài làm và kết quả: attempts, attempt_items/options, responses, results, reports."""
+    conn.executescript(
+        """
+        CREATE TABLE IF NOT EXISTS exam_attempts (
+            id TEXT NOT NULL PRIMARY KEY,
+            assignment_id TEXT NOT NULL,
+            status TEXT NOT NULL DEFAULT 'created',
+            random_seed INTEGER NOT NULL,
+            shuffle_algorithm_version TEXT NOT NULL,
+            snapshot_checksum TEXT NOT NULL,
+            started_at_ms INTEGER,
+            deadline_at_ms INTEGER,
+            submitted_at_ms INTEGER,
+            ended_reason TEXT,
+            created_at_ms INTEGER NOT NULL,
+            FOREIGN KEY (assignment_id) REFERENCES exam_assignments(id),
+            UNIQUE (assignment_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_attempts_assignment_status
+            ON exam_attempts (assignment_id, status);
+
+        CREATE TABLE IF NOT EXISTS exam_attempt_items (
+            id TEXT NOT NULL PRIMARY KEY,
+            attempt_id TEXT NOT NULL,
+            sequence_number INTEGER NOT NULL,
+            question_version_id TEXT NOT NULL,
+            type TEXT NOT NULL,
+            stem TEXT NOT NULL,
+            stimulus TEXT,
+            language TEXT NOT NULL,
+            correct_option_ids_json TEXT NOT NULL,
+            explanation TEXT,
+            distractor_rationales_json TEXT,
+            difficulty TEXT,
+            section_label TEXT,
+            topic_codes_json TEXT,
+            competency_codes_json TEXT,
+            points REAL NOT NULL,
+            max_score REAL NOT NULL,
+            scoring_policy_json TEXT,
+            evidence_json TEXT,
+            FOREIGN KEY (attempt_id) REFERENCES exam_attempts(id),
+            UNIQUE (attempt_id, sequence_number)
+        );
+
+        CREATE TABLE IF NOT EXISTS exam_attempt_options (
+            id TEXT NOT NULL PRIMARY KEY,
+            attempt_item_id TEXT NOT NULL,
+            option_code TEXT NOT NULL,
+            option_text TEXT NOT NULL,
+            display_order INTEGER NOT NULL,
+            FOREIGN KEY (attempt_item_id) REFERENCES exam_attempt_items(id),
+            UNIQUE (attempt_item_id, option_code)
+        );
+
+        CREATE TABLE IF NOT EXISTS exam_responses (
+            id TEXT NOT NULL PRIMARY KEY,
+            attempt_id TEXT NOT NULL,
+            attempt_item_id TEXT NOT NULL,
+            selected_option_ids_json TEXT NOT NULL DEFAULT '[]',
+            client_revision INTEGER NOT NULL DEFAULT 0,
+            answered_at_ms INTEGER,
+            FOREIGN KEY (attempt_id) REFERENCES exam_attempts(id),
+            FOREIGN KEY (attempt_item_id) REFERENCES exam_attempt_items(id),
+            UNIQUE (attempt_id, attempt_item_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_responses_attempt ON exam_responses (attempt_id);
+
+        CREATE TABLE IF NOT EXISTS exam_results (
+            id TEXT NOT NULL PRIMARY KEY,
+            attempt_id TEXT NOT NULL,
+            raw_score REAL NOT NULL,
+            maximum_score REAL NOT NULL,
+            percent REAL NOT NULL,
+            passed INTEGER NOT NULL,
+            topic_breakdown_json TEXT NOT NULL,
+            scored_at_ms INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'scored',
+            FOREIGN KEY (attempt_id) REFERENCES exam_attempts(id),
+            UNIQUE (attempt_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_results_attempt ON exam_results (attempt_id);
+
+        CREATE TABLE IF NOT EXISTS exam_result_topics (
+            result_id TEXT NOT NULL,
+            topic_code TEXT NOT NULL,
+            correct_count INTEGER NOT NULL,
+            total_count INTEGER NOT NULL,
+            points REAL NOT NULL,
+            max_points REAL NOT NULL,
+            PRIMARY KEY (result_id, topic_code)
+        );
+
+        CREATE TABLE IF NOT EXISTS exam_score_adjustments (
+            id TEXT NOT NULL PRIMARY KEY,
+            result_id TEXT NOT NULL,
+            delta_score REAL NOT NULL,
+            reason TEXT NOT NULL,
+            adjusted_by TEXT NOT NULL,
+            created_at_ms INTEGER NOT NULL,
+            FOREIGN KEY (result_id) REFERENCES exam_results(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_adjustments_result ON exam_score_adjustments (result_id);
+
+        CREATE TABLE IF NOT EXISTS exam_report_snapshots (
+            id TEXT NOT NULL PRIMARY KEY,
+            exam_event_id TEXT NOT NULL,
+            revision INTEGER NOT NULL,
+            schema_version TEXT NOT NULL,
+            report_algorithm_version TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            checksum TEXT NOT NULL,
+            previous_revision INTEGER,
+            created_by TEXT NOT NULL,
+            created_at_ms INTEGER NOT NULL,
+            FOREIGN KEY (exam_event_id) REFERENCES exam_events(id),
+            UNIQUE (exam_event_id, revision)
+        );
+        """
+    )
+
+
 _MIGRATIONS = [
     (1, migration_001),
     (2, migration_002),
     (3, migration_003),
     (4, migration_004),
     (5, migration_005),
+    (6, migration_006),
+    (7, migration_007),
 ]
 
 

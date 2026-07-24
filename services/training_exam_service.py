@@ -1,0 +1,270 @@
+"""Exam service: template, exam event, assignment, state transitions.
+
+Template chỉ tham chiếu published question versions. State machine:
+draft → ready → open → closed/cancelled. Không pause, không mở lại.
+Open/close dùng compare-and-set + audit.
+"""
+
+import json
+
+from training import constants, time_policy
+from training.db import read_connection, write_connection
+from training.errors import ErrorCode, TrainingError
+from repositories.training_repository import gen_id, write_audit
+
+SHUFFLE_ALGORITHM_VERSION = "v1"
+
+
+def create_template(
+    db_path, *, unit_code, actor, code, title, target_audience_code,
+    question_version_ids, duration_seconds, pass_score_percent,
+    shuffle_questions=False, shuffle_options=False,
+):
+    """Tạo fixed template từ published question versions."""
+    if not question_version_ids:
+        raise TrainingError(ErrorCode.VALIDATION_ERROR, "Template cần ít nhất một câu hỏi")
+    conn = write_connection(db_path)
+    try:
+        placeholders = ",".join("?" * len(question_version_ids))
+        unpublished = conn.execute(
+            f"SELECT id FROM question_versions WHERE id IN ({placeholders}) "
+            "AND publication_status != 'published'",
+            question_version_ids,
+        ).fetchall()
+        if unpublished:
+            raise TrainingError(
+                ErrorCode.VALIDATION_ERROR,
+                f"Question version {unpublished[0]['id']} chưa được publish",
+                status=400,
+            )
+        template_id = gen_id("tpl")
+        now = time_policy.utc_now_ms()
+        conn.execute(
+            """INSERT INTO exam_templates
+            (id, code, title, target_audience_code, total_questions, duration_seconds,
+             pass_score_percent, shuffle_questions, shuffle_options, locked, created_by, created_at_ms)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)""",
+            (template_id, code, title, target_audience_code,
+             len(question_version_ids), duration_seconds, pass_score_percent,
+             int(shuffle_questions), int(shuffle_options), actor, now),
+        )
+        for seq, qv_id in enumerate(question_version_ids, start=1):
+            conn.execute(
+                "INSERT INTO exam_template_items (id, template_id, sequence_number, question_version_id, points) "
+                "VALUES (?, ?, ?, ?, 1.0)",
+                (gen_id("ti"), template_id, seq, qv_id),
+            )
+        write_audit(conn, actor=actor, unit_code=unit_code, action="create_template",
+                    entity_type="exam_template", entity_id=template_id)
+        conn.commit()
+        return {"id": template_id, "code": code, "title": title,
+                "total_questions": len(question_version_ids), "locked": 0}
+    finally:
+        conn.close()
+
+
+def get_template_items(db_path, template_id):
+    conn = read_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM exam_template_items WHERE template_id=? ORDER BY sequence_number",
+            (template_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def create_exam(
+    db_path, *, unit_code, actor, code, title, template_id, target_audience_code,
+    start_at_ms, end_at_ms, duration_seconds, pass_score_percent,
+    description=None, reveal_answers_after_finalize=True,
+):
+    if end_at_ms <= start_at_ms:
+        raise TrainingError(ErrorCode.VALIDATION_ERROR, "end_at phải sau start_at")
+    conn = write_connection(db_path)
+    try:
+        exam_id = gen_id("exam")
+        now = time_policy.utc_now_ms()
+        conn.execute(
+            """INSERT INTO exam_events
+            (id, code, title, description, template_id, target_audience_code, status,
+             start_at_ms, end_at_ms, duration_seconds, pass_score_percent,
+             reveal_answers_after_finalize, created_by, created_at_ms)
+            VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, ?, ?, ?, ?, ?, ?)""",
+            (exam_id, code, title, description, template_id, target_audience_code,
+             start_at_ms, end_at_ms, duration_seconds, pass_score_percent,
+             int(reveal_answers_after_finalize), actor, now),
+        )
+        write_audit(conn, actor=actor, unit_code=unit_code, action="create_exam",
+                    entity_type="exam_event", entity_id=exam_id)
+        conn.commit()
+        return {"id": exam_id, "code": code, "status": constants.ExamStatus.DRAFT}
+    finally:
+        conn.close()
+
+
+def _compare_and_set_exam_status(conn, exam_id, from_status, to_status):
+    cursor = conn.execute(
+        "UPDATE exam_events SET status=? WHERE id=? AND status=?",
+        (to_status, exam_id, from_status),
+    )
+    return cursor.rowcount > 0
+
+
+def ready_exam(db_path, *, unit_code, actor, exam_id):
+    conn = write_connection(db_path)
+    try:
+        ok = _compare_and_set_exam_status(conn, exam_id, constants.ExamStatus.DRAFT, constants.ExamStatus.READY)
+        if not ok:
+            exam = conn.execute("SELECT status FROM exam_events WHERE id=?", (exam_id,)).fetchone()
+            if not exam:
+                raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
+            raise TrainingError(ErrorCode.CONFLICT,
+                                f"Không thể ready: trạng thái hiện tại {exam['status']}", status=409)
+        write_audit(conn, actor=actor, unit_code=unit_code, action="ready_exam",
+                    entity_type="exam_event", entity_id=exam_id)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def open_exam(db_path, *, unit_code, actor, exam_id):
+    conn = write_connection(db_path)
+    try:
+        exam = conn.execute(
+            "SELECT status, start_at_ms, end_at_ms FROM exam_events WHERE id=?",
+            (exam_id,),
+        ).fetchone()
+        if not exam:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
+        now = time_policy.utc_now_ms()
+        if exam["status"] == constants.ExamStatus.OPEN:
+            return
+        if exam["status"] not in (constants.ExamStatus.READY, constants.ExamStatus.DRAFT):
+            raise TrainingError(ErrorCode.EXAM_NOT_OPEN,
+                                f"Kỳ thi không thể mở: trạng thái {exam['status']}", status=409)
+        if now < exam["start_at_ms"] or now >= exam["end_at_ms"]:
+            raise TrainingError(ErrorCode.EXAM_NOT_OPEN,
+                                "Chưa đến hoặc đã hết thời gian thi", status=409)
+        _compare_and_set_exam_status(conn, exam_id, exam["status"], constants.ExamStatus.OPEN)
+        write_audit(conn, actor=actor, unit_code=unit_code, action="open_exam",
+                    entity_type="exam_event", entity_id=exam_id)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def close_exam(db_path, *, unit_code, actor, exam_id):
+    conn = write_connection(db_path)
+    try:
+        ok = _compare_and_set_exam_status(conn, exam_id, constants.ExamStatus.OPEN, constants.ExamStatus.CLOSED)
+        if not ok:
+            exam = conn.execute("SELECT status FROM exam_events WHERE id=?", (exam_id,)).fetchone()
+            if not exam:
+                raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
+            if exam["status"] == constants.ExamStatus.CLOSED:
+                return
+            raise TrainingError(ErrorCode.CONFLICT,
+                                f"Không thể đóng: trạng thái {exam['status']}", status=409)
+        write_audit(conn, actor=actor, unit_code=unit_code, action="close_exam",
+                    entity_type="exam_event", entity_id=exam_id)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def cancel_exam(db_path, *, unit_code, actor, exam_id):
+    conn = write_connection(db_path)
+    try:
+        exam = conn.execute("SELECT status FROM exam_events WHERE id=?", (exam_id,)).fetchone()
+        if not exam:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
+        if exam["status"] in constants.EXAM_TERMINAL_STATUSES:
+            raise TrainingError(ErrorCode.CONFLICT,
+                                f"Không thể hủy: trạng thái {exam['status']}", status=409)
+        conn.execute("UPDATE exam_events SET status=? WHERE id=?",
+                     (constants.ExamStatus.CANCELLED, exam_id))
+        write_audit(conn, actor=actor, unit_code=unit_code, action="cancel_exam",
+                    entity_type="exam_event", entity_id=exam_id)
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def create_assignments(db_path, *, unit_code, actor, exam_id, users, audience_code):
+    """Snapshot users vào assignment."""
+    now = time_policy.utc_now_ms()
+    conn = write_connection(db_path)
+    try:
+        exam = conn.execute(
+            "SELECT duration_seconds, target_audience_code FROM exam_events WHERE id=?",
+            (exam_id,),
+        ).fetchone()
+        if not exam:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
+        assignment_ids = []
+        for user in users:
+            assignment_id = gen_id("asg")
+            conn.execute(
+                """INSERT INTO exam_assignments
+                (id, exam_event_id, username, display_name, team_code, team_name,
+                 organization_code, organization_name, audience_code, status,
+                 duration_seconds, assigned_at_ms)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'assigned', ?, ?)""",
+                (assignment_id, exam_id, user["username"],
+                 user.get("display_name", user["username"]),
+                 user.get("team_code"), user.get("team_name"),
+                 user.get("organization_code"), user.get("organization_name"),
+                 audience_code, exam["duration_seconds"], now),
+            )
+            assignment_ids.append(assignment_id)
+        write_audit(conn, actor=actor, unit_code=unit_code, action="create_assignments",
+                    entity_type="exam_event", entity_id=exam_id,
+                    after={"count": len(assignment_ids)})
+        conn.commit()
+        return assignment_ids
+    finally:
+        conn.close()
+
+
+def get_exam(db_path, exam_id):
+    conn = read_connection(db_path)
+    try:
+        row = conn.execute("SELECT * FROM exam_events WHERE id=?", (exam_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_assignment(db_path, assignment_id):
+    conn = read_connection(db_path)
+    try:
+        row = conn.execute("SELECT * FROM exam_assignments WHERE id=?", (assignment_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_assignments_for_exam(db_path, exam_id):
+    conn = read_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM exam_assignments WHERE exam_event_id=? ORDER BY username",
+            (exam_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_assignment_for_user(db_path, exam_id, username):
+    conn = read_connection(db_path)
+    try:
+        rows = conn.execute(
+            "SELECT * FROM exam_assignments WHERE exam_event_id=? AND username=? ORDER BY assigned_at_ms",
+            (exam_id, username),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
