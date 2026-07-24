@@ -8,6 +8,8 @@ from services import training_attempt_service as attempts
 from services import training_exam_service as exams
 from services.training_catalog_service import grant_role, seed_defaults
 from tests.test_training_attempt_lifecycle import _make_open_exam_with_assignment
+from tests.test_training_exam_states import _publish_questions
+from training import time_policy
 
 
 def _client(monkeypatch, tmp_path):
@@ -280,3 +282,69 @@ def test_dashboard_admin_bypasses_module_role_requirement(monkeypatch, tmp_path)
         )
 
     assert response.status_code == 201
+
+
+def test_create_exam_route_returns_stable_error_for_missing_template(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        now = time_policy.utc_now_ms()
+        response = client.post(
+            "/api/training/exams",
+            headers={"X-CSRF-Token": "csrf"},
+            json={
+                "code": "EXAM-MISSING-TEMPLATE", "title": "Kỳ thi", "template_id": "missing",
+                "target_audience_code": "nvkt", "start_at_ms": now,
+                "end_at_ms": now + 3_600_000, "duration_seconds": 600,
+            },
+        )
+
+    assert response.status_code == 404
+    assert response.get_json()["error"]["code"] == "NOT_FOUND"
+
+
+def test_create_exam_route_returns_audience_mismatch(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        db_path = str(tmp_path / "training.db")
+        version_ids = _publish_questions(db_path)
+        template = exams.create_template(
+            db_path, unit_code="son_tay", actor="admin", code="TPL-ROUTE-AUDIENCE", title="Template",
+            target_audience_code="nvkt", question_version_ids=version_ids,
+            duration_seconds=600, pass_score_percent=80.0,
+        )
+        now = time_policy.utc_now_ms()
+        response = client.post(
+            "/api/training/exams",
+            headers={"X-CSRF-Token": "csrf"},
+            json={
+                "code": "EXAM-ROUTE-AUDIENCE", "title": "Kỳ thi", "template_id": template["id"],
+                "target_audience_code": "b2a", "start_at_ms": now,
+                "end_at_ms": now + 3_600_000, "duration_seconds": 600,
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "AUDIENCE_MISMATCH"
+
+
+def test_create_assignments_route_returns_audience_mismatch(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        db_path = str(tmp_path / "training.db")
+        version_ids = _publish_questions(db_path)
+        template = exams.create_template(
+            db_path, unit_code="son_tay", actor="admin", code="TPL-ASSIGN-ROUTE", title="Template",
+            target_audience_code="nvkt", question_version_ids=version_ids,
+            duration_seconds=600, pass_score_percent=80.0,
+        )
+        now = time_policy.utc_now_ms()
+        exam = exams.create_exam(
+            db_path, unit_code="son_tay", actor="admin", code="EXAM-ASSIGN-ROUTE", title="Kỳ thi",
+            template_id=template["id"], target_audience_code="nvkt", start_at_ms=now,
+            end_at_ms=now + 3_600_000, duration_seconds=600, pass_score_percent=80.0,
+        )
+        response = client.post(
+            f"/api/training/exams/{exam['id']}/assignments",
+            headers={"X-CSRF-Token": "csrf"},
+            json={"users": [{"username": "u1"}], "audience_code": "b2a"},
+        )
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "AUDIENCE_MISMATCH"

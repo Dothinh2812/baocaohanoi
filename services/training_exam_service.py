@@ -195,6 +195,16 @@ def create_exam(
         raise TrainingError(ErrorCode.VALIDATION_ERROR, "end_at phải sau start_at")
     conn = write_connection(db_path)
     try:
+        template = conn.execute(
+            "SELECT target_audience_code FROM exam_templates WHERE id=?", (template_id,)
+        ).fetchone()
+        if not template:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Template không tồn tại", status=404)
+        if template["target_audience_code"] != target_audience_code:
+            raise TrainingError(
+                ErrorCode.AUDIENCE_MISMATCH,
+                "Đối tượng kỳ thi phải trùng với đối tượng template",
+            )
         exam_id = gen_id("exam")
         now = time_policy.utc_now_ms()
         conn.execute(
@@ -360,6 +370,32 @@ def create_assignments(db_path, *, unit_code, actor, exam_id, users, audience_co
         ).fetchone()
         if not exam:
             raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
+        if exam["target_audience_code"] != audience_code:
+            raise TrainingError(
+                ErrorCode.AUDIENCE_MISMATCH,
+                "Đối tượng giao bài phải trùng với đối tượng kỳ thi",
+            )
+        usernames = [user["username"] for user in users]
+        if usernames:
+            placeholders = ",".join("?" * len(usernames))
+            mismatched_user = conn.execute(
+                f"""SELECT configured.username
+                FROM (
+                    SELECT DISTINCT username FROM training_user_audiences
+                    WHERE username IN ({placeholders})
+                ) configured
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM training_user_audiences audience
+                    WHERE audience.username=configured.username AND audience.audience_code=?
+                )
+                LIMIT 1""",
+                [*usernames, audience_code],
+            ).fetchone()
+            if mismatched_user:
+                raise TrainingError(
+                    ErrorCode.AUDIENCE_MISMATCH,
+                    f"Người dùng {mismatched_user['username']} không thuộc đối tượng được giao",
+                )
         assignment_ids = []
         for user in users:
             assignment_id = gen_id("asg")

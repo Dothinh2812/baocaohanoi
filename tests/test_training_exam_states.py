@@ -242,6 +242,44 @@ def test_create_exam_draft(monkeypatch, tmp_path):
     assert exam["status"] == "draft"
 
 
+def test_create_exam_rejects_missing_template_with_stable_error(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    now = time_policy.utc_now_ms()
+
+    with pytest.raises(TrainingError) as exc:
+        es.create_exam(
+            db_path, unit_code="son_tay", actor="alice", code="EXAM-MISSING-TEMPLATE",
+            title="Kỳ thi", template_id="missing-template", target_audience_code="nvkt",
+            start_at_ms=now, end_at_ms=now + 3_600_000, duration_seconds=600,
+            pass_score_percent=80.0,
+        )
+
+    assert exc.value.code == "NOT_FOUND"
+    assert exc.value.status == 404
+
+
+def test_create_exam_rejects_template_audience_mismatch(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_ids = _publish_questions(db_path)
+    template = es.create_template(
+        db_path, unit_code="son_tay", actor="alice", code="TPL-AUDIENCE-CHAIN", title="Template",
+        target_audience_code="nvkt", question_version_ids=version_ids,
+        duration_seconds=600, pass_score_percent=80.0,
+    )
+    now = time_policy.utc_now_ms()
+
+    with pytest.raises(TrainingError) as exc:
+        es.create_exam(
+            db_path, unit_code="son_tay", actor="alice", code="EXAM-AUDIENCE-CHAIN",
+            title="Kỳ thi", template_id=template["id"], target_audience_code="b2a",
+            start_at_ms=now, end_at_ms=now + 3_600_000, duration_seconds=600,
+            pass_score_percent=80.0,
+        )
+
+    assert exc.value.code == "AUDIENCE_MISMATCH"
+    assert exc.value.status == 400
+
+
 def test_exam_state_transitions(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     version_ids = _publish_questions(db_path)
@@ -554,6 +592,55 @@ def test_create_assignments_snapshots_users(monkeypatch, tmp_path):
     a1 = es.get_assignment(db_path, assignments[0])
     assert a1["display_name"] == "User 1"
     assert a1["status"] == "assigned"
+
+
+def test_create_assignments_rejects_exam_audience_mismatch(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-ASSIGNMENT-AUDIENCE")
+
+    with pytest.raises(TrainingError) as exc:
+        es.create_assignments(
+            db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+            users=[{"username": "u1"}], audience_code="b2a",
+        )
+
+    assert exc.value.code == "AUDIENCE_MISMATCH"
+    assert exc.value.status == 400
+
+
+def test_create_assignments_rejects_configured_user_outside_audience(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-CONFIGURED-USER")
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute(
+            "INSERT INTO training_user_audiences (id, username, audience_code) VALUES (?, ?, ?)",
+            ("aud-u1-b2a", "u1", "b2a"),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    with pytest.raises(TrainingError) as exc:
+        es.create_assignments(
+            db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+            users=[{"username": "u1"}], audience_code="nvkt",
+        )
+
+    assert exc.value.code == "AUDIENCE_MISMATCH"
+    assert exc.value.status == 400
+
+
+def test_create_assignments_allows_unconfigured_user_and_snapshots_audience(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam = _create_transition_exam(db_path, code="EXAM-UNCONFIGURED-USER")
+
+    assignment_id = es.create_assignments(
+        db_path, unit_code="son_tay", actor="alice", exam_id=exam["id"],
+        users=[{"username": "u1"}], audience_code="nvkt",
+    )[0]
+
+    assert es.get_assignment(db_path, assignment_id)["audience_code"] == "nvkt"
 
 
 def test_assignment_unique_per_exam_username_audience(monkeypatch, tmp_path):
