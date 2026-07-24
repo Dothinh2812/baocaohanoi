@@ -156,3 +156,54 @@ def test_render_env_file_contains_route_policy_when_configured():
 
     assert "DASHV4_DISABLED_ENDPOINTS=quangchudong.page_quangchudong,sa_outage.page_su_co_sa" in content
     assert "DASHV4_ENABLED_ENDPOINTS=quality.page_shc_processing" in content
+
+
+def test_load_units_accepts_optional_tiep_thi_db_path(tmp_path):
+    units_file = tmp_path / "units.yaml"
+    units_file.write_text(
+        """
+- code: son_tay
+  slug: son-tay
+  name: "TTVT Sơn Tây"
+  port: 5011
+  hostname: son-tay.example.vn
+  db_path: /runtime/son_tay/sqlite_history/report_history.db
+  tiep_thi_db_path: /home/vtst/onebss_bao_cao/data/bao_cao_tiep_thi.db
+""",
+        encoding="utf-8",
+    )
+
+    units = generate_instances.load_units(units_file)
+
+    assert units[0].tiep_thi_db_path == "/home/vtst/onebss_bao_cao/data/bao_cao_tiep_thi.db"
+
+
+def test_render_env_file_contains_tiep_thi_db_path_when_configured():
+    unit = generate_instances.UnitConfig(
+        code="son_tay",
+        slug="son-tay",
+        name="TTVT Sơn Tây",
+        port=5011,
+        hostname="son-tay.example.vn",
+        db_path="/runtime/son_tay/sqlite_history/report_history.db",
+        tiep_thi_db_path="/home/vtst/onebss_bao_cao/data/bao_cao_tiep_thi.db",
+    )
+
+    content = generate_instances.render_env(unit)
+
+    assert "DASH_TIEP_THI_DB_PATH=/home/vtst/onebss_bao_cao/data/bao_cao_tiep_thi.db" in content
+
+
+def test_render_env_file_omits_tiep_thi_db_path_when_unconfigured():
+    unit = generate_instances.UnitConfig(
+        code="ba_dinh",
+        slug="ba-dinh",
+        name="TTVT Ba Đình",
+        port=5012,
+        hostname="ba-dinh.example.vn",
+        db_path="/runtime/ba_dinh/sqlite_history/report_history.db",
+    )
+
+    content = generate_instances.render_env(unit)
+
+    assert "DASH_TIEP_THI_DB_PATH" not in content

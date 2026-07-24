@@ -362,13 +362,19 @@ function renderKiemSoatTable(team, sheetData, container, fileInfo) {
         </th>`;
     }).join('');
 
+    const isOverdue = (row) => {
+        const value = Number(String(row['giờ còn lại thực'] ?? '').replace(',', '.'));
+        return !Number.isNaN(value) && value < 0;
+    };
+
     const body = rows.map((row, rowIndex) => {
         const cells = KIEMSOAT_DISPLAY_COLS.map((c, idx) => `<td data-column="${c}" data-column-idx="${idx}">${row[c] != null ? row[c] : ''}</td>`).join('');
         const baohong = row.baohong_id;
         const noiDung = (row.kiemsoat_noi_dung || '').toString()
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const overdueClass = isOverdue(row) ? ' brcd-ks-overdue-row' : '';
         return `
-            <tr class="data-row" data-row-index="${rowIndex}">
+            <tr class="data-row${overdueClass}" data-row-index="${rowIndex}">
                 ${cells}
                 <td class="ks-cell">
                     <textarea class="ks-input" rows="2" data-baohong="${baohong}"

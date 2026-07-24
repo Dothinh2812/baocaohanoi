@@ -4,6 +4,10 @@
 
 {% block extra_css %}
 <style>
+    #tiepthi-section .excel-table th,
+    #tiepthi-section .excel-table td {
+        text-align: left;
+    }
     #tiepthi-section .excel-table th[data-column="STT"],
     #tiepthi-section .excel-table td[data-column="STT"] {
         width: 60px;
@@ -21,22 +25,28 @@
     #tiepthi-section .excel-table th[data-column="Mã NV"],
     #tiepthi-section .excel-table td[data-column="Mã NV"] {
         width: 120px;
-        text-align: center;
     }
     #tiepthi-section .excel-table th[data-column="Tên NV"],
     #tiepthi-section .excel-table td[data-column="Tên NV"] {
         width: 180px;
+    }
+    #tiepthi-section .excel-table th[data-column="Loại dịch vụ"],
+    #tiepthi-section .excel-table td[data-column="Loại dịch vụ"] {
+        width: 150px;
     }
     #tiepthi-section .excel-table th[data-column="Dịch vụ BRCĐ"],
     #tiepthi-section .excel-table td[data-column="Dịch vụ BRCĐ"],
     #tiepthi-section .excel-table th[data-column="Dịch vụ MyTV"],
     #tiepthi-section .excel-table td[data-column="Dịch vụ MyTV"],
     #tiepthi-section .excel-table th[data-column="Tổng"],
-    #tiepthi-section .excel-table td[data-column="Tổng"] {
+    #tiepthi-section .excel-table td[data-column="Tổng"],
+    #tiepthi-section .excel-table th[data-column="Số mã tiếp thị"],
+    #tiepthi-section .excel-table td[data-column="Số mã tiếp thị"] {
         width: 100px;
         text-align: center;
     }
-    #tiepthi-section .excel-table td[data-column="Tổng"] {
+    #tiepthi-section .excel-table td[data-column="Tổng"],
+    #tiepthi-section .excel-table td[data-column="Số mã tiếp thị"] {
         font-weight: 600;
         color: #1a5089;
     }
@@ -50,7 +60,7 @@
 <div id="tiepthi-section">
     <div class="dashboard-header">
         <h2 class="dashboard-title">Kết quả Tiếp thị</h2>
-        <p class="dashboard-subtitle">Báo cáo kết quả tiếp thị dịch vụ BRCĐ, MyTV đồng bộ theo ngày dữ liệu</p>
+        <p class="dashboard-subtitle">Báo cáo số mã tiếp thị đồng bộ theo ngày dữ liệu</p>
         <div class="breadcrumb">
             <i class="fas fa-home"></i>
             <span>Dashboard</span>
@@ -66,11 +76,128 @@
         {% include 'components/date_picker.html' %}
     </div>
 
+    <!-- Bảng tổng hợp theo Đơn vị -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-chart-pie"></i>
+            Tổng hợp số mã tiếp thị theo Đơn vị
+        </h3>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table" id="tiepthi-unit-summary-table">
+                    <thead></thead>
+                    <tbody>
+                        <tr>
+                            <td style="text-align:center; padding:16px;">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-layer-group"></i>
+            Tổng hợp số mã tiếp thị theo Loại dịch vụ
+        </h3>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table" id="tiepthi-service-summary-table">
+                    <thead></thead>
+                    <tbody>
+                        <tr>
+                            <td style="text-align:center; padding:16px;">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-sitemap"></i>
+            Tổng hợp số mã tiếp thị theo Đơn vị và Loại dịch vụ
+        </h3>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table" id="tiepthi-unit-service-summary-table">
+                    <thead></thead>
+                    <tbody>
+                        <tr>
+                            <td style="text-align:center; padding:16px;">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-user-tag"></i>
+            Tổng hợp số mã tiếp thị theo Người tiếp thị và Loại dịch vụ
+        </h3>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table" id="tiepthi-marketer-service-summary-table">
+                    <thead></thead>
+                    <tbody>
+                        <tr>
+                            <td style="text-align:center; padding:16px;">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng tổng hợp theo Quý -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-calendar-alt"></i>
+            Tổng hợp số mã tiếp thị theo Quý
+        </h3>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table" id="tiepthi-quarter-summary-table">
+                    <thead></thead>
+                    <tbody>
+                        <tr>
+                            <td style="text-align:center; padding:16px;">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng tổng hợp theo Năm -->
+    <div class="section">
+        <h3 class="section-title">
+            <i class="fas fa-calendar"></i>
+            Tổng hợp số mã tiếp thị theo Năm
+        </h3>
+        <div class="excel-table-card">
+            <div class="excel-table-body">
+                <table class="excel-table summary-table" id="tiepthi-year-summary-table">
+                    <thead></thead>
+                    <tbody>
+                        <tr>
+                            <td style="text-align:center; padding:16px;">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Bảng tổng hợp theo Tổ -->
     <div class="section">
         <h3 class="section-title">
             <i class="fas fa-chart-bar"></i>
-            Tổng hợp kết quả theo Tổ
+            Tổng hợp số mã tiếp thị theo nhân viên
         </h3>
         <div class="excel-table-card">
             <div class="excel-table-body">
@@ -93,7 +220,7 @@
                             {% elif col == 'Tổng' %}
                             <td style="text-align: center; font-weight: 600;{% if row['Đơn vị'] != 'TỔNG CỘNG' %} color: #1a5089;{% endif %}">{{ row[col] }}</td>
                             {% else %}
-                            <td style="text-align: center;">{{ row[col] }}</td>
+                            <td style="text-align: left;">{{ row[col] }}</td>
                             {% endif %}
                             {% endfor %}
                         </tr>
@@ -108,7 +235,7 @@
     <div class="section">
         <h3 class="section-title">
             <i class="fas fa-table"></i>
-            Chi tiết kết quả theo nhân viên
+            Chi tiết mã tiếp thị theo nhân viên
         </h3>
         <div class="excel-tabs-container">
             <ul class="excel-tabs" id="tiepthi-tabs">

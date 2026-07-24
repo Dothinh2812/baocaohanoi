@@ -71,7 +71,13 @@ async function loadTiepThiData() {
         const data = await API.fetchData(endpoint);
         syncDateFilterState(data);
 
-        renderTiepThiSummary(data.tong_hop, data.selected_date);
+        renderTiepThiSummary('tiepthi-unit-summary-table', data.tong_hop_don_vi, data.selected_date);
+        renderTiepThiSummary('tiepthi-service-summary-table', data.tong_hop_loai_dich_vu, data.selected_date);
+        renderTiepThiSummary('tiepthi-unit-service-summary-table', data.tong_hop_don_vi_loai_dich_vu, data.selected_date);
+        renderTiepThiSummary('tiepthi-marketer-service-summary-table', data.tong_hop_nguoi_tiep_thi_loai_dich_vu, data.selected_date);
+        renderTiepThiSummary('tiepthi-quarter-summary-table', data.tong_hop_quy, data.selected_date);
+        renderTiepThiSummary('tiepthi-year-summary-table', data.tong_hop_nam, data.selected_date);
+        renderTiepThiSummary('tiepthi-summary-table', data.tong_hop, data.selected_date);
 
         if (data && data.sheets) {
             const fileInfo = data.file_info || null;
@@ -93,8 +99,8 @@ async function loadTiepThiData() {
     }
 }
 
-function renderTiepThiSummary(sheetData, selectedDate) {
-    const table = document.getElementById('tiepthi-summary-table');
+function renderTiepThiSummary(tableId, sheetData, selectedDate) {
+    const table = document.getElementById(tableId);
     if (!table) return;
 
     const thead = table.querySelector('thead');
@@ -109,19 +115,19 @@ function renderTiepThiSummary(sheetData, selectedDate) {
 
     thead.innerHTML = `<tr>${sheetData.columns.map(col => `<th>${escapeHtml(col)}</th>`).join('')}</tr>`;
     tbody.innerHTML = sheetData.data.map(row => {
-        const isTotal = row['Đơn vị'] === 'TỔNG CỘNG';
+        const isTotal = row['Đơn vị'] === 'TỔNG CỘNG' || row['Loại dịch vụ'] === 'TỔNG CỘNG';
         const rowHtml = sheetData.columns.map(col => {
             const value = row[col] ?? '';
             if (col === 'STT') {
                 return `<td style="text-align: center; width: 60px;">${escapeHtml(value)}</td>`;
             }
-            if (col === 'Đơn vị') {
+            if (col === 'Đơn vị' || col === 'Loại dịch vụ') {
                 return `<td style="width: 160px;"><strong>${escapeHtml(value)}</strong></td>`;
             }
-            if (col === 'Tổng') {
+            if (col === 'Tổng' || col === 'Số mã tiếp thị') {
                 return `<td style="text-align: center; font-weight: 600;${!isTotal ? ' color: #1a5089;' : ''}">${escapeHtml(value)}</td>`;
             }
-            return `<td style="text-align: center;">${escapeHtml(value)}</td>`;
+            return `<td style="text-align: left;">${escapeHtml(value)}</td>`;
         }).join('');
         return `<tr${isTotal ? ' style="background-color: #6b9bc3; color: #2c3e50; font-weight: 700;"' : ''}>${rowHtml}</tr>`;
     }).join('');

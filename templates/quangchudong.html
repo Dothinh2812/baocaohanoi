@@ -14,35 +14,38 @@
     .stat-card {
         padding: 1.25rem;
         border-radius: 12px;
-        color: white;
+        color: #1f2937;
         text-align: center;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-top: 4px solid #1a5089;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
     }
 
     .stat-card.danger {
-        background: linear-gradient(135deg, #dc3545, #c82333);
+        border-top-color: #dc3545;
     }
 
     .stat-card.secondary {
-        background: linear-gradient(135deg, #6c757d, #545b62);
+        border-top-color: #6c757d;
     }
 
     .stat-card.warning {
-        background: linear-gradient(135deg, #fd7e14, #e65c00);
+        border-top-color: #fd7e14;
     }
 
     .stat-card.success {
-        background: linear-gradient(135deg, #28a745, #218838);
+        border-top-color: #28a745;
     }
 
     .stat-card.info {
-        background: linear-gradient(135deg, #17a2b8, #138496);
+        border-top-color: #1a5089;
     }
 
     .stat-card h5 {
         margin: 0 0 0.5rem 0;
         font-size: 0.8rem;
-        opacity: 0.9;
+        color: #6c757d;
     }
 
     .stat-card h2 {
@@ -84,8 +87,8 @@
     }
 
     .nav-tabs .nav-link.active {
-        color: #007bff;
-        border-bottom-color: #007bff;
+        color: #1a5089;
+        border-bottom-color: #1a5089;
     }
 
     .nav-tabs .nav-link .badge {
@@ -95,17 +98,23 @@
         font-size: 0.7rem;
     }
 
-.tab-content {
+    .tab-content {
         padding: 1rem 0;
     }
 
     .table-filters {
         display: grid;
-        gap: 0.3rem;
-        padding: 0.5rem;
-        background: #495057;
-        border-radius: 4px 4px 0 0;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: #eef5fb;
+        border: 1px solid #dbe7f3;
+        border-bottom: none;
+        border-radius: 10px 10px 0 0;
         overflow-x: auto;
+    }
+
+    .table-filters.compact-subscriber-filters {
+        grid-template-columns: repeat(6, minmax(130px, 1fr));
     }
 
     .tab-pane {
@@ -120,13 +129,14 @@
         width: 100%;
         border-collapse: collapse;
         background: white;
-        border-radius: 8px;
+        border-radius: 0 0 10px 10px;
         overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #e9ecef;
     }
 
     .data-table thead {
-        background: #343a40;
+        background: #1a5089;
         color: white;
     }
 
@@ -160,10 +170,10 @@
     }
 
     .filter-input {
-        width: 95%;
-        max-width: 150px;
+        width: 100%;
+        min-width: 0;
         padding: 0.3rem 0.5rem;
-        border: 1px solid #6c757d;
+        border: 1px solid #bfd1e2;
         border-radius: 4px;
         font-size: 0.8rem;
         background: #fff;
@@ -173,8 +183,8 @@
 
     .filter-input:focus {
         outline: none;
-        border-color: #007bff;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        border-color: #1a5089;
+        box-shadow: 0 0 0 2px rgba(26, 80, 137, 0.15);
     }
 
     .filter-input::placeholder {
@@ -182,10 +192,10 @@
     }
 
     .filter-select {
-        width: 95%;
-        max-width: 170px;
+        width: 100%;
+        min-width: 0;
         padding: 0.3rem 0.5rem;
-        border: 1px solid #6c757d;
+        border: 1px solid #bfd1e2;
         border-radius: 4px;
         font-size: 0.8rem;
         background: #fff;
@@ -195,8 +205,8 @@
 
     .filter-select:focus {
         outline: none;
-        border-color: #007bff;
-        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        border-color: #1a5089;
+        box-shadow: 0 0 0 2px rgba(26, 80, 137, 0.15);
     }
 
     .duration-badge {
@@ -273,18 +283,18 @@
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #007bff, #0056b3);
+        background: linear-gradient(135deg, #1a5089, #2d6aa3);
         color: white;
         border: none;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+        box-shadow: 0 4px 12px rgba(26, 80, 137, 0.35);
         font-size: 1.25rem;
         transition: all 0.3s ease;
     }
 
     .refresh-btn:hover {
         transform: scale(1.05);
-        box-shadow: 0 6px 16px rgba(0, 123, 255, 0.5);
+        box-shadow: 0 6px 16px rgba(26, 80, 137, 0.45);
     }
 
     .refresh-btn.loading i {
@@ -310,12 +320,18 @@
 
     .page-header h2 {
         margin: 0;
-        color: #333;
+        color: #1a5089;
     }
 
     .page-header i {
         font-size: 2rem;
-        color: #007bff;
+        color: #1a5089;
+    }
+
+    .qcd-action-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 1rem;
     }
 
     .subscriber-list {
@@ -334,7 +350,7 @@
     }
 
     .data-table thead th:empty {
-        background: #343a40;
+        background: #1a5089;
         border-bottom: none;
         padding: 0;
     }
@@ -360,6 +376,18 @@
         .nav-tabs .nav-link {
             padding: 0.5rem 0.6rem;
             font-size: 0.8rem;
+        }
+
+        .table-filters.compact-subscriber-filters {
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        }
+
+        .qcd-action-row {
+            justify-content: stretch;
+        }
+
+        .qcd-action-row .download-btn {
+            width: 100%;
         }
     }
 </style>
@@ -395,8 +423,8 @@
     </div>
 </div>
 
-<div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-    <a class="btn btn-success" href="{{ url_for('quangchudong.download_quangchudong_report') }}">
+<div class="qcd-action-row">
+    <a class="download-btn preview-btn" href="{{ url_for('quangchudong.download_quangchudong_report') }}">
         <i class="fas fa-file-excel"></i> Kết xuất Excel
     </a>
 </div>
@@ -479,7 +507,7 @@
         </div>
 
         <div class="tab-pane" id="off-today-pane">
-            <div class="table-filters" id="off-today-filters">
+            <div class="table-filters compact-subscriber-filters" id="off-today-filters">
                 <input type="text" class="filter-input" data-table="off-today-table" data-column="0" placeholder="Mã TB">
                 <input type="text" class="filter-input" data-table="off-today-table" data-column="1" placeholder="Tên TB">
                 <input type="text" class="filter-input" data-table="off-today-table" data-column="4" placeholder="NVKT">
@@ -487,21 +515,110 @@
                 <input type="text" class="filter-input" data-table="off-today-table" data-column="6" placeholder="OLT">
             </div>
             <table class="data-table" id="off-today-table" style="table-layout: fixed; width: 100%;">
-                <thead><tr><th>Mã TB</th><th>Tên TB</th><th>Địa chỉ</th><th>SĐT</th><th>NVKT</th><th>Đội VT</th><th>OLT</th><th>SA</th><th>Thời gian OFF</th><th>Thời lượng</th><th>Phiếu BH Lúc</th></tr></thead>
+                <colgroup>
+                    <col style="width: 8%;">
+                    <col style="width: 9%;">
+                    <col style="width: 12%;">
+                    <col style="width: 7%;">
+                    <col style="width: 10%;">
+                    <col style="width: 10%;">
+                    <col style="width: 10%;">
+                    <col style="width: 5%;">
+                    <col style="width: 10%;">
+                    <col style="width: 6%;">
+                    <col style="width: 9%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Mã TB</th>
+                        <th>Tên TB</th>
+                        <th>Địa chỉ</th>
+                        <th>SĐT</th>
+                        <th>NVKT</th>
+                        <th>Đội VT</th>
+                        <th>OLT</th>
+                        <th>SA</th>
+                        <th>Thời gian OFF</th>
+                        <th>Thời lượng</th>
+                        <th>Phiếu BH Lúc</th>
+                    </tr>
+                </thead>
                 <tbody></tbody>
             </table>
         </div>
 
         <div class="tab-pane" id="sleeping-pane">
-            <div class="table-filters" id="sleeping-filters">
+            <div class="table-filters compact-subscriber-filters" id="sleeping-filters">
                 <input type="text" class="filter-input" data-table="sleeping-table" data-column="0" placeholder="Mã TB">
                 <input type="text" class="filter-input" data-table="sleeping-table" data-column="1" placeholder="Tên TB">
                 <input type="text" class="filter-input" data-table="sleeping-table" data-column="4" placeholder="NVKT">
                 <input type="text" class="filter-input" data-table="sleeping-table" data-column="5" placeholder="Đội VT">
                 <input type="text" class="filter-input" data-table="sleeping-table" data-column="11" placeholder="Thời gian ngủ">
+                <select class="filter-select" data-table="sleeping-table" data-filter-type="sleep-days">
+                    <option value="">Số ngày ngủ: Tất cả</option>
+                    <option value="1">1 ngày</option>
+                    <option value="2">2 ngày</option>
+                    <option value="3">3 ngày</option>
+                    <option value="4">4 ngày</option>
+                    <option value="5">5 ngày</option>
+                    <option value="6">6 ngày</option>
+                    <option value="7">7 ngày</option>
+                    <option value="8">8 ngày</option>
+                    <option value="9">9 ngày</option>
+                    <option value="10">10 ngày</option>
+                    <option value="11">11 ngày</option>
+                    <option value="12">12 ngày</option>
+                    <option value="13">13 ngày</option>
+                    <option value="14">14 ngày</option>
+                    <option value="15">15 ngày</option>
+                    <option value="16">16 ngày</option>
+                    <option value="17">17 ngày</option>
+                    <option value="18">18 ngày</option>
+                    <option value="19">19 ngày</option>
+                    <option value="20">20 ngày</option>
+                    <option value="21">21 ngày</option>
+                    <option value="22">22 ngày</option>
+                    <option value="23">23 ngày</option>
+                    <option value="24">24 ngày</option>
+                    <option value="25">25 ngày</option>
+                    <option value="26">26 ngày</option>
+                    <option value="27">27 ngày</option>
+                    <option value="28">28 ngày</option>
+                    <option value="29">29 ngày</option>
+                    <option value="30">30 ngày</option>
+                </select>
             </div>
             <table class="data-table" id="sleeping-table" style="table-layout: fixed; width: 100%;">
-                <thead><tr><th>Mã TB</th><th>Tên TB</th><th>Địa chỉ</th><th>SĐT</th><th>NVKT</th><th>Đội VT</th><th>OLT</th><th>SA</th><th>Thời gian OFF</th><th>Thời lượng</th><th>Phiếu BH Lúc</th><th>Thời gian ngủ</th></tr></thead>
+                <colgroup>
+                    <col style="width: 7%;">
+                    <col style="width: 8%;">
+                    <col style="width: 11%;">
+                    <col style="width: 7%;">
+                    <col style="width: 9%;">
+                    <col style="width: 9%;">
+                    <col style="width: 9%;">
+                    <col style="width: 5%;">
+                    <col style="width: 9%;">
+                    <col style="width: 6%;">
+                    <col style="width: 8%;">
+                    <col style="width: 7%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Mã TB</th>
+                        <th>Tên TB</th>
+                        <th>Địa chỉ</th>
+                        <th>SĐT</th>
+                        <th>NVKT</th>
+                        <th>Đội VT</th>
+                        <th>OLT</th>
+                        <th>SA</th>
+                        <th>Thời gian OFF</th>
+                        <th>Thời lượng</th>
+                        <th>Phiếu BH Lúc</th>
+                        <th>Thời gian ngủ</th>
+                    </tr>
+                </thead>
                 <tbody></tbody>
             </table>
         </div>
@@ -793,7 +910,7 @@
     }
 
     function renderSleepingSubscribers(alerts) {
-        const rows = alerts.filter(isSleepingSubscriber).sort((a, b) => getSleepDays(b) - getSleepDays(a));
+        const rows = alerts.filter(isSleepingSubscriber).sort((a, b) => getSleepDays(a) - getSleepDays(b));
         const tbody = document.querySelector('#sleeping-table tbody');
         document.getElementById('sleeping-tab-count').textContent = rows.length;
         if (rows.length === 0) {
@@ -801,7 +918,7 @@
             return;
         }
         tbody.innerHTML = rows.map(row => `
-            <tr data-duration-minutes="${getDurationMinutes(getEventTime(row)) ?? ''}" data-event-time="${getEventTime(row)}">
+            <tr data-duration-minutes="${getDurationMinutes(getEventTime(row)) ?? ''}" data-event-time="${getEventTime(row)}" data-sleep-days="${getSleepDays(row)}">
                 <td>${row.ma_tb || 'N/A'}</td><td>${row.ten_tb || 'N/A'}</td><td title="${row.diachi_ld || ''}">${(row.diachi_ld || '').substring(0, 40)}</td><td>${row.dienthoai_lh || ''}</td><td>${row.ten_nvkt_db || ''}</td><td>${row.doi_vt || ''}</td><td>${row.olt_name || ''}</td><td>${row.sa || ''}</td><td>${formatDateTime(getEventTime(row))}</td><td class="duration-badge">${formatDuration(getEventTime(row))}</td><td>${row.ngay_bh || ''}</td><td>${getSleepDays(row)} ngày</td>
             </tr>
         `).join('');
@@ -936,6 +1053,7 @@
         const textFilters = document.querySelectorAll(`.filter-input[data-table="${tableId}"][data-column]`);
         const countFilter = document.querySelector(`.filter-input[data-table="${tableId}"][data-filter-type="count-min"]`);
         const durationFilter = document.querySelector(`.filter-select[data-table="${tableId}"][data-filter-type="duration-day"]`);
+        const sleepDaysFilter = document.querySelector(`.filter-select[data-table="${tableId}"][data-filter-type="sleep-days"]`);
 
         rows.forEach(row => {
             let showRow = true;
@@ -983,6 +1101,14 @@
                             }
                         }
                     }
+                }
+            }
+
+            if (showRow && sleepDaysFilter && sleepDaysFilter.value) {
+                const sleepDays = Number(row.dataset.sleepDays || 0);
+                const selectedSleepDays = Number(sleepDaysFilter.value);
+                if (Number.isNaN(sleepDays) || sleepDays !== selectedSleepDays) {
+                    showRow = false;
                 }
             }
 

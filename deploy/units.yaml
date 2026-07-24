@@ -4,6 +4,7 @@
   port: 5011
   hostname: son-tay.dashboard.example.vn
   db_path: /home/vtst/baocaohanoi/api_transition/runtime/son_tay/sqlite_history/report_history.db
+  tiep_thi_db_path: /home/vtst/onebss_bao_cao/data/bao_cao_tiep_thi.db
 - code: ba_dinh
   slug: ba-dinh
   name: "TTVT Ba Đình"

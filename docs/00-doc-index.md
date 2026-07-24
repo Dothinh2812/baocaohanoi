@@ -77,6 +77,13 @@ Nếu vào repo ở phiên sau, hoặc cần sửa/thêm tính năng, bắt đ�
 - [10-trien-khai-multi-instance.md](/home/vtst/dashv4/docs/10-trien-khai-multi-instance.md)
 - [11-kiemsoat-to-truong-van-hanh.md](/home/vtst/dashv4/docs/11-kiemsoat-to-truong-van-hanh.md)
 
+### Đặc tả tính năng đang thiết kế
+
+- [2026-07-24-dao-tao-sat-hach-design.md](/home/vtst/dashv4/docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-design.md)
+  Đặc tả module kho tri thức, AI soạn câu hỏi, ngân hàng đề, tổ chức thi, chấm điểm và báo cáo theo từng instance TTVT.
+- [2026-07-24-dao-tao-sat-hach-mvp.md](/home/vtst/dashv4/docs/superpowers/plans/2026-07-24-dao-tao-sat-hach-mvp.md)
+  Kế hoạch triển khai MVP theo vertical slice, từ SQLite/RBAC đến AI worker, engine thi cố định, báo cáo và vận hành.
+
 ## Quy tắc đồng bộ tài liệu
 
 Mọi thay đổi liên quan tới:

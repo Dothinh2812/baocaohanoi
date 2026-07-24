@@ -29,6 +29,7 @@
   }
   .sc-badge.danger  { background: #dc3545; }
   .sc-badge.success { background: #28a745; }
+  .sc-badge.info    { background: #2f80ed; }
 
   .sc-meta {
     font-size: 0.78rem;
@@ -38,6 +39,90 @@
   .sc-section {
     margin-bottom: 32px;
   }
+  .sc-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+  }
+  .sc-toolbar label {
+    font-size: 0.82rem;
+    color: #555;
+    font-weight: 600;
+  }
+  .sc-toolbar input[type="month"] {
+    height: 32px;
+    padding: 4px 8px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    color: #333;
+    background: #fff;
+    font-size: 0.85rem;
+  }
+  .sc-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 10px 0 12px;
+  }
+  .sc-summary-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid #e4e7ec;
+    border-radius: 8px;
+    background: #fff;
+    color: #344054;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+  .sc-note-cell {
+    min-width: 280px;
+  }
+  .sc-note-input {
+    width: 260px;
+    min-height: 54px;
+    resize: vertical;
+    padding: 6px 8px;
+    border: 1px solid #cfd4dc;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: #333;
+    background: #fff;
+  }
+  .sc-note-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .save-note-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid #2f80ed;
+    border-radius: 6px;
+    background: #2f80ed;
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+  }
+  .save-note-btn:disabled {
+    border-color: #98a2b3;
+    background: #98a2b3;
+    cursor: wait;
+  }
+  .note-save-status {
+    font-size: 0.76rem;
+    color: #667085;
+  }
+  .note-save-status.success { color: #1e8449; }
+  .note-save-status.error { color: #c0392b; }
 
   /* spinner */
   .sc-spinner {
@@ -139,6 +224,11 @@
 
   <div id="scMeta" class="sc-meta">Đang tải dữ liệu…</div>
 
+  <div class="sc-toolbar" style="margin-bottom:14px;">
+    <label for="monthReportFilter">Tháng báo cáo</label>
+    <input type="month" id="monthReportFilter" aria-label="Chọn tháng báo cáo sự cố SA">
+  </div>
+
   <!-- Spinner -->
   <div id="scSpinner" class="sc-spinner">
     <div class="spin"></div>
@@ -209,6 +299,52 @@
     </div>
   </div>
 
+  <!-- Section 3: Báo cáo thống kê theo tháng -->
+  <div id="sectionMonthlyReport" class="sc-section" style="display:none;">
+    <div class="sc-header">
+      <i class="fas fa-chart-column" style="color:#2f80ed;"></i>
+      <h2>Thống kê tất cả sự cố theo tháng</h2>
+      <span id="badgeMonthlyReport" class="sc-badge info">0</span>
+    </div>
+    <div class="sc-summary">
+      <span class="sc-summary-item">
+        <i class="fas fa-calendar-alt"></i>
+        <span id="monthlySelectedMonth">—</span>
+      </span>
+      <span class="sc-summary-item">
+        <i class="fas fa-list"></i>
+        <span id="monthlyIncidentCount">0 sự cố</span>
+      </span>
+      <span class="sc-summary-item">
+        <i class="fas fa-users-slash"></i>
+        <span id="monthlyAffectedTotal">0 thuê bao mất liên lạc</span>
+      </span>
+    </div>
+    <div class="sc-table-wrap">
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Ngày</th>
+            <th>Mã sự cố</th>
+            <th>SA</th>
+            <th>Đội</th>
+            <th>Trạng thái</th>
+            <th>Bắt đầu</th>
+            <th>Kết thúc</th>
+            <th>TB mất LL</th>
+            <th>Thời gian xử lý</th>
+            <th>Lý do phục hồi</th>
+            <th>Ghi chú xử lý</th>
+          </tr>
+        </thead>
+        <tbody id="tbodyMonthlyReport">
+          <tr><td colspan="12" class="empty-msg">Không có dữ liệu</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
 
@@ -231,6 +367,22 @@
     return Number(v).toFixed(1) + '%';
   }
 
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function currentMonthValue() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
+  }
+
   function sourceTag(source) {
     if (source === 'excel_import') return '<span class="tag tag-excel" title="Dữ liệu lịch sử import">Excel</span>';
     return '<span class="tag tag-exact">Runtime</span>';
@@ -239,6 +391,11 @@
   function confidenceTag(conf) {
     if (conf === 'inferred') return '<span class="tag tag-infer" title="Độ tin cậy thấp (suy ra từ lịch sử)">Inferred</span>';
     return '<span class="tag tag-exact">Exact</span>';
+  }
+
+  function statusTag(statusText) {
+    if (statusText === 'Đang tồn') return '<span class="tag tag-open">Đang tồn</span>';
+    return '<span class="tag tag-closed">Đã kết thúc</span>';
   }
 
   function buildDangTonRows(list) {
@@ -290,18 +447,85 @@
     }).join('');
   }
 
+  function buildMonthlyReportRows(list) {
+    if (!list || list.length === 0) {
+      return '<tr><td colspan="12" class="empty-msg">Không có sự cố nào trong tháng đã chọn</td></tr>';
+    }
+    return list.map((r, i) => {
+      const noteValue = escapeHtml(r.user_notes || '');
+      const incidentId = Number(r.id);
+      return `<tr>
+        <td>${i + 1}</td>
+        <td>${r.incident_date || '—'}</td>
+        <td>${r.incident_code || '—'}</td>
+        <td><strong>${r.sa_code || '—'}</strong></td>
+        <td>${r.doi_vt || '—'}</td>
+        <td>${statusTag(r.trang_thai)}</td>
+        <td>${r.started_at || '—'}</td>
+        <td>${r.ended_at || '—'}</td>
+        <td>${fmtNum(r.affected_subscribers)}</td>
+        <td>${fmtMinToHour(r.duration_minutes)}</td>
+        <td>${r.recovery_reason || '—'}</td>
+        <td class="sc-note-cell">
+          <textarea class="sc-note-input" data-incident-id="${incidentId}" maxlength="2000" placeholder="Nhập nguyên nhân, tiến trình xử lý...">${noteValue}</textarea>
+          <div class="sc-note-actions">
+            <button type="button" class="save-note-btn" data-incident-id="${incidentId}">
+              <i class="fas fa-save"></i> Lưu
+            </button>
+            <span class="note-save-status" data-incident-id="${incidentId}"></span>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function saveUserNote(incidentId) {
+    const textarea = document.querySelector(`.sc-note-input[data-incident-id="${incidentId}"]`);
+    const button = document.querySelector(`.save-note-btn[data-incident-id="${incidentId}"]`);
+    const status = document.querySelector(`.note-save-status[data-incident-id="${incidentId}"]`);
+    if (!textarea || !button || !status) return;
+
+    button.disabled = true;
+    status.className = 'note-save-status';
+    status.textContent = 'Đang lưu...';
+
+    try {
+      const res = await fetch(`/api/su-co-sa/incidents/${encodeURIComponent(incidentId)}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_notes: textarea.value })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || 'Không lưu được ghi chú');
+      }
+      textarea.value = data.user_notes || '';
+      status.className = 'note-save-status success';
+      status.textContent = 'Đã lưu';
+    } catch (err) {
+      status.className = 'note-save-status error';
+      status.textContent = err.message;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   async function loadData() {
     const spinner   = document.getElementById('scSpinner');
     const secTon    = document.getElementById('sectionDangTon');
     const secClear  = document.getElementById('sectionDaClear');
+    const secMonthly = document.getElementById('sectionMonthlyReport');
     const meta      = document.getElementById('scMeta');
+    const monthFilter = document.getElementById('monthReportFilter');
+    const selectedMonth = monthFilter.value || currentMonthValue();
 
     spinner.style.display = 'flex';
     secTon.style.display  = 'none';
     secClear.style.display = 'none';
+    secMonthly.style.display = 'none';
 
     try {
-      const res  = await fetch('/api/su-co-sa/data');
+      const res  = await fetch(`/api/su-co-sa/data?month=${encodeURIComponent(selectedMonth)}`);
       const data = await res.json();
 
       if (!data.ok) {
@@ -324,6 +548,20 @@
       document.getElementById('tbodyDaClear').innerHTML = buildDaClearRows(cleared);
       secClear.style.display = 'block';
 
+      // Báo cáo tháng
+      const monthly = data.monthly_report || {};
+      const summary = monthly.summary || {};
+      const incidents = monthly.incidents || [];
+      if (monthly.selected_month) {
+        monthFilter.value = monthly.selected_month;
+      }
+      document.getElementById('badgeMonthlyReport').textContent = incidents.length;
+      document.getElementById('monthlySelectedMonth').textContent = monthly.selected_month || selectedMonth;
+      document.getElementById('monthlyIncidentCount').textContent = `${fmtNum(summary.incident_count || 0)} sự cố`;
+      document.getElementById('monthlyAffectedTotal').textContent = `${fmtNum(summary.total_max_off_count || 0)} thuê bao mất liên lạc`;
+      document.getElementById('tbodyMonthlyReport').innerHTML = buildMonthlyReportRows(incidents);
+      secMonthly.style.display = 'block';
+
     } catch (err) {
       meta.textContent = '⚠️ Lỗi kết nối: ' + err.message;
     } finally {
@@ -331,7 +569,14 @@
     }
   }
 
+  document.getElementById('monthReportFilter').value = currentMonthValue();
+  document.getElementById('monthReportFilter').addEventListener('change', loadData);
   document.getElementById('btnRefresh').addEventListener('click', loadData);
+  document.addEventListener('click', (event) => {
+    const button = event.target.closest('.save-note-btn');
+    if (!button) return;
+    saveUserNote(button.dataset.incidentId);
+  });
 
   // Load ngay khi vào trang
   loadData();

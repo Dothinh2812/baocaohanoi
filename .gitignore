@@ -46,3 +46,6 @@ runtime_app/
 # Local assistant/workspace metadata
 .codex
 .skill_staging/
+.playwright-mcp/
+.sdd/
+screenshot_*.png

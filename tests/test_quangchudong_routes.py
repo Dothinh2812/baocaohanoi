@@ -169,6 +169,40 @@ def test_quangchudong_page_has_new_off_today_and_sleeping_tabs():
     assert 'renderSleepingSubscribers' in html
 
 
+def test_quangchudong_new_tab_filters_use_consistent_layout_and_theme():
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/quangchudong')
+
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+    assert 'class="table-filters compact-subscriber-filters" id="off-today-filters"' in html
+    assert 'class="table-filters compact-subscriber-filters" id="sleeping-filters"' in html
+    assert 'grid-template-columns: repeat(6, minmax(130px, 1fr));' in html
+    assert 'background: #eef5fb;' in html
+    assert 'class="download-btn preview-btn"' in html
+    assert 'background: linear-gradient(135deg, #007bff' not in html
+
+
+def test_quangchudong_sleeping_tab_sorts_ascending_and_filters_by_sleep_days():
+    client = app.test_client()
+    with client.session_transaction() as session:
+        session['username'] = 'test-user'
+
+    response = client.get('/quangchudong')
+
+    assert response.status_code == 200
+    html = response.data.decode('utf-8')
+    assert 'data-filter-type="sleep-days"' in html
+    assert '<option value="1">1 ngày</option>' in html
+    assert '<option value="2">2 ngày</option>' in html
+    assert '<option value="3">3 ngày</option>' in html
+    assert 'data-sleep-days="${getSleepDays(row)}"' in html
+    assert 'sort((a, b) => getSleepDays(a) - getSleepDays(b))' in html
+
+
 def test_quangchudong_helpers_split_off_today_and_sleeping_rows():
     rows = [
         {'ma_tb': 'AFTER', 'first_off_time': '2026-05-13T06:00:00'},

@@ -1,5 +1,7 @@
 from pathlib import Path
 import sys
+import os
+import time
 
 import pandas as pd
 
@@ -11,7 +13,9 @@ from blueprints import quality_routes
 
 def test_shc_cts_api_reads_summary_and_groups_detail_by_unit(tmp_path, monkeypatch):
     excel_path = tmp_path / "So_sanh_SHC_theo_ngay_T-1.xlsx"
-    intraday_path = tmp_path / "Bao_cao_tien_trinh_20260514.xlsx"
+    intraday_old_path = tmp_path / "Bao_cao_tien_trinh_20260514.xlsx"
+    intraday_latest_path = tmp_path / "Bao_cao_tien_trinh_20260515.xlsx"
+    intraday_temp_path = tmp_path / "~$Bao_cao_tien_trinh_20260516.xlsx"
     summary_df = pd.DataFrame(
         [
             {"Đơn vị": "Tổ A", "SL 13/05": 1, "SL 14/05": 2},
@@ -35,11 +39,22 @@ def test_shc_cts_api_reads_summary_and_groups_detail_by_unit(tmp_path, monkeypat
     with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
         summary_df.to_excel(writer, sheet_name="Theo_don_vi", index=False)
         detail_df.to_excel(writer, sheet_name="Chi_tiet_NVKT", index=False)
-    with pd.ExcelWriter(intraday_path, engine="openpyxl") as writer:
+    with pd.ExcelWriter(intraday_old_path, engine="openpyxl") as writer:
+        pd.DataFrame(
+            [
+                {"Đơn vị": "Tổ C", "NVKT_DB": "Nguyễn Văn C", "Tổng số": 9, "Đã xử lý trong ngày": 0},
+            ]
+        ).to_excel(writer, sheet_name="Theo NVKT", index=False)
+    old_timestamp = time.mktime((2026, 5, 14, 19, 33, 0, 0, 0, -1))
+    os.utime(intraday_old_path, (old_timestamp, old_timestamp))
+    with pd.ExcelWriter(intraday_latest_path, engine="openpyxl") as writer:
         progress_df.to_excel(writer, sheet_name="Theo NVKT", index=False)
+    latest_timestamp = time.mktime((2026, 5, 15, 8, 9, 0, 0, 0, -1))
+    os.utime(intraday_latest_path, (latest_timestamp, latest_timestamp))
+    intraday_temp_path.write_text("temporary lock file", encoding="utf-8")
 
     monkeypatch.setattr(quality_routes, "SHC_CTS_REPORT_PATH", str(excel_path))
-    monkeypatch.setattr(quality_routes, "SHC_CTS_INTRADAY_REPORT_PATH", str(intraday_path))
+    monkeypatch.setattr(quality_routes, "SHC_CTS_INTRADAY_REPORT_DIR", str(tmp_path))
 
     client = app.test_client()
     with client.session_transaction() as session:
@@ -54,11 +69,19 @@ def test_shc_cts_api_reads_summary_and_groups_detail_by_unit(tmp_path, monkeypat
     assert list(payload["don_vi"].keys()) == ["Tổ A", "Tổ B", "Tổ C", "Tổ D"]
     assert payload["don_vi"]["Tổ A"]["data"][0]["NVKT"] == "Nguyễn Văn A"
     assert payload["file_info"]["name"] == "So_sanh_SHC_theo_ngay_T-1.xlsx"
-    assert payload["tien_do_xu_ly"]["columns"] == ["Đơn vị", "NVKT_DB", "Tổng số", "Đã xử lý trong ngày"]
+    assert payload["tien_do_xu_ly"]["columns"] == [
+        "Đơn vị",
+        "Timestamp",
+        "NVKT_DB",
+        "Tổng số",
+        "Đã xử lý trong ngày",
+    ]
     assert payload["tien_do_xu_ly"]["data"][0]["NVKT_DB"] == "Nguyễn Văn A"
+    assert payload["tien_do_xu_ly"]["data"][0]["Timestamp"] == "15/05/2026 08:09:00"
     assert list(payload["tien_do_theo_don_vi"].keys()) == ["Tổ A", "Tổ B"]
     assert payload["tien_do_theo_don_vi"]["Tổ B"]["data"][0]["NVKT_DB"] == "Nguyễn Văn B"
-    assert payload["tien_do_file_info"]["name"] == "Bao_cao_tien_trinh_20260514.xlsx"
+    assert payload["tien_do_theo_don_vi"]["Tổ B"]["data"][0]["Timestamp"] == "15/05/2026 08:09:00"
+    assert payload["tien_do_file_info"]["name"] == "Bao_cao_tien_trinh_20260515.xlsx"
 
 
 def test_shc_cts_nvkt_detail_uses_latest_k1_directory_for_files_preview_and_download(tmp_path, monkeypatch):

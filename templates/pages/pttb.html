@@ -30,6 +30,10 @@
         vertical-align: top;
         line-height: 1.35;
     }
+    .pttb-ks-detail-table tr.pttb-ks-overdue-row td,
+    .pttb-ks-detail-table tr.pttb-ks-overdue-row textarea {
+        color: #d32f2f;
+    }
 </style>
 <!-- PTTB Section -->
 <div id="pttb-section">
@@ -247,5 +251,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{{ url_for('static', filename='js/pages/pttb.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/pttb.js') }}?v=20260708-pttb-tgthicong-h"></script>
 {% endblock %}

@@ -29,6 +29,7 @@ class UnitConfig:
     port: int
     hostname: str
     db_path: str
+    tiep_thi_db_path: str = ""
     disabled_endpoints: tuple[str, ...] = ()
     enabled_endpoints: tuple[str, ...] = ()
 
@@ -103,6 +104,7 @@ def load_units(path):
                 port=_require_port(raw, index),
                 hostname=_require_text(raw, "hostname", index),
                 db_path=_require_text(raw, "db_path", index),
+                tiep_thi_db_path=str(raw.get("tiep_thi_db_path") or "").strip(),
                 disabled_endpoints=_optional_endpoint_tuple(raw, "disabled_endpoints", index),
                 enabled_endpoints=_optional_endpoint_tuple(raw, "enabled_endpoints", index),
             )
@@ -136,6 +138,8 @@ def render_env(unit, *, app_dir=APP_DIR, secret_key=None):
         "DASHV4_PID_FILE": f"/tmp/dashv4-{unit.code}.pid",
         "DASHV4_SESSION_COOKIE_SECURE": "true",
     }
+    if unit.tiep_thi_db_path:
+        values["DASH_TIEP_THI_DB_PATH"] = unit.tiep_thi_db_path
     if unit.disabled_endpoints:
         values["DASHV4_DISABLED_ENDPOINTS"] = ",".join(unit.disabled_endpoints)
     if unit.enabled_endpoints:

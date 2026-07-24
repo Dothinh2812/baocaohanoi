@@ -79,17 +79,34 @@ BRCD_KIEMSOAT_NOI_DUNG_MAX = 2000
 # Kiểm soát tổ trưởng (PTTB) — logic hệt BRCD, nguồn PTTB
 # ---------------------------------------------------------------------------
 PTTB_TEAM_SHEETS = ['ToKT_SonTay', 'ToKT_SuoiHai', 'ToKT_QuangOai', 'ToKT_PhucTho']
-PTTB_KIEMSOAT_DISPLAY_COLUMNS = [
+PTTB_KIEMSOAT_SOURCE_COLUMNS = [
     'MA_THUE_BAO',
     'TEN_THUEBAO',
     'DIACHI_LAPDAT',
     'LOAIHINH_TB',
+    'NGAYLAP_HOPDONG',
+    'TG_THICONG_H',
     'NHANVIEN_TIEPTHI',
     'DOI_VT',
     'TEN_KV',
     'NGAYHEN_DEN',
     'NOIDUNG_HEN',
     'chitieu_tg',
+    'gio_conlai',
+    'trang_thai',
+]
+PTTB_KIEMSOAT_DISPLAY_COLUMNS = [
+    'MA_THUE_BAO',
+    'TEN_THUEBAO',
+    'DIACHI_LAPDAT',
+    'LOAIHINH_TB',
+    'NGAYLAP_HOPDONG',
+    'TG_THICONG_H',
+    'NHANVIEN_TIEPTHI',
+    'DOI_VT',
+    'TEN_KV',
+    'NGAYHEN_DEN',
+    'NOIDUNG_HEN',
     'gio_conlai',
     'trang_thai',
 ]
@@ -468,7 +485,7 @@ def _sync_pttb_phieu_to_db():
     incoming = []
     for sheet in team_sheets:
         df = read_excel_sheet_cached(PTTB_SUMMARY_FILE, sheet)
-        cols = [c for c in PTTB_KIEMSOAT_DISPLAY_COLUMNS if c in df.columns]
+        cols = [c for c in PTTB_KIEMSOAT_SOURCE_COLUMNS if c in df.columns]
         df = df[cols].copy()
         df = df.dropna(subset=['MA_THUE_BAO']).copy()
         df['MA_THUE_BAO'] = df['MA_THUE_BAO'].astype(str)
@@ -1117,7 +1134,7 @@ def _load_pttb_kiemsoat_df():
     frames = []
     for sheet in team_sheets:
         df = read_excel_sheet_cached(PTTB_SUMMARY_FILE, sheet)
-        cols = [c for c in PTTB_KIEMSOAT_DISPLAY_COLUMNS if c in df.columns]
+        cols = [c for c in PTTB_KIEMSOAT_SOURCE_COLUMNS if c in df.columns]
         df = df[cols].copy()
         df['_sheet'] = sheet
         df['MA_THUE_BAO'] = df['MA_THUE_BAO'].astype(str)

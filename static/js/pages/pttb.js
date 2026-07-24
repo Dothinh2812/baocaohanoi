@@ -413,7 +413,7 @@ function renderPttbKiemSoatTable(team, sheetData, container, fileInfo) {
         let dropdownItemsHtml = '<div class="filter-dropdown-item" data-value="">-- Tất cả --</div>';
         
         // Add special numeric filters for columns that likely contain numbers
-        if (['gio_conlai', 'chitieu_tg'].includes(col)) {
+        if (['gio_conlai'].includes(col)) {
             dropdownItemsHtml += '<div class="filter-dropdown-item filter-operator" data-value="!=0">&#8800; 0 (Khác 0)</div>';
             dropdownItemsHtml += '<div class="filter-dropdown-item filter-operator" data-value=">0">&gt; 0 (Lớn hơn 0)</div>';
             dropdownItemsHtml += '<div class="filter-dropdown-item filter-operator" data-value="<0">&lt; 0 (Nhỏ hơn 0)</div>';
@@ -435,13 +435,19 @@ function renderPttbKiemSoatTable(team, sheetData, container, fileInfo) {
         </th>`;
     }).join('');
 
+    const isOverdue = (row) => {
+        const value = Number(String(row.gio_conlai ?? '').replace(',', '.'));
+        return !Number.isNaN(value) && value < 0;
+    };
+
     const body = rows.map((row, rowIndex) => {
         const cells = PTTB_KS_DISPLAY_COLS.map((c, idx) => `<td data-column="${c}" data-column-idx="${idx}">${row[c] != null ? row[c] : ''}</td>`).join('');
         const maTb = row.MA_THUE_BAO;
         const noiDung = (row.kiemsoat_noi_dung || '').toString()
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const overdueClass = isOverdue(row) ? ' pttb-ks-overdue-row' : '';
         return `
-            <tr class="data-row" data-row-index="${rowIndex}">
+            <tr class="data-row${overdueClass}" data-row-index="${rowIndex}">
                 ${cells}
                 <td class="pttb-ks-cell">
                     <textarea class="pttb-ks-input" rows="2" data-ma_tb="${maTb}"
@@ -484,20 +490,21 @@ function renderPttbKiemSoatTable(team, sheetData, container, fileInfo) {
 
 const PTTB_KS_DISPLAY_COLS = [
     'MA_THUE_BAO', 'TEN_THUEBAO', 'DIACHI_LAPDAT', 'LOAIHINH_TB',
-    'NHANVIEN_TIEPTHI', 'DOI_VT', 'TEN_KV', 'NGAYHEN_DEN',
-    'NOIDUNG_HEN', 'chitieu_tg', 'gio_conlai', 'trang_thai',
+    'NGAYLAP_HOPDONG', 'TG_THICONG_H', 'NHANVIEN_TIEPTHI', 'DOI_VT', 'TEN_KV', 'NGAYHEN_DEN',
+    'NOIDUNG_HEN', 'gio_conlai', 'trang_thai',
 ];
 const PTTB_KS_DISPLAY_LABELS = {
     'MA_THUE_BAO': 'Mã TB', 'TEN_THUEBAO': 'Khách hàng', 'DIACHI_LAPDAT': 'Địa chỉ',
-    'LOAIHINH_TB': 'Loại', 'NHANVIEN_TIEPTHI': 'NVTT', 'DOI_VT': 'Tổ',
+    'LOAIHINH_TB': 'Loại', 'NGAYLAP_HOPDONG': 'Ngày lập HĐ', 'TG_THICONG_H': 'TG thi công (h)',
+    'NHANVIEN_TIEPTHI': 'NVTT', 'DOI_VT': 'Tổ',
     'TEN_KV': 'Khu vực', 'NGAYHEN_DEN': 'Ngày hẹn', 'NOIDUNG_HEN': 'Nội dung hẹn',
-    'chitieu_tg': 'Chỉ tiêu', 'gio_conlai': 'Giờ còn lại', 'trang_thai': 'Trạng thái',
+    'gio_conlai': 'Giờ còn lại', 'trang_thai': 'Trạng thái',
 };
 const PTTB_KS_COL_WIDTHS = {
     'MA_THUE_BAO': '7%', 'TEN_THUEBAO': '10%', 'DIACHI_LAPDAT': '12%',
-    'LOAIHINH_TB': '6%', 'NHANVIEN_TIEPTHI': '7%', 'DOI_VT': '7%',
-    'TEN_KV': '7%', 'NGAYHEN_DEN': '8%', 'NOIDUNG_HEN': '10%',
-    'chitieu_tg': '5%', 'gio_conlai': '6%', 'trang_thai': '7%',
+    'LOAIHINH_TB': '6%', 'NGAYLAP_HOPDONG': '8%', 'TG_THICONG_H': '8%', 'NHANVIEN_TIEPTHI': '7%',
+    'DOI_VT': '7%', 'TEN_KV': '7%', 'NGAYHEN_DEN': '8%', 'NOIDUNG_HEN': '10%',
+    'gio_conlai': '6%', 'trang_thai': '7%',
 };
 
 function _formatPttbKsThoiDiem(value) {
