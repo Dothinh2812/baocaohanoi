@@ -1,0 +1,6 @@
+# Phụ thuộc cho module Đào tạo & sát hạch (training)
+# Cài: venv/bin/python3 -m pip install -r requirements-training.txt
+# jsonschema: validate JSON Schema Draft 2020-12 (question batch, manifest)
+# openai: provider AI (lazy import; app khởi động khi AI disabled/không có key)
+jsonschema==4.26.0
+openai==2.29.0
