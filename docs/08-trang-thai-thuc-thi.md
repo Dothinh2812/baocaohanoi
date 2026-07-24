@@ -2,8 +2,8 @@
 
 ## Mốc cập nhật
 
-- Ngày cập nhật: `2026-06-25`
-- Trạng thái: đã chuyển phần lớn route có dữ liệu phù hợp sang DB mới; các route chưa đủ contract đã bắt đầu bị ngắt khỏi nguồn Excel/file cũ; `/brcd` và `/pttb` đã có lớp kiểm soát tổ trưởng (write-aside) kèm snapshot lịch sử và timestamp báo cáo
+- Ngày cập nhật: `2026-07-24`
+- Trạng thái: đã chuyển phần lớn route có dữ liệu phù hợp sang DB mới; các route chưa đủ contract đã bắt đầu bị ngắt khỏi nguồn Excel/file cũ; `/brcd` và `/pttb` đã có lớp kiểm soát tổ trưởng (write-aside) kèm snapshot lịch sử và timestamp báo cáo. Module `/dao-tao-sat-hach` dùng `training.db` per-instance độc lập, không thuộc `report_history.db`.
 
 ## Những gì đã làm
 
@@ -197,6 +197,18 @@ màu đỏ nổi bật:
   0 * * * * DASHV4_UNIT_CODE=<unit> python3 /home/vtst/dashv4/scripts/sync_shc_cts_tien_do.py \
       >> /home/vtst/dashv4/logs/shc_cts_sync.log 2>&1
   ```
+
+## 9. Đào tạo & sát hạch (`/dao-tao-sat-hach`)
+
+Tài liệu vận hành: [12-dao-tao-sat-hach-van-hanh.md](/home/vtst/dashv4-training/docs/12-dao-tao-sat-hach-van-hanh.md).
+
+- Dữ liệu ghi nằm tại SQLite `DASHV4_TRAINING_DB_PATH` per-instance (mặc định `runtime_app/<unit>/training.db`), hoàn toàn tách khỏi `report_history.db`; `supports_date = n/a`.
+- Migration đã có đến v10. v10 dựng lại `exam_template_items` với foreign key/unique constraint và đồng bộ `exam_templates.total_questions` từ item hợp lệ.
+- RBAC module được kiểm tra tại server theo role/scope `training_user_roles` và audience mapping; admin module thỏa role yêu cầu.
+- AI generation queue có atomic claim, lease/heartbeat, retry/recovery và worker riêng. Provider fake phục vụ test; chưa xác nhận bật hoặc nghiệm thu production OpenAI.
+- Fixed template chỉ nhận question version đã publish, không cho câu trùng và bị bất biến khi đã khóa/được dùng; attempt snapshot có checksum để phát hiện can thiệp.
+- Close chuyển attempt active sang submit hành chính và chấm theo transaction ngắn; finalize recover attempt dở, expire assignment chưa bắt đầu, tạo report revision với checksum. Không ghi đè report snapshot cũ.
+- Chưa ghi nhận hoàn tất UI người vận hành/người học, production OpenAI, hoặc luồng thi lại. Các phần này vẫn cần acceptance riêng trước khi coi là hoàn thành MVP.
 
 ## 5. Route chưa hỗ trợ đã bị chặn ở mức page/API
 

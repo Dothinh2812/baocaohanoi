@@ -16,6 +16,8 @@ Nếu vào repo ở phiên sau, hoặc cần sửa/thêm tính năng, bắt đ�
    Dùng khi route đọc `report_history.db` và cần hiển thị theo ngày.
 4. [03-hop-dong-du-lieu-api-transition.md](/home/vtst/dashv4/docs/03-hop-dong-du-lieu-api-transition.md)
    Dùng để hiểu cấu trúc DB runtime, metadata import, và contract dữ liệu từ `api_transition`.
+5. [12-dao-tao-sat-hach-van-hanh.md](/home/vtst/dashv4-training/docs/12-dao-tao-sat-hach-van-hanh.md)
+   Dùng khi vận hành module Đào tạo & sát hạch: `training.db` per-instance, migration, worker AI, backup và các mốc integrity.
 
 ## Khi cần làm gì thì đọc gì
 
@@ -55,6 +57,12 @@ Nếu vào repo ở phiên sau, hoặc cần sửa/thêm tính năng, bắt đ�
 
 - [11-kiemsoat-to-truong-van-hanh.md](/home/vtst/dashv4/docs/11-kiemsoat-to-truong-van-hanh.md)
 
+### Muốn vận hành module Đào tạo & sát hạch
+
+- [12-dao-tao-sat-hach-van-hanh.md](/home/vtst/dashv4-training/docs/12-dao-tao-sat-hach-van-hanh.md)
+- [2026-07-24-dao-tao-sat-hach-api-contract.md](/home/vtst/dashv4-training/docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-api-contract.md)
+- [2026-07-24-dao-tao-sat-hach-data-dictionary.md](/home/vtst/dashv4-training/docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-data-dictionary.md)
+
 ## Danh sách tài liệu
 
 ### Tài liệu định hướng và phạm vi
@@ -76,13 +84,18 @@ Nếu vào repo ở phiên sau, hoặc cần sửa/thêm tính năng, bắt đ�
 - [08-trang-thai-thuc-thi.md](/home/vtst/dashv4/docs/08-trang-thai-thuc-thi.md)
 - [10-trien-khai-multi-instance.md](/home/vtst/dashv4/docs/10-trien-khai-multi-instance.md)
 - [11-kiemsoat-to-truong-van-hanh.md](/home/vtst/dashv4/docs/11-kiemsoat-to-truong-van-hanh.md)
+- [12-dao-tao-sat-hach-van-hanh.md](/home/vtst/dashv4-training/docs/12-dao-tao-sat-hach-van-hanh.md)
 
 ### Đặc tả tính năng đang thiết kế
 
 - [2026-07-24-dao-tao-sat-hach-design.md](/home/vtst/dashv4/docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-design.md)
   Đặc tả module kho tri thức, AI soạn câu hỏi, ngân hàng đề, tổ chức thi, chấm điểm và báo cáo theo từng instance TTVT.
 - [2026-07-24-dao-tao-sat-hach-mvp.md](/home/vtst/dashv4/docs/superpowers/plans/2026-07-24-dao-tao-sat-hach-mvp.md)
-  Kế hoạch triển khai MVP theo vertical slice, từ SQLite/RBAC đến AI worker, engine thi cố định, báo cáo và vận hành.
+   Kế hoạch triển khai MVP theo vertical slice, từ SQLite/RBAC đến AI worker, engine thi cố định, báo cáo và vận hành.
+- [2026-07-24-dao-tao-sat-hach-api-contract.md](/home/vtst/dashv4/docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-api-contract.md)
+  Contract API của module Đào tạo & sát hạch.
+- [2026-07-24-dao-tao-sat-hach-data-dictionary.md](/home/vtst/dashv4/docs/superpowers/specs/2026-07-24-dao-tao-sat-hach-data-dictionary.md)
+  Schema, invariant và migration của `training.db` per-instance.
 
 ## Quy tắc đồng bộ tài liệu
 
