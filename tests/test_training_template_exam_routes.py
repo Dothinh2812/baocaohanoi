@@ -1,8 +1,13 @@
+import copy
+
 import pytest
 
+from services import training_attempt_service as attempts
 from services import training_exam_service as exams
+from tests.test_training_attempt_lifecycle import _make_open_exam_with_assignment
 from tests.test_training_exam_states import _publish_questions, _setup
-from tests.test_training_routes import _client, _role_client
+from tests.test_training_routes import QUESTION_BATCH, _client, _role_client
+from training import db as training_db
 from training import time_policy
 from training.errors import TrainingError
 
@@ -296,3 +301,299 @@ def test_users_route_never_exposes_password(monkeypatch, tmp_path):
     assert "password" not in serialized
     assert "secret" not in serialized
     assert response.get_json()["items"] == [{"username": "u1", "display_name": "User One"}]
+
+
+# --- Template create + validation via route ---
+
+def _publish_via_route(client, batch):
+    imported = client.post(
+        "/api/training/questions/import", headers={"X-CSRF-Token": "csrf"}, json=batch,
+    )
+    assert imported.status_code == 201
+    version_ids = imported.get_json()["version_ids"]
+    for vid in version_ids:
+        approved = client.post(
+            f"/api/training/questions/{vid}/approve", headers={"X-CSRF-Token": "csrf"},
+        )
+        published = client.post(
+            f"/api/training/questions/{vid}/publish", headers={"X-CSRF-Token": "csrf"},
+        )
+        assert approved.status_code == 200
+        assert published.status_code == 200
+    return version_ids
+
+
+def _two_question_route_batch():
+    batch = copy.deepcopy(QUESTION_BATCH)
+    batch["batch"]["requested_count"] = 2
+    batch["questions"] = [
+        {**QUESTION_BATCH["questions"][0], "local_ref": "Q1", "stem": "Câu lifecycle 1?"},
+        {**QUESTION_BATCH["questions"][0], "local_ref": "Q2", "stem": "Câu lifecycle 2?"},
+    ]
+    return batch
+
+
+def _post_template(client, payload):
+    return client.post(
+        "/api/training/templates", headers={"X-CSRF-Token": "csrf"}, json=payload,
+    )
+
+
+def test_create_template_route_success(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        version_ids = _publish_via_route(client, _two_question_route_batch())
+        response = _post_template(client, {
+            "code": "TPL-ROUTE-OK", "title": "Template route",
+            "target_audience_code": "nvkt",
+            "question_version_ids": version_ids,
+            "duration_seconds": 600, "pass_score_percent": 80.0,
+            "shuffle_questions": True, "shuffle_options": False,
+        })
+
+    assert response.status_code == 201
+    body = response.get_json()
+    assert body["code"] == "TPL-ROUTE-OK"
+    assert body["total_questions"] == 2
+    assert body["locked"] == 0
+
+
+def test_create_template_route_rejects_empty_questions(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        response = _post_template(client, {
+            "code": "TPL-EMPTY-ROUTE", "title": "Empty",
+            "target_audience_code": "nvkt", "question_version_ids": [],
+            "duration_seconds": 600, "pass_score_percent": 80.0,
+        })
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "TEMPLATE_QUESTION_INVALID"
+
+
+def test_create_template_route_rejects_unpublished_question(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        imported = client.post(
+            "/api/training/questions/import", headers={"X-CSRF-Token": "csrf"}, json=QUESTION_BATCH,
+        )
+        version_id = imported.get_json()["version_ids"][0]
+        response = _post_template(client, {
+            "code": "TPL-UNPUB-ROUTE", "title": "Unpublished",
+            "target_audience_code": "nvkt", "question_version_ids": [version_id],
+            "duration_seconds": 600, "pass_score_percent": 80.0,
+        })
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "TEMPLATE_QUESTION_INVALID"
+
+
+def test_create_template_route_rejects_duplicate_question(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        version_ids = _publish_via_route(client, QUESTION_BATCH)
+        response = _post_template(client, {
+            "code": "TPL-DUP-ROUTE", "title": "Duplicate",
+            "target_audience_code": "nvkt",
+            "question_version_ids": [version_ids[0], version_ids[0]],
+            "duration_seconds": 600, "pass_score_percent": 80.0,
+        })
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "TEMPLATE_QUESTION_DUPLICATE"
+
+
+def test_create_template_route_rejects_audience_mismatch(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        # QUESTION_BATCH gắn audience_codes=["nvkt"]; tạo template cho đối tượng khác.
+        version_ids = _publish_via_route(client, QUESTION_BATCH)
+        response = _post_template(client, {
+            "code": "TPL-AUD-ROUTE", "title": "Audience mismatch",
+            "target_audience_code": "kinh_doanh",
+            "question_version_ids": version_ids,
+            "duration_seconds": 600, "pass_score_percent": 80.0,
+        })
+
+    assert response.status_code == 400
+    assert response.get_json()["error"]["code"] == "TEMPLATE_QUESTION_INVALID"
+
+
+def test_template_becomes_immutable_after_exam_created(monkeypatch, tmp_path):
+    # Không có route update template; kiểm chứng bất biến ở service layer mà route dựa vào.
+    db_path = _setup(monkeypatch, tmp_path)
+    template = _make_template(db_path, code="TPL-IMMUTABLE-ROUTE")
+    now = time_policy.utc_now_ms()
+    exams.create_exam(
+        db_path, unit_code="son_tay", actor="alice", code="EXAM-IMMUTABLE-ROUTE", title="Kỳ thi",
+        template_id=template["id"], target_audience_code="nvkt", start_at_ms=now,
+        end_at_ms=now + 3_600_000, duration_seconds=600, pass_score_percent=80.0,
+    )
+    version_ids = [item["question_version_id"]
+                   for item in exams.get_template_items(db_path, template["id"])]
+
+    with pytest.raises(TrainingError) as exc:
+        exams.update_template(
+            db_path, unit_code="son_tay", actor="alice", template_id=template["id"],
+            question_version_ids=list(reversed(version_ids)),
+            shuffle_questions=True, shuffle_options=False,
+        )
+
+    assert exc.value.code == "TEMPLATE_IMMUTABLE"
+    assert exc.value.status == 409
+
+
+# --- Exam lifecycle + assignments via route ---
+
+def test_exam_full_lifecycle_via_route(monkeypatch, tmp_path):
+    from blueprints import training_routes
+
+    for client in _client(monkeypatch, tmp_path):
+        db_path = training_routes.config.TRAINING_DB_PATH
+        template = _make_template(db_path, code="TPL-LIFECYCLE")
+        now = time_policy.utc_now_ms()
+        create = client.post(
+            "/api/training/exams", headers={"X-CSRF-Token": "csrf"},
+            json={
+                "code": "EXAM-LIFECYCLE", "title": "Kỳ thi", "template_id": template["id"],
+                "target_audience_code": "nvkt", "start_at_ms": now,
+                "end_at_ms": now + 3_600_000, "duration_seconds": 600,
+            },
+        )
+        exam_id = create.get_json()["id"]
+        ready = client.post(f"/api/training/exams/{exam_id}/ready", headers={"X-CSRF-Token": "csrf"})
+        assign = client.post(
+            f"/api/training/exams/{exam_id}/assignments", headers={"X-CSRF-Token": "csrf"},
+            json={"users": [{"username": "u1", "display_name": "User 1"}], "audience_code": "nvkt"},
+        )
+        opened = client.post(f"/api/training/exams/{exam_id}/open", headers={"X-CSRF-Token": "csrf"})
+        closed = client.post(f"/api/training/exams/{exam_id}/close", headers={"X-CSRF-Token": "csrf"})
+        finalized = client.post(f"/api/training/exams/{exam_id}/finalize", headers={"X-CSRF-Token": "csrf"})
+
+    assert create.status_code == 201
+    assert ready.status_code == 200
+    assert assign.status_code == 201
+    assert opened.status_code == 200
+    assert closed.status_code == 200
+    assert set(closed.get_json()["recovery_summary"]) == {
+        "processed_attempt_ids", "already_completed_ids", "failed_attempts",
+    }
+    assert finalized.status_code == 200
+    assert isinstance(finalized.get_json()["revision"], int)
+
+
+def test_duplicate_assignment_returns_409(monkeypatch, tmp_path):
+    from blueprints import training_routes
+
+    for client in _client(monkeypatch, tmp_path):
+        db_path = training_routes.config.TRAINING_DB_PATH
+        exam = _make_exam(db_path, code="EXAM-DUP-ASSIGN-ROUTE")
+        first = client.post(
+            f"/api/training/exams/{exam['id']}/assignments", headers={"X-CSRF-Token": "csrf"},
+            json={"users": [{"username": "u1"}], "audience_code": "nvkt"},
+        )
+        duplicate = client.post(
+            f"/api/training/exams/{exam['id']}/assignments", headers={"X-CSRF-Token": "csrf"},
+            json={"users": [{"username": "u1"}], "audience_code": "nvkt"},
+        )
+
+    assert first.status_code == 201
+    assert duplicate.status_code == 409
+    assert duplicate.get_json()["error"]["code"] == "ASSIGNMENT_ALREADY_EXISTS"
+
+
+def test_assignment_blocked_after_open(monkeypatch, tmp_path):
+    from blueprints import training_routes
+
+    for client in _client(monkeypatch, tmp_path):
+        db_path = training_routes.config.TRAINING_DB_PATH
+        exam = _make_exam(db_path, code="EXAM-ASSIGN-AFTER-OPEN")
+        client.post(f"/api/training/exams/{exam['id']}/ready", headers={"X-CSRF-Token": "csrf"})
+        client.post(f"/api/training/exams/{exam['id']}/open", headers={"X-CSRF-Token": "csrf"})
+        response = client.post(
+            f"/api/training/exams/{exam['id']}/assignments", headers={"X-CSRF-Token": "csrf"},
+            json={"users": [{"username": "u1"}], "audience_code": "nvkt"},
+        )
+
+    assert response.status_code == 409
+    assert response.get_json()["error"]["code"] == "CONFLICT"
+
+
+# --- RBAC + CSRF ---
+
+def test_editor_cannot_access_exam_routes(monkeypatch, tmp_path):
+    for client, _ in _role_client(monkeypatch, tmp_path, username="editor", roles=("editor",)):
+        responses = [
+            client.get("/api/training/exams"),
+            client.get("/api/training/exams/missing"),
+            client.post("/api/training/exams", headers={"X-CSRF-Token": "csrf"}, json={}),
+            client.post("/api/training/exams/missing/cancel", headers={"X-CSRF-Token": "csrf"}),
+        ]
+
+    assert [response.status_code for response in responses] == [403] * 4
+    assert all(response.get_json()["error"]["code"] == "PERMISSION_SCOPE_DENIED" for response in responses)
+
+
+def test_create_template_without_csrf_returns_400(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        response = client.post(  # cố tình thiếu X-CSRF-Token
+            "/api/training/templates",
+            json={
+                "code": "TPL-NO-CSRF", "title": "No CSRF",
+                "target_audience_code": "nvkt", "question_version_ids": [],
+                "duration_seconds": 600, "pass_score_percent": 80.0,
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.get_json()["error"] == "CSRF token không hợp lệ"
+
+
+# --- XSS guard: dynamic data must never reach innerHTML ---
+
+def test_exam_and_template_js_never_assign_dynamic_innerhtml():
+    import re
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parent.parent
+    sources = [
+        repo_root / "static" / "js" / "training-exams.js",
+        repo_root / "static" / "js" / "training-templates.js",
+    ]
+    assignment = re.compile(r"\.innerHTML\s*=\s*([^;\n]+)")
+    literal = re.compile(r"'[^']*'")
+    for source_path in sources:
+        source = source_path.read_text(encoding="utf-8")
+        for match in assignment.finditer(source):
+            rhs = match.group(1).strip()
+            assert literal.fullmatch(rhs), (
+                f"{source_path.name}: .innerHTML gán giá trị động (không phải hằng chuỗi): {rhs}"
+            )
+
+
+# --- Finalize blocking: corrupted attempt snapshot surfaces blocking_attempts ---
+
+def test_finalize_route_reports_blocking_attempts(monkeypatch, tmp_path):
+    from blueprints import training_routes
+
+    for client in _client(monkeypatch, tmp_path):
+        db_path = training_routes.config.TRAINING_DB_PATH
+        exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+        attempt = attempts.start_attempt(
+            db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id,
+        )
+        # Làm hỏng snapshot: sửa nội dung item nhưng không cập nhật checksum.
+        conn = training_db.write_connection(db_path)
+        try:
+            conn.execute(
+                "UPDATE exam_attempt_items SET stem=stem||' (sửa)' WHERE attempt_id=?",
+                (attempt["attempt_id"],),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+        closed = client.post(f"/api/training/exams/{exam_id}/close", headers={"X-CSRF-Token": "csrf"})
+        finalized = client.post(f"/api/training/exams/{exam_id}/finalize", headers={"X-CSRF-Token": "csrf"})
+
+    assert closed.status_code == 200
+    failed = closed.get_json()["recovery_summary"]["failed_attempts"]
+    assert any(item["attempt_id"] == attempt["attempt_id"] for item in failed)
+    assert finalized.status_code == 409
+    details = finalized.get_json()["error"]["details"]
+    assert "blocking_attempts" in details
+    assert any(item["attempt_id"] == attempt["attempt_id"] for item in details["blocking_attempts"])
