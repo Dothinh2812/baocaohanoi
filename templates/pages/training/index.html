@@ -25,7 +25,7 @@
       <a class="training-nav-item" href="#training-pending"><i class="fas fa-chart-bar"></i> Báo cáo</a>
       {% endif %}
       {% if 'learner' in module_roles or 'admin' in module_roles %}
-      <a class="training-nav-item" href="#training-pending"><i class="fas fa-pen-to-square"></i> Bài thi của tôi</a>
+      <a class="training-nav-item" href="#training-my-exams" data-panel="training-my-exams"><i class="fas fa-pen-to-square"></i> Bài thi của tôi</a>
       <a class="training-nav-item" href="#training-pending"><i class="fas fa-square-poll-vertical"></i> Kết quả của tôi</a>
       {% endif %}
     </nav>
@@ -196,6 +196,19 @@
         <section id="exam-detail" class="training-question-detail" hidden tabindex="-1" aria-live="polite"></section>
       </section>
       {% endif %}
+
+      {% if 'learner' in module_roles or 'admin' in module_roles %}
+      <section class="training-workspace-panel" id="training-my-exams" aria-labelledby="training-my-exams-title" hidden>
+        <h3 id="training-my-exams-title"><i class="fas fa-pen-to-square"></i> Bài thi của tôi</h3>
+        <p class="training-section-hint">Các kỳ thi đã được giao cho bạn.</p>
+        <div id="my-exam-list" aria-live="polite"></div>
+      </section>
+
+      <section class="training-workspace-panel" id="training-attempt" aria-labelledby="training-attempt-title" hidden>
+        <h3 id="training-attempt-title"><i class="fas fa-pen-to-square"></i> Làm bài</h3>
+        <div id="attempt-workspace" aria-live="polite"></div>
+      </section>
+      {% endif %}
     </section>
   </div>
 </div>
@@ -242,5 +255,9 @@
 {% if 'exam_manager' in module_roles or 'admin' in module_roles %}
 <script src="{{ url_for('static', filename='js/training-templates.js') }}"></script>
 <script src="{{ url_for('static', filename='js/training-exams.js') }}"></script>
+{% endif %}
+{% if 'learner' in module_roles or 'admin' in module_roles %}
+<script src="{{ url_for('static', filename='js/training-my-exams.js') }}"></script>
+<script src="{{ url_for('static', filename='js/training-attempt.js') }}"></script>
 {% endif %}
 {% endblock %}
