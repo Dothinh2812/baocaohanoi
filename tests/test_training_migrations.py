@@ -145,6 +145,11 @@ def test_migration_008_preserves_template_items_and_locks_question_versions(monk
             (id, template_id, sequence_number, question_version_id, points)
             VALUES ('item', 'template', 1, 'version', 1.0)"""
         )
+        conn.execute(
+            """INSERT INTO exam_template_items
+            (id, template_id, sequence_number, question_version_id, points)
+            VALUES ('duplicate-question', 'template', 3, 'version', 1.0)"""
+        )
         conn.commit()
         conn.execute("PRAGMA foreign_keys=OFF")
         conn.execute(
@@ -169,6 +174,7 @@ def test_migration_008_preserves_template_items_and_locks_question_versions(monk
         rows = conn.execute(
             "SELECT id, question_version_id FROM exam_template_items"
         ).fetchall()
+        assert len(rows) == 1
         assert [(row["id"], row["question_version_id"]) for row in rows] == [("item", "version")]
         foreign_keys = conn.execute("PRAGMA foreign_key_list('exam_template_items')").fetchall()
         assert any(

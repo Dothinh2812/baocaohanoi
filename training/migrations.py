@@ -673,7 +673,16 @@ def migration_008(conn):
                    ti.section_label, ti.points
             FROM exam_template_items ti
             JOIN exam_templates et ON et.id = ti.template_id
-            JOIN question_versions qv ON qv.id = ti.question_version_id"""
+            JOIN question_versions qv ON qv.id = ti.question_version_id
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM exam_template_items earlier
+                JOIN exam_templates earlier_template ON earlier_template.id = earlier.template_id
+                JOIN question_versions earlier_version ON earlier_version.id = earlier.question_version_id
+                WHERE earlier.template_id = ti.template_id
+                  AND earlier.question_version_id = ti.question_version_id
+                  AND earlier.rowid < ti.rowid
+            )"""
         )
         conn.execute("DROP TABLE exam_template_items")
         conn.execute("ALTER TABLE exam_template_items_new RENAME TO exam_template_items")
