@@ -63,6 +63,11 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
     if not exam:
         raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
     if exam["status"] == constants.ExamStatus.OPEN:
+        if time_policy.utc_now_ms() < exam["end_at_ms"]:
+            raise TrainingError(
+                ErrorCode.EXAM_NOT_OPEN,
+                "Kỳ thi vẫn đang trong thời gian làm bài", status=409,
+            )
         exams.close_exam(db_path, unit_code=unit_code, actor=actor, exam_id=exam_id)
 
     conn = read_connection(db_path)

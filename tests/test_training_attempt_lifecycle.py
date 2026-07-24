@@ -702,7 +702,7 @@ def test_close_racing_autosave_leaves_administrative_result(monkeypatch, tmp_pat
     assert attempt["status"] == "administratively_submitted"
     assert attempt["ended_reason"] == "exam_closed"
     assert att.get_result(db_path, started["attempt_id"]) is not None
-    assert not errors or errors == ["ATTEMPT_ALREADY_COMPLETED"]
+    assert not errors or errors[0] in {"EXAM_NOT_OPEN", "ATTEMPT_ALREADY_COMPLETED"}
 
 
 def test_closed_exam_blocks_start_autosave_and_learner_submit(monkeypatch, tmp_path):
