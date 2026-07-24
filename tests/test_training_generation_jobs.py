@@ -1,10 +1,12 @@
 import threading
 import time
+from argparse import Namespace
 
 import pytest
 
 from training import db as training_db
 from training import migrations, time_policy
+from training.errors import ErrorCode, TrainingError
 from services import training_generation_service as gs
 from training.providers import fake as fake_provider
 from services.training_catalog_service import seed_defaults
@@ -147,6 +149,7 @@ def test_expired_lease_can_be_reclaimed(monkeypatch, tmp_path):
     assert reclaimed is not None
     assert reclaimed["id"] == job_id
     assert reclaimed["claimed_by"] == "w2"
+    assert reclaimed["retry_count"] == 1
 
 
 def test_complete_job_creates_drafts(monkeypatch, tmp_path):
@@ -222,3 +225,179 @@ def test_cancel_job(monkeypatch, tmp_path):
     gs.cancel_job(db_path, unit_code="son_tay", actor="alice", job_id=job_id)
     job = gs.get_job(db_path, job_id)
     assert job["status"] == "cancelled"
+
+
+def test_stale_worker_cannot_complete_after_lease_expires(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    job_id = gs.enqueue_job(
+        db_path, unit_code="son_tay", actor="alice",
+        source_document_version_ids=["docver-001"],
+        target_audience_codes=["nvkt"], requested_count=1,
+    )
+    gs.claim_next_job(db_path, worker_id="w1", lease_seconds=-1)
+
+    with pytest.raises(TrainingError) as exc_info:
+        gs.complete_job(
+            db_path, job_id=job_id, worker_id="w1", batch=VALID_BATCH,
+            provider_metadata={"provider": "fake", "model": "test"},
+        )
+
+    assert exc_info.value.code == ErrorCode.CONFLICT
+    assert gs.get_job(db_path, job_id)["status"] == "running"
+
+
+def test_stale_worker_cannot_fail_after_lease_expires(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    job_id = gs.enqueue_job(
+        db_path, unit_code="son_tay", actor="alice",
+        source_document_version_ids=["docver-001"],
+        target_audience_codes=["nvkt"], requested_count=1,
+    )
+    gs.claim_next_job(db_path, worker_id="w1", lease_seconds=-1)
+
+    with pytest.raises(TrainingError) as exc_info:
+        gs.fail_job(db_path, job_id=job_id, worker_id="w1",
+                    error_code="TIMEOUT", error_detail="timed out")
+
+    assert exc_info.value.code == ErrorCode.CONFLICT
+    job = gs.get_job(db_path, job_id)
+    assert job["status"] == "running"
+    assert job["retry_count"] == 0
+
+
+def test_stale_worker_cannot_heartbeat_after_lease_expires(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    job_id = gs.enqueue_job(
+        db_path, unit_code="son_tay", actor="alice",
+        source_document_version_ids=["docver-001"],
+        target_audience_codes=["nvkt"], requested_count=1,
+    )
+    gs.claim_next_job(db_path, worker_id="w1", lease_seconds=-1)
+
+    with pytest.raises(TrainingError) as exc_info:
+        gs.heartbeat(db_path, job_id=job_id, worker_id="w1", lease_seconds=300)
+
+    assert exc_info.value.code == ErrorCode.CONFLICT
+
+
+def test_cancelled_running_job_cannot_complete(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    job_id = gs.enqueue_job(
+        db_path, unit_code="son_tay", actor="alice",
+        source_document_version_ids=["docver-001"],
+        target_audience_codes=["nvkt"], requested_count=1,
+    )
+    gs.claim_next_job(db_path, worker_id="w1", lease_seconds=300)
+    gs.cancel_job(db_path, unit_code="son_tay", actor="alice", job_id=job_id)
+
+    with pytest.raises(TrainingError) as exc_info:
+        gs.complete_job(
+            db_path, job_id=job_id, worker_id="w1", batch=VALID_BATCH,
+            provider_metadata={"provider": "fake", "model": "test"},
+        )
+
+    assert exc_info.value.code == ErrorCode.CONFLICT
+    assert gs.get_job(db_path, job_id)["status"] == "cancelled"
+
+
+def test_draft_import_failure_rolls_back_batch_and_completion(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    job_id = gs.enqueue_job(
+        db_path, unit_code="son_tay", actor="alice",
+        source_document_version_ids=["docver-001"],
+        target_audience_codes=["nvkt"], requested_count=1,
+    )
+    gs.claim_next_job(db_path, worker_id="w1", lease_seconds=300)
+
+    def fail_import(*args, **kwargs):
+        raise RuntimeError("draft import failed")
+
+    monkeypatch.setattr(gs, "import_question_batch", fail_import)
+    with pytest.raises(RuntimeError, match="draft import failed"):
+        gs.complete_job(
+            db_path, job_id=job_id, worker_id="w1", batch=VALID_BATCH,
+            provider_metadata={"provider": "fake", "model": "test"},
+        )
+
+    assert gs.get_job(db_path, job_id)["status"] == "running"
+    conn = training_db.read_connection(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) FROM ai_generation_batches").fetchone()[0] == 0
+        assert conn.execute("SELECT COUNT(*) FROM question_versions").fetchone()[0] == 0
+    finally:
+        conn.close()
+
+
+def test_job_records_unit_code_and_complete_audit_uses_it(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path, unit_code="ba_vi")
+    job_id = gs.enqueue_job(
+        db_path, unit_code="ba_vi", actor="alice",
+        source_document_version_ids=["docver-001"],
+        target_audience_codes=["nvkt"], requested_count=1,
+    )
+    gs.claim_next_job(db_path, worker_id="w1", lease_seconds=300)
+    gs.complete_job(
+        db_path, job_id=job_id, worker_id="w1", batch=VALID_BATCH,
+        provider_metadata={"provider": "fake", "model": "test"},
+    )
+
+    assert gs.get_job(db_path, job_id)["unit_code"] == "ba_vi"
+    conn = training_db.read_connection(db_path)
+    try:
+        audit = conn.execute(
+            "SELECT unit_code FROM training_audit_log "
+            "WHERE action='complete_job' AND entity_id=?", (job_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+    assert audit["unit_code"] == "ba_vi"
+
+
+def test_concurrent_expired_reclaim_counts_one_abandoned_attempt(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    gs.enqueue_job(
+        db_path, unit_code="son_tay", actor="alice",
+        source_document_version_ids=["docver-001"],
+        target_audience_codes=["nvkt"], requested_count=1,
+    )
+    claimed = gs.claim_next_job(db_path, worker_id="w1", lease_seconds=-1)
+    barrier = threading.Barrier(2)
+    results = []
+
+    def reclaim(worker_id):
+        barrier.wait()
+        results.append(gs.claim_next_job(db_path, worker_id=worker_id, lease_seconds=300))
+
+    threads = [threading.Thread(target=reclaim, args=(worker_id,)) for worker_id in ("w2", "w3")]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(timeout=10)
+
+    successful = [job for job in results if job is not None]
+    assert len(successful) == 1
+    assert successful[0]["id"] == claimed["id"]
+    assert successful[0]["retry_count"] == 1
+
+
+def test_worker_without_once_keeps_polling_after_empty_queue(monkeypatch, tmp_path):
+    from training import cli
+
+    polls = []
+
+    def claim(*args, **kwargs):
+        polls.append(None)
+        if len(polls) == 1:
+            return None
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(gs, "claim_next_job", claim)
+    monkeypatch.setattr("time.sleep", lambda interval: None)
+    monkeypatch.setattr(cli, "_get_provider", lambda provider: object())
+    args = Namespace(db_path=str(tmp_path / "training.db"), provider="fake", worker_id="w1",
+                     once=False, poll_interval=0)
+
+    with pytest.raises(KeyboardInterrupt):
+        cli.cmd_worker(args)
+
+    assert len(polls) == 2

@@ -33,14 +33,14 @@ def enqueue_job(
             """INSERT INTO ai_generation_jobs
             (id, status, idempotency_key, request_payload_json,
              source_document_version_ids_json, target_audience_codes_json,
-             requested_count, created_by, created_at_ms, max_retries)
-            VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)""",
+             requested_count, unit_code, created_by, created_at_ms, max_retries)
+             VALUES (?, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 job_id, idempotency_key,
                 json.dumps({"requested_count": requested_count}, ensure_ascii=False),
                 json.dumps(source_document_version_ids, ensure_ascii=False),
                 json.dumps(target_audience_codes, ensure_ascii=False),
-                requested_count, actor, now, max_retries,
+                requested_count, unit_code, actor, now, max_retries,
             ),
         )
         write_audit(conn, actor=actor, unit_code=unit_code, action="enqueue_job",
@@ -94,12 +94,16 @@ def heartbeat(db_path, *, job_id, worker_id, lease_seconds):
     lease_expires = now + lease_seconds * 1000
     conn = write_connection(db_path)
     try:
-        conn.execute(
+        updated = conn.execute(
             """UPDATE ai_generation_jobs
             SET heartbeat_at_ms=?, lease_expires_at_ms=?
-            WHERE id=? AND claimed_by=? AND status='running'""",
-            (now, lease_expires, job_id, worker_id),
-        )
+            WHERE id=? AND claimed_by=? AND status='running'
+              AND lease_expires_at_ms IS NOT NULL AND lease_expires_at_ms > ?""",
+            (now, lease_expires, job_id, worker_id, now),
+        ).rowcount
+        if updated != 1:
+            raise TrainingError(ErrorCode.CONFLICT,
+                                "Worker không còn sở hữu lease của job", status=409)
         conn.commit()
     finally:
         conn.close()
@@ -110,14 +114,17 @@ def complete_job(db_path, *, job_id, worker_id, batch, provider_metadata):
     now = time_policy.utc_now_ms()
     conn = write_connection(db_path)
     try:
+        conn.execute("BEGIN IMMEDIATE")
         job = conn.execute(
             "SELECT * FROM ai_generation_jobs WHERE id=?", (job_id,)
         ).fetchone()
         if not job:
             raise TrainingError(ErrorCode.NOT_FOUND, "Job không tồn tại", status=404)
-        if job["claimed_by"] != worker_id:
+        if (job["status"] != "running" or job["claimed_by"] != worker_id
+                or job["lease_expires_at_ms"] is None
+                or job["lease_expires_at_ms"] <= now):
             raise TrainingError(ErrorCode.CONFLICT,
-                                "Worker không sở hữu job này", status=409)
+                                "Worker không còn sở hữu lease của job", status=409)
         conn.execute(
             "INSERT OR REPLACE INTO ai_generation_batches "
             "(id, job_id, schema_version, provider, model, prompt_version, usage_json, "
@@ -135,48 +142,76 @@ def complete_job(db_path, *, job_id, worker_id, batch, provider_metadata):
                 now,
             ),
         )
-        conn.execute(
-            "UPDATE ai_generation_jobs SET status='completed', completed_at_ms=? WHERE id=?",
-            (now, job_id),
+        import_question_batch(
+            db_path, unit_code=job["unit_code"], actor=job["created_by"],
+            batch=batch, status="draft", conn=conn,
         )
-        write_audit(conn, actor=worker_id, unit_code=job["created_by"], action="complete_job",
+        updated = conn.execute(
+            """UPDATE ai_generation_jobs
+            SET status='completed', completed_at_ms=?
+            WHERE id=? AND status='running' AND claimed_by=?
+              AND lease_expires_at_ms IS NOT NULL AND lease_expires_at_ms > ?""",
+            (now, job_id, worker_id, now),
+        ).rowcount
+        if updated != 1:
+            raise TrainingError(ErrorCode.CONFLICT,
+                                "Worker không còn sở hữu lease của job", status=409)
+        write_audit(conn, actor=worker_id, unit_code=job["unit_code"], action="complete_job",
                     entity_type="ai_generation_job", entity_id=job_id)
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
-    import_question_batch(
-        db_path, unit_code=job["created_by"], actor=job["created_by"],
-        batch=batch, status="draft",
-    )
 
 
 def fail_job(db_path, *, job_id, worker_id, error_code, error_detail):
     now = time_policy.utc_now_ms()
     conn = write_connection(db_path)
     try:
+        conn.execute("BEGIN IMMEDIATE")
         job = conn.execute(
             "SELECT retry_count, max_retries FROM ai_generation_jobs WHERE id=?",
             (job_id,),
         ).fetchone()
         if not job:
             raise TrainingError(ErrorCode.NOT_FOUND, "Job không tồn tại", status=404)
+        now = time_policy.utc_now_ms()
+        owned = conn.execute(
+            """SELECT 1 FROM ai_generation_jobs
+            WHERE id=? AND status='running' AND claimed_by=?
+              AND lease_expires_at_ms IS NOT NULL AND lease_expires_at_ms > ?""",
+            (job_id, worker_id, now),
+        ).fetchone()
+        if not owned:
+            raise TrainingError(ErrorCode.CONFLICT,
+                                "Worker không còn sở hữu lease của job", status=409)
         new_retry_count = job["retry_count"] + 1
         if new_retry_count >= job["max_retries"]:
-            conn.execute(
+            updated = conn.execute(
                 """UPDATE ai_generation_jobs
                 SET status='failed', error_code=?, error_detail=?, retry_count=?
-                WHERE id=?""",
-                (error_code, error_detail, new_retry_count, job_id),
-            )
+                WHERE id=? AND status='running' AND claimed_by=?
+                  AND lease_expires_at_ms IS NOT NULL AND lease_expires_at_ms > ?""",
+                (error_code, error_detail, new_retry_count, job_id, worker_id, now),
+            ).rowcount
         else:
-            conn.execute(
+            updated = conn.execute(
                 """UPDATE ai_generation_jobs
                 SET status='pending', error_code=?, error_detail=?,
                     claimed_by=NULL, lease_expires_at_ms=NULL, retry_count=?
-                WHERE id=?""",
-                (error_code, error_detail, new_retry_count, job_id),
-            )
+                WHERE id=? AND status='running' AND claimed_by=?
+                  AND lease_expires_at_ms IS NOT NULL AND lease_expires_at_ms > ?""",
+                (error_code, error_detail, new_retry_count, job_id, worker_id, now),
+            ).rowcount
+        if updated != 1:
+            raise TrainingError(ErrorCode.CONFLICT,
+                                "Worker không còn sở hữu lease của job", status=409)
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         conn.close()
 

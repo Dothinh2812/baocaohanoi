@@ -65,6 +65,39 @@ def test_instance_metadata_has_correct_unit_code(monkeypatch, tmp_path):
     assert row["schema_version"] >= 8
 
 
+def test_migration_009_backfills_job_unit_from_instance_metadata_with_audit(monkeypatch, tmp_path):
+    db_path = _config(monkeypatch, tmp_path, unit_code="ba_vi")
+    migrations.run_migrations(db_path, unit_code="ba_vi", migrations=migrations._MIGRATIONS[:8])
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute(
+            """INSERT INTO ai_generation_jobs
+            (id, status, request_payload_json, source_document_version_ids_json,
+             target_audience_codes_json, requested_count, created_by, created_at_ms)
+            VALUES ('job_legacy', 'pending', '{}', '[]', '[]', 1, 'alice', 0)"""
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    migrations.run_migrations(db_path, unit_code="ba_vi")
+
+    conn = training_db.read_connection(db_path)
+    try:
+        job = conn.execute(
+            "SELECT unit_code FROM ai_generation_jobs WHERE id='job_legacy'"
+        ).fetchone()
+        audit = conn.execute(
+            "SELECT actor, unit_code FROM training_audit_log "
+            "WHERE action='backfill_job_unit_code' AND entity_id='job_legacy'"
+        ).fetchone()
+    finally:
+        conn.close()
+    assert job["unit_code"] == "ba_vi"
+    assert audit["actor"] == "migration"
+    assert audit["unit_code"] == "ba_vi"
+
+
 def test_write_connection_pragmas(monkeypatch, tmp_path):
     db_path = _config(monkeypatch, tmp_path)
     migrations.run_migrations(db_path, unit_code="son_tay")

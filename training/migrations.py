@@ -12,7 +12,7 @@ import time
 from training import time_policy
 from training.db import write_connection
 
-CURRENT_SCHEMA_VERSION = 8
+CURRENT_SCHEMA_VERSION = 9
 
 
 class UnitCodeMismatchError(Exception):
@@ -697,6 +697,11 @@ def migration_008(conn):
     )
 
 
+def migration_009(conn):
+    """Persist the instance identity for AI jobs; legacy rows are backfilled by runner."""
+    conn.execute("ALTER TABLE ai_generation_jobs ADD COLUMN unit_code TEXT")
+
+
 _MIGRATIONS = [
     (1, migration_001),
     (2, migration_002),
@@ -706,6 +711,7 @@ _MIGRATIONS = [
     (6, migration_006),
     (7, migration_007),
     (8, migration_008),
+    (9, migration_009),
 ]
 
 
@@ -736,6 +742,27 @@ def run_migrations(db_path, unit_code, *, migrations=None):
                 )
             else:
                 _init_instance_metadata(conn, unit_code, max_version)
+            job_columns = {
+                row["name"] for row in conn.execute("PRAGMA table_info(ai_generation_jobs)")
+            }
+            if "unit_code" in job_columns:
+                legacy_jobs = conn.execute(
+                    "SELECT id FROM ai_generation_jobs WHERE unit_code IS NULL"
+                ).fetchall()
+                if legacy_jobs:
+                    conn.execute(
+                        "UPDATE ai_generation_jobs SET unit_code=? WHERE unit_code IS NULL",
+                        (unit_code,),
+                    )
+                    for job in legacy_jobs:
+                        conn.execute(
+                            """INSERT INTO training_audit_log
+                            (id, actor, unit_code, action, entity_type, entity_id, created_at_ms)
+                            VALUES (?, 'migration', ?, 'backfill_job_unit_code',
+                                    'ai_generation_job', ?, ?)""",
+                            (f"aud_migration_{job['id']}", unit_code, job["id"],
+                             time_policy.utc_now_ms()),
+                        )
             conn.commit()
             return applied | {v for v, _ in pending}
         except Exception:

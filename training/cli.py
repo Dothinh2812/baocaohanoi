@@ -45,44 +45,45 @@ def cmd_worker(args):
     worker_id = args.worker_id or f"cli-{os.getpid()}"
     lease_seconds = int(os.getenv("DASHV4_TRAINING_LEASE_SECONDS", "300"))
 
-    job = gs.claim_next_job(db_path, worker_id=worker_id, lease_seconds=lease_seconds)
-    if job is None:
+    import time
+    while True:
+        job = gs.claim_next_job(db_path, worker_id=worker_id, lease_seconds=lease_seconds)
+        if job is None:
+            if args.once:
+                print("No pending jobs.")
+                return 0
+            time.sleep(args.poll_interval)
+            continue
+
+        print(f"Claimed job {job['id']} (retry {job['retry_count']})")
+        try:
+            import json
+
+            source_ids = json.loads(job["source_document_version_ids_json"])
+            audience_codes = json.loads(job["target_audience_codes_json"])
+            result = provider.generate(
+                source_document_version_ids=source_ids,
+                target_audience_codes=audience_codes,
+                requested_count=job["requested_count"],
+            )
+            gs.complete_job(
+                db_path, job_id=job["id"], worker_id=worker_id,
+                batch=result.batch,
+                provider_metadata={
+                    "provider": result.provider,
+                    "model": result.model,
+                    "prompt_version": result.prompt_version,
+                    "usage": result.usage,
+                    "raw_response": result.raw_response,
+                },
+            )
+            print(f"Completed job {job['id']}")
+        except Exception as exc:
+            gs.fail_job(db_path, job_id=job["id"], worker_id=worker_id,
+                        error_code="WORKER_ERROR", error_detail=str(exc))
+            print(f"Failed job {job['id']}: {exc}")
         if args.once:
-            print("No pending jobs.")
             return 0
-        import time
-
-        time.sleep(args.poll_interval)
-        return 0
-
-    print(f"Claimed job {job['id']} (retry {job['retry_count']})")
-    try:
-        import json
-
-        source_ids = json.loads(job["source_document_version_ids_json"])
-        audience_codes = json.loads(job["target_audience_codes_json"])
-        result = provider.generate(
-            source_document_version_ids=source_ids,
-            target_audience_codes=audience_codes,
-            requested_count=job["requested_count"],
-        )
-        gs.complete_job(
-            db_path, job_id=job["id"], worker_id=worker_id,
-            batch=result.batch,
-            provider_metadata={
-                "provider": result.provider,
-                "model": result.model,
-                "prompt_version": result.prompt_version,
-                "usage": result.usage,
-                "raw_response": result.raw_response,
-            },
-        )
-        print(f"Completed job {job['id']}")
-    except Exception as exc:
-        gs.fail_job(db_path, job_id=job["id"], worker_id=worker_id,
-                    error_code="WORKER_ERROR", error_detail=str(exc))
-        print(f"Failed job {job['id']}: {exc}")
-    return 0
 
 
 def build_parser():

@@ -130,7 +130,7 @@ def _stem_hash(stem):
     return hashlib.sha256(_normalize_stem(stem).encode("utf-8")).hexdigest()
 
 
-def import_question_batch(db_path, *, unit_code, actor, batch, status="draft"):
+def import_question_batch(db_path, *, unit_code, actor, batch, status="draft", conn=None):
     """Import validated batch → tạo question_items + versions + options + sources.
 
     Completed job chỉ tạo drafts, không publish.
@@ -140,7 +140,9 @@ def import_question_batch(db_path, *, unit_code, actor, batch, status="draft"):
         raise TrainingError(ErrorCode.VALIDATION_ERROR, "; ".join(errors[:5]), status=400)
     now = time_policy.utc_now_ms()
     version_ids = []
-    conn = write_connection(db_path)
+    owns_connection = conn is None
+    if owns_connection:
+        conn = write_connection(db_path)
     try:
         for q in batch.get("questions", []):
             item_id = gen_id("qi")
@@ -204,9 +206,11 @@ def import_question_batch(db_path, *, unit_code, actor, batch, status="draft"):
         write_audit(conn, actor=actor, unit_code=unit_code, action="import_questions",
                     entity_type="question_batch", entity_id=actor,
                     after={"count": len(version_ids), "status": status})
-        conn.commit()
+        if owns_connection:
+            conn.commit()
     finally:
-        conn.close()
+        if owns_connection:
+            conn.close()
     return {"version_ids": version_ids}
 
 
