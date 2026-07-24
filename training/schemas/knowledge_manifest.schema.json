@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "knowledge_manifest.schema.json",
+  "title": "Knowledge Document Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "document_code", "title", "classification"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "document_code": {"type": "string"},
+    "title": {"type": "string"},
+    "document_type": {"type": "string"},
+    "document_number": {"type": ["string", "null"]},
+    "issuer": {"type": ["string", "null"]},
+    "issued_date": {"type": ["string", "null"]},
+    "effective_from": {"type": ["string", "null"]},
+    "effective_to": {"type": ["string", "null"]},
+    "applicable_units": {"type": "array", "items": {"type": "string"}},
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "domain_code": {"type": "string"},
+        "category_code": {"type": "string"},
+        "indicator_codes": {"type": "array", "items": {"type": "string"}},
+        "topic_codes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "audience_codes": {"type": "array", "items": {"type": "string"}},
+    "source_file": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "filename": {"type": ["string", "null"]},
+        "sha256": {"type": ["string", "null"]}
+      }
+    }
+  }
+}
