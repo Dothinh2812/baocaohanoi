@@ -181,6 +181,30 @@ def _snapshot_order(db_path, attempt_id):
         conn.close()
 
 
+def _snapshot_presentation(db_path, attempt_id):
+    conn = training_db.read_connection(db_path)
+    try:
+        items = []
+        for item in conn.execute(
+            "SELECT sequence_number, question_version_id FROM exam_attempt_items "
+            "WHERE attempt_id=? ORDER BY sequence_number", (attempt_id,)
+        ).fetchall():
+            options = conn.execute(
+                "SELECT option_code, display_order FROM exam_attempt_options "
+                "WHERE attempt_item_id=(SELECT id FROM exam_attempt_items "
+                "WHERE attempt_id=? AND sequence_number=?) ORDER BY display_order",
+                (attempt_id, item["sequence_number"]),
+            ).fetchall()
+            items.append({
+                "sequence_number": item["sequence_number"],
+                "qv": item["question_version_id"],
+                "options": [(option["option_code"], option["display_order"]) for option in options],
+            })
+        return items
+    finally:
+        conn.close()
+
+
 def test_shuffle_snapshot_is_reproducible_and_includes_order_in_checksum(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     exam_id, assignment_id = _make_open_exam_with_assignment(
@@ -191,13 +215,18 @@ def test_shuffle_snapshot_is_reproducible_and_includes_order_in_checksum(monkeyp
         users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
     )[0]
     monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
+    monkeypatch.setattr(att, "SHUFFLE_ALGORITHM_VERSION", "persisted-v1")
 
     first = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
     second = att.start_attempt(db_path, unit_code="son_tay", actor="learner2", assignment_id=second_assignment_id)
+    monkeypatch.setattr(att, "SHUFFLE_ALGORITHM_VERSION", "current-v2")
 
     first_order = _snapshot_order(db_path, first["attempt_id"])
     second_order = _snapshot_order(db_path, second["attempt_id"])
     assert first_order == second_order
+    assert att._reproduce_snapshot_order(db_path, first["attempt_id"]) == _snapshot_presentation(
+        db_path, first["attempt_id"]
+    )
     template_items = es.get_template_items(db_path, es.get_exam(db_path, exam_id)["template_id"])
     assert first_order[0] != [item["question_version_id"] for item in template_items]
     assert first_order[1] != ["A", "B"] * 3
@@ -216,6 +245,78 @@ def test_shuffle_flags_false_preserve_template_and_option_order(monkeypatch, tmp
     template_items = es.get_template_items(db_path, es.get_exam(db_path, exam_id)["template_id"])
     assert item_order == [item["question_version_id"] for item in template_items]
     assert option_order == ["A", "B"] * 3
+
+
+def test_question_shuffle_does_not_shuffle_options(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(
+        db_path, shuffle_questions=True, shuffle_options=False,
+    )
+    monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
+
+    result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+
+    item_order, option_order, _ = _snapshot_order(db_path, result["attempt_id"])
+    template_items = es.get_template_items(db_path, es.get_exam(db_path, exam_id)["template_id"])
+    assert item_order != [item["question_version_id"] for item in template_items]
+    assert option_order == ["A", "B"] * 3
+
+
+def test_option_shuffle_does_not_shuffle_questions(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(
+        db_path, shuffle_questions=False, shuffle_options=True,
+    )
+    monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
+
+    result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+
+    item_order, option_order, _ = _snapshot_order(db_path, result["attempt_id"])
+    template_items = es.get_template_items(db_path, es.get_exam(db_path, exam_id)["template_id"])
+    assert item_order == [item["question_version_id"] for item in template_items]
+    assert option_order != ["A", "B"] * 3
+
+
+def test_snapshot_checksum_includes_assigned_sequence_and_option_display_order(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(
+        db_path, shuffle_questions=True, shuffle_options=True,
+    )
+    monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
+    result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    conn = training_db.read_connection(db_path)
+    try:
+        checksum = conn.execute(
+            "SELECT snapshot_checksum FROM exam_attempts WHERE id=?", (result["attempt_id"],)
+        ).fetchone()["snapshot_checksum"]
+        snapshot_data = []
+        for item in conn.execute(
+            "SELECT sequence_number, question_version_id, correct_option_ids_json, topic_codes_json "
+            "FROM exam_attempt_items WHERE attempt_id=? ORDER BY sequence_number", (result["attempt_id"],)
+        ).fetchall():
+            options = conn.execute(
+                "SELECT option_code, display_order FROM exam_attempt_options "
+                "WHERE attempt_item_id=(SELECT id FROM exam_attempt_items "
+                "WHERE attempt_id=? AND sequence_number=?) ORDER BY display_order",
+                (result["attempt_id"], item["sequence_number"]),
+            ).fetchall()
+            snapshot_data.append({
+                "sequence_number": item["sequence_number"],
+                "qv": item["question_version_id"],
+                "correct": item["correct_option_ids_json"],
+                "topics": json.loads(item["topic_codes_json"]),
+                "options": [dict(option) for option in options],
+            })
+        assert checksum == att._snapshot_checksum(snapshot_data)
+        reordered = [dict(entry) for entry in snapshot_data]
+        reordered[0]["sequence_number"] = 99
+        assert checksum != att._snapshot_checksum(reordered)
+        redisplayed = [dict(entry) for entry in snapshot_data]
+        redisplayed[0]["options"] = [dict(option) for option in snapshot_data[0]["options"]]
+        redisplayed[0]["options"][0]["display_order"] = 99
+        assert checksum != att._snapshot_checksum(redisplayed)
+    finally:
+        conn.close()
 
 
 # --- M3.4: autosave ---

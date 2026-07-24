@@ -83,7 +83,7 @@ def start_attempt(db_path, *, unit_code, actor, assignment_id):
             (attempt_id, assignment_id, random_seed, SHUFFLE_ALGORITHM_VERSION,
              now, deadline, now),
         )
-        _build_snapshot(conn, attempt_id, exam, random_seed)
+        _build_snapshot(conn, attempt_id, exam, random_seed, SHUFFLE_ALGORITHM_VERSION)
         write_audit(conn, actor=actor, unit_code=unit_code, action="start_attempt",
                     entity_type="exam_attempt", entity_id=attempt_id)
         conn.commit()
@@ -115,30 +115,41 @@ def _activate_attempt(conn, attempt, assignment):
     )
 
 
-def _build_snapshot(conn, attempt_id, exam, random_seed):
-    """Đọc template items, tạo snapshot items + options."""
-    items = conn.execute(
+def _ordered_snapshot_inputs(conn, template_id, random_seed, algorithm_version,
+                             shuffle_questions, shuffle_options):
+    """Đọc template và áp dụng thứ tự snapshot ổn định theo attempt."""
+    items = list(conn.execute(
         """SELECT ti.sequence_number, ti.points, ti.section_label, qv.*
         FROM exam_template_items ti
         JOIN question_versions qv ON ti.question_version_id = qv.id
         WHERE ti.template_id=? ORDER BY ti.sequence_number""",
-        (exam["template_id"],),
-    ).fetchall()
+        (template_id,),
+    ).fetchall())
+    if shuffle_questions:
+        _snapshot_rng(random_seed, algorithm_version, "questions").shuffle(items)
 
-    items = list(items)
-    if exam["shuffle_questions"]:
-        _snapshot_rng(random_seed, "questions").shuffle(items)
-
-    snapshot_data = []
-    for sequence_number, item in enumerate(items, start=1):
-        item_id = gen_id("atti")
-        opts = [dict(r) for r in conn.execute(
+    ordered_items = []
+    for item in items:
+        options = [dict(row) for row in conn.execute(
             "SELECT option_code, option_text, display_order FROM question_options "
             "WHERE question_version_id=? ORDER BY display_order",
             (item["id"],),
         ).fetchall()]
-        if exam["shuffle_options"]:
-            _snapshot_rng(random_seed, f"options:{item['id']}").shuffle(opts)
+        if shuffle_options:
+            _snapshot_rng(random_seed, algorithm_version, f"options:{item['id']}").shuffle(options)
+        ordered_items.append((item, options))
+    return ordered_items
+
+
+def _build_snapshot(conn, attempt_id, exam, random_seed, algorithm_version):
+    """Đọc template items, tạo snapshot items + options."""
+    snapshot_data = []
+    ordered_items = _ordered_snapshot_inputs(
+        conn, exam["template_id"], random_seed, algorithm_version,
+        exam["shuffle_questions"], exam["shuffle_options"],
+    )
+    for sequence_number, (item, opts) in enumerate(ordered_items, start=1):
+        item_id = gen_id("atti")
         topics = [r["topic_code"] for r in conn.execute(
             "SELECT topic_code FROM question_topics WHERE question_version_id=?",
             (item["id"],),
@@ -169,9 +180,13 @@ def _build_snapshot(conn, attempt_id, exam, random_seed):
                 (gen_id("atto"), item_id, opt["option_code"], opt["option_text"], idx),
             )
         snapshot_data.append({
+            "sequence_number": sequence_number,
             "qv": item["id"], "correct": item["correct_option_ids_json"],
             "topics": topics,
-            "options": [opt["option_code"] for opt in opts],
+            "options": [
+                {"option_code": opt["option_code"], "display_order": index}
+                for index, opt in enumerate(opts)
+            ],
         })
     checksum = _snapshot_checksum(snapshot_data)
     conn.execute(
@@ -180,10 +195,43 @@ def _build_snapshot(conn, attempt_id, exam, random_seed):
     )
 
 
-def _snapshot_rng(random_seed, scope):
+def _snapshot_rng(random_seed, algorithm_version, scope):
     """Tạo stream cục bộ ổn định cho từng phần snapshot."""
-    material = f"{SHUFFLE_ALGORITHM_VERSION}:{random_seed}:{scope}".encode("utf-8")
+    material = f"{algorithm_version}:{random_seed}:{scope}".encode("utf-8")
     return random.Random(int.from_bytes(hashlib.sha256(material).digest(), "big"))
+
+
+def _reproduce_snapshot_order(db_path, attempt_id):
+    """Tái tạo presentation order từ seed/version đã lưu của attempt."""
+    conn = read_connection(db_path)
+    try:
+        attempt = conn.execute(
+            """SELECT a.random_seed, a.shuffle_algorithm_version, e.template_id,
+            t.shuffle_questions, t.shuffle_options
+            FROM exam_attempts a
+            JOIN exam_assignments x ON x.id=a.assignment_id
+            JOIN exam_events e ON e.id=x.exam_event_id
+            JOIN exam_templates t ON t.id=e.template_id
+            WHERE a.id=?""", (attempt_id,),
+        ).fetchone()
+        if not attempt:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
+        ordered_items = _ordered_snapshot_inputs(
+            conn, attempt["template_id"], attempt["random_seed"],
+            attempt["shuffle_algorithm_version"], attempt["shuffle_questions"],
+            attempt["shuffle_options"],
+        )
+        return [
+            {
+                "sequence_number": sequence_number,
+                "qv": item["id"],
+                "options": [(option["option_code"], display_order)
+                            for display_order, option in enumerate(options)],
+            }
+            for sequence_number, (item, options) in enumerate(ordered_items, start=1)
+        ]
+    finally:
+        conn.close()
 
 
 def _attempt_start_result(attempt_id, conn, assignment_id):
