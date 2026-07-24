@@ -5,7 +5,7 @@ import pytest
 
 from training import db as training_db
 from training import migrations, time_policy
-from training.errors import TrainingError
+from training.errors import ErrorCode, TrainingError
 from services import training_exam_service as es
 from services import training_attempt_service as att
 from services import training_question_service as qs
@@ -284,39 +284,59 @@ def test_snapshot_checksum_includes_assigned_sequence_and_option_display_order(m
     )
     monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
     result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
-    conn = training_db.read_connection(db_path)
+    assert att.verify_snapshot_checksum(db_path, result["attempt_id"]) is True
+    conn = training_db.write_connection(db_path)
     try:
-        checksum = conn.execute(
-            "SELECT snapshot_checksum FROM exam_attempts WHERE id=?", (result["attempt_id"],)
-        ).fetchone()["snapshot_checksum"]
-        snapshot_data = []
-        for item in conn.execute(
-            "SELECT sequence_number, question_version_id, correct_option_ids_json, topic_codes_json "
-            "FROM exam_attempt_items WHERE attempt_id=? ORDER BY sequence_number", (result["attempt_id"],)
-        ).fetchall():
-            options = conn.execute(
-                "SELECT option_code, display_order FROM exam_attempt_options "
-                "WHERE attempt_item_id=(SELECT id FROM exam_attempt_items "
-                "WHERE attempt_id=? AND sequence_number=?) ORDER BY display_order",
-                (result["attempt_id"], item["sequence_number"]),
-            ).fetchall()
-            snapshot_data.append({
-                "sequence_number": item["sequence_number"],
-                "qv": item["question_version_id"],
-                "correct": item["correct_option_ids_json"],
-                "topics": json.loads(item["topic_codes_json"]),
-                "options": [dict(option) for option in options],
-            })
-        assert checksum == att._snapshot_checksum(snapshot_data)
-        reordered = [dict(entry) for entry in snapshot_data]
-        reordered[0]["sequence_number"] = 99
-        assert checksum != att._snapshot_checksum(reordered)
-        redisplayed = [dict(entry) for entry in snapshot_data]
-        redisplayed[0]["options"] = [dict(option) for option in snapshot_data[0]["options"]]
-        redisplayed[0]["options"][0]["display_order"] = 99
-        assert checksum != att._snapshot_checksum(redisplayed)
+        conn.execute(
+            "UPDATE exam_attempt_options SET display_order=99 WHERE attempt_item_id=("
+            "SELECT id FROM exam_attempt_items WHERE attempt_id=? ORDER BY sequence_number LIMIT 1) "
+            "AND display_order=0",
+            (result["attempt_id"],),
+        )
+        conn.commit()
     finally:
         conn.close()
+    assert att.verify_snapshot_checksum(db_path, result["attempt_id"]) is False
+
+
+def test_reproduced_order_is_stable_after_template_mutation(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(
+        db_path, shuffle_questions=True, shuffle_options=True,
+    )
+    monkeypatch.setattr(att.secrets, "randbits", lambda _: 1)
+    result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    expected = att.reproduce_snapshot_order(db_path, result["attempt_id"])
+    template_id = es.get_exam(db_path, exam_id)["template_id"]
+    conn = training_db.write_connection(db_path)
+    conn.execute("UPDATE exam_templates SET shuffle_questions=0, shuffle_options=0 WHERE id=?", (template_id,))
+    conn.execute("DELETE FROM exam_template_items WHERE template_id=?", (template_id,))
+    conn.commit()
+    conn.close()
+
+    assert att.reproduce_snapshot_order(db_path, result["attempt_id"]) == expected
+
+
+def test_snapshot_checksum_verification_detects_tampered_item_content(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    result = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    assert att.verify_snapshot_checksum(db_path, result["attempt_id"]) is True
+    conn = training_db.write_connection(db_path)
+    conn.execute(
+        "UPDATE exam_attempt_items SET stem='tampered' WHERE attempt_id=?", (result["attempt_id"],)
+    )
+    conn.commit()
+    conn.close()
+    assert att.verify_snapshot_checksum(db_path, result["attempt_id"]) is False
+
+
+def test_snapshot_helpers_raise_not_found_for_missing_attempt(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    for helper in (att.snapshot_order, att.reproduce_snapshot_order, att.verify_snapshot_checksum):
+        with pytest.raises(TrainingError) as exc_info:
+            helper(db_path, "missing")
+        assert exc_info.value.code == ErrorCode.NOT_FOUND
 
 
 # --- M3.4: autosave ---

@@ -145,7 +145,6 @@ def _ordered_snapshot_inputs(conn, template_id, random_seed, algorithm_version,
 
 def _build_snapshot(conn, attempt_id, exam, random_seed, algorithm_version):
     """Đọc template items, tạo snapshot items + options."""
-    snapshot_data = []
     ordered_items = _ordered_snapshot_inputs(
         conn, exam["template_id"], random_seed, algorithm_version,
         exam["shuffle_questions"], exam["shuffle_options"],
@@ -181,16 +180,7 @@ def _build_snapshot(conn, attempt_id, exam, random_seed, algorithm_version):
                 "VALUES (?, ?, ?, ?, ?)",
                 (gen_id("atto"), item_id, opt["option_code"], opt["option_text"], idx),
             )
-        snapshot_data.append({
-            "sequence_number": sequence_number,
-            "qv": item["id"], "correct": item["correct_option_ids_json"],
-            "topics": topics,
-            "options": [
-                {"option_code": opt["option_code"], "display_order": index}
-                for index, opt in enumerate(opts)
-            ],
-        })
-    checksum = _snapshot_checksum(snapshot_data)
+    checksum = _snapshot_checksum_for_attempt(conn, attempt_id)
     conn.execute(
         "UPDATE exam_attempts SET snapshot_checksum=? WHERE id=?",
         (checksum, attempt_id),
@@ -211,43 +201,33 @@ def _shuffle_snapshot_values(values, rng):
         values.append(values.pop(0))
 
 
-def _reproduce_snapshot_order(db_path, attempt_id):
-    """Tái tạo presentation order từ seed/version đã lưu của attempt."""
-    conn = read_connection(db_path)
-    try:
-        attempt = conn.execute(
-            """SELECT a.random_seed, a.shuffle_algorithm_version, e.template_id,
-            t.shuffle_questions, t.shuffle_options
-            FROM exam_attempts a
-            JOIN exam_assignments x ON x.id=a.assignment_id
-            JOIN exam_events e ON e.id=x.exam_event_id
-            JOIN exam_templates t ON t.id=e.template_id
-            WHERE a.id=?""", (attempt_id,),
-        ).fetchone()
-        if not attempt:
-            raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
-        ordered_items = _ordered_snapshot_inputs(
-            conn, attempt["template_id"], attempt["random_seed"],
-            attempt["shuffle_algorithm_version"], attempt["shuffle_questions"],
-            attempt["shuffle_options"],
-        )
-        return [
-            {
-                "sequence_number": sequence_number,
-                "qv": item["id"],
-                "options": [(option["option_code"], display_order)
-                            for display_order, option in enumerate(options)],
-            }
-            for sequence_number, (item, options) in enumerate(ordered_items, start=1)
-        ]
-    finally:
-        conn.close()
+def _snapshot_checksum_for_attempt(conn, attempt_id):
+    """Canonicalize toàn bộ dữ liệu snapshot đã lưu theo thứ tự presentation."""
+    items = []
+    for item in conn.execute(
+        "SELECT * FROM exam_attempt_items WHERE attempt_id=? ORDER BY sequence_number", (attempt_id,)
+    ).fetchall():
+        data = {key: item[key] for key in (
+            "sequence_number", "question_version_id", "type", "stem", "stimulus", "language",
+            "correct_option_ids_json", "explanation", "distractor_rationales_json", "difficulty",
+            "section_label", "topic_codes_json", "points", "max_score", "evidence_json",
+        )}
+        data["options"] = [{key: option[key] for key in (
+            "option_code", "option_text", "display_order",
+        )} for option in conn.execute(
+            "SELECT * FROM exam_attempt_options WHERE attempt_item_id=? ORDER BY display_order",
+            (item["id"],),
+        ).fetchall()]
+        items.append(data)
+    return _snapshot_checksum(items)
 
 
 def snapshot_order(db_path, attempt_id):
     """Đọc presentation order đã snapshot của attempt."""
     conn = read_connection(db_path)
     try:
+        if not conn.execute("SELECT 1 FROM exam_attempts WHERE id=?", (attempt_id,)).fetchone():
+            raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
         items = conn.execute(
             "SELECT id, sequence_number, question_version_id FROM exam_attempt_items "
             "WHERE attempt_id=? ORDER BY sequence_number", (attempt_id,)
@@ -271,8 +251,22 @@ def snapshot_order(db_path, attempt_id):
 
 
 def reproduce_snapshot_order(db_path, attempt_id):
-    """Tái tạo presentation order từ input đã lưu của attempt."""
-    return _reproduce_snapshot_order(db_path, attempt_id)
+    """Tái tạo presentation order chỉ từ snapshot bất biến của attempt."""
+    return snapshot_order(db_path, attempt_id)
+
+
+def verify_snapshot_checksum(db_path, attempt_id):
+    """Kiểm tra checksum của toàn bộ snapshot item/option đã lưu."""
+    conn = read_connection(db_path)
+    try:
+        attempt = conn.execute(
+            "SELECT snapshot_checksum FROM exam_attempts WHERE id=?", (attempt_id,)
+        ).fetchone()
+        if not attempt:
+            raise TrainingError(ErrorCode.NOT_FOUND, "Bài làm không tồn tại", status=404)
+        return attempt["snapshot_checksum"] == _snapshot_checksum_for_attempt(conn, attempt_id)
+    finally:
+        conn.close()
 
 
 def _attempt_start_result(attempt_id, conn, assignment_id):
