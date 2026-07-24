@@ -330,18 +330,19 @@
         btn.type = 'button';
         btn.className = 'training-action';
         btn.textContent = label;
-        btn.addEventListener('click', handler);
+        btn.addEventListener('click', function () { handler(btn); });
         return btn;
     }
 
-    function runTransition(exam, action, confirmMsg) {
+    function runTransition(exam, action, confirmMsg, btn) {
         TrainingUI.confirm(confirmMsg).then(function (ok) {
             if (!ok) return;
-            performTransition(exam, action);
+            performTransition(exam, action, btn);
         });
     }
 
-    function performTransition(exam, action) {
+    function performTransition(exam, action, btn) {
+        if (btn) { btn.disabled = true; TrainingUI.setLoading(btn, true); }
         var url = '/api/training/exams/' + encodeURIComponent(exam.id) + '/' + action;
         TrainingUI.fetchJson(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
             .then(function (resp) {
@@ -349,7 +350,6 @@
                     renderRecovery(resp.recovery_summary);
                 }
                 TrainingUI.toast('Đã cập nhật kỳ thi.', 'success');
-                loadDetail(exam.id);
                 listPage = 1;
                 loadList();
             })
@@ -359,19 +359,23 @@
                 } else {
                     renderErrors(errors, e);
                 }
+            })
+            .finally(function () {
+                loadDetail(exam.id);
+                if (btn) { btn.disabled = false; TrainingUI.setLoading(btn, false); }
             });
     }
 
-    function runFinalize(exam) {
+    function runFinalize(exam, btn) {
         TrainingUI.confirm('Chốt kỳ thi này? Sau khi chốt sẽ tạo báo cáo không thể sửa.').then(function (ok) {
             if (!ok) return;
+            if (btn) { btn.disabled = true; TrainingUI.setLoading(btn, true); }
             var url = '/api/training/exams/' + encodeURIComponent(exam.id) + '/finalize';
             TrainingUI.fetchJson(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
                 .then(function (resp) {
                     var note = 'Đã chốt kỳ thi';
                     if (resp.revision) note += ' — Phiên bản ' + resp.revision;
                     TrainingUI.toast(note + '.', 'success');
-                    loadDetail(exam.id);
                     listPage = 1;
                     loadList();
                 })
@@ -381,6 +385,10 @@
                     } else {
                         renderErrors(errors, e);
                     }
+                })
+                .finally(function () {
+                    loadDetail(exam.id);
+                    if (btn) { btn.disabled = false; TrainingUI.setLoading(btn, false); }
                 });
         });
     }
@@ -436,26 +444,26 @@
             return;
         }
         if (exam.status === 'draft') {
-            container.appendChild(actionButton('Sẵn sàng', function () {
-                runTransition(exam, 'ready', 'Chuyển kỳ thi sang trạng thái Sẵn sàng?');
+            container.appendChild(actionButton('Sẵn sàng', function (btn) {
+                runTransition(exam, 'ready', 'Chuyển kỳ thi sang trạng thái Sẵn sàng?', btn);
             }));
-            container.appendChild(actionButton('Hủy', function () {
-                runTransition(exam, 'cancel', 'Hủy kỳ thi này?');
+            container.appendChild(actionButton('Hủy', function (btn) {
+                runTransition(exam, 'cancel', 'Hủy kỳ thi này?', btn);
             }));
         } else if (exam.status === 'ready') {
-            container.appendChild(actionButton('Mở', function () {
-                runTransition(exam, 'open', 'Mở kỳ thi để người học làm bài?');
+            container.appendChild(actionButton('Mở', function (btn) {
+                runTransition(exam, 'open', 'Mở kỳ thi để người học làm bài?', btn);
             }));
-            container.appendChild(actionButton('Hủy', function () {
-                runTransition(exam, 'cancel', 'Hủy kỳ thi này?');
+            container.appendChild(actionButton('Hủy', function (btn) {
+                runTransition(exam, 'cancel', 'Hủy kỳ thi này?', btn);
             }));
         } else if (exam.status === 'open') {
-            container.appendChild(actionButton('Đóng', function () {
+            container.appendChild(actionButton('Đóng', function (btn) {
                 runTransition(exam, 'close',
-                    'Đóng kỳ thi? Các bài đang làm sẽ được nộp tự động.');
+                    'Đóng kỳ thi? Các bài đang làm sẽ được nộp tự động.', btn);
             }));
         } else if (exam.status === 'closed') {
-            container.appendChild(actionButton('Chốt', function () { runFinalize(exam); }));
+            container.appendChild(actionButton('Chốt', function (btn) { runFinalize(exam, btn); }));
         }
     }
 
