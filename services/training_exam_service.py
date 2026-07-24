@@ -13,6 +13,7 @@ from training.errors import ErrorCode, TrainingError
 from repositories.training_repository import gen_id, write_audit
 
 SHUFFLE_ALGORITHM_VERSION = "v1"
+_AFTER_CLOSE_COMMIT_HOOK = None
 
 
 def create_template(
@@ -271,13 +272,18 @@ def open_exam(db_path, *, unit_code, actor, exam_id):
 def close_exam(db_path, *, unit_code, actor, exam_id):
     conn = write_connection(db_path)
     try:
-        ok = _compare_and_set_exam_status(conn, exam_id, constants.ExamStatus.OPEN, constants.ExamStatus.CLOSED)
+        conn.execute("BEGIN IMMEDIATE")
+        now = time_policy.utc_now_ms()
+        ok = conn.execute(
+            "UPDATE exam_events SET status=?, closed_at_ms=? WHERE id=? AND status=?",
+            (constants.ExamStatus.CLOSED, now, exam_id, constants.ExamStatus.OPEN),
+        ).rowcount > 0
         if not ok:
             exam = conn.execute("SELECT status FROM exam_events WHERE id=?", (exam_id,)).fetchone()
             if not exam:
                 raise TrainingError(ErrorCode.NOT_FOUND, "Kỳ thi không tồn tại", status=404)
             if exam["status"] == constants.ExamStatus.CLOSED:
-                pass
+                conn.rollback()
             else:
                 raise TrainingError(ErrorCode.CONFLICT,
                                     f"Không thể đóng: trạng thái {exam['status']}", status=409)
@@ -287,6 +293,8 @@ def close_exam(db_path, *, unit_code, actor, exam_id):
             conn.commit()
     finally:
         conn.close()
+    if _AFTER_CLOSE_COMMIT_HOOK:
+        _AFTER_CLOSE_COMMIT_HOOK(exam_id)
     _administratively_finish_active_attempts(db_path, unit_code=unit_code, actor=actor, exam_id=exam_id)
 
 

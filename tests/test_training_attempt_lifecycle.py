@@ -815,3 +815,126 @@ def test_administrative_submit_returns_existing_result_without_duplicate_audit(m
     assert first["attempt_id"] == started["attempt_id"]
     assert len(audit_rows) == 1
     assert json.loads(audit_rows[0]["after_json"])["ended_reason"] == "exam_closed"
+
+
+@pytest.mark.parametrize(
+    ("close_offset", "expected_status", "expected_reason"),
+    [
+        (-1, "administratively_submitted", "exam_closed"),
+        (0, "timed_out", "timeout"),
+        (1, "timed_out", "timeout"),
+    ],
+)
+def test_close_classifies_active_attempt_by_deadline(monkeypatch, tmp_path, close_offset,
+                                                     expected_status, expected_reason):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    close_at = 2_000_000
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_attempts SET deadline_at_ms=? WHERE id=?",
+                     (close_at, started["attempt_id"]))
+        conn.execute("UPDATE exam_events SET end_at_ms=? WHERE id=?", (close_at + 10_000, exam_id))
+        conn.commit()
+    finally:
+        conn.close()
+    monkeypatch.setattr(time_policy, "utc_now_ms", lambda: close_at + close_offset)
+
+    es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    attempt = att.get_attempt(db_path, started["attempt_id"])
+    assert (attempt["status"], attempt["ended_reason"]) == (expected_status, expected_reason)
+    assert att.get_result(db_path, started["attempt_id"]) is not None
+
+
+def test_finalize_after_exam_end_times_out_active_attempt(monkeypatch, tmp_path):
+    from services import training_report_service as reports
+
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    now = 2_000_000
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_events SET end_at_ms=? WHERE id=?", (now, exam_id))
+        conn.execute("UPDATE exam_attempts SET deadline_at_ms=? WHERE id=?", (now + 10_000, started["attempt_id"]))
+        conn.commit()
+    finally:
+        conn.close()
+    monkeypatch.setattr(time_policy, "utc_now_ms", lambda: now + 1)
+
+    reports.finalize_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    attempt = att.get_attempt(db_path, started["attempt_id"])
+    assert (attempt["status"], attempt["ended_reason"]) == ("timed_out", "timeout")
+
+
+def test_close_mixed_expiry_assigns_one_terminal_result_per_attempt(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, first_assignment_id = _make_open_exam_with_assignment(db_path)
+    second_assignment_id = es.create_assignments(
+        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
+        users=[{"username": "learner2", "display_name": "Learner 2"}], audience_code="nvkt",
+    )[0]
+    first = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=first_assignment_id)
+    second = att.start_attempt(db_path, unit_code="son_tay", actor="learner2", assignment_id=second_assignment_id)
+    close_at = 2_000_000
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_events SET end_at_ms=? WHERE id=?", (close_at + 10_000, exam_id))
+        conn.execute("UPDATE exam_attempts SET deadline_at_ms=? WHERE id=?", (close_at - 1, first["attempt_id"]))
+        conn.execute("UPDATE exam_attempts SET deadline_at_ms=? WHERE id=?", (close_at + 1, second["attempt_id"]))
+        conn.commit()
+    finally:
+        conn.close()
+    monkeypatch.setattr(time_policy, "utc_now_ms", lambda: close_at)
+
+    es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+    es.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    assert (att.get_attempt(db_path, first["attempt_id"])["status"],
+            att.get_attempt(db_path, first["attempt_id"])["ended_reason"]) == ("timed_out", "timeout")
+    assert (att.get_attempt(db_path, second["attempt_id"])["status"],
+            att.get_attempt(db_path, second["attempt_id"])["ended_reason"]) == (
+                "administratively_submitted", "exam_closed")
+    conn = training_db.read_connection(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) AS count FROM exam_results WHERE attempt_id IN (?, ?)",
+                            (first["attempt_id"], second["attempt_id"])).fetchone()["count"] == 2
+    finally:
+        conn.close()
+
+
+def test_closed_exam_blocks_autosave_before_recovery_without_response_mutation(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    item_id = att.get_attempt_learner_view(db_path, started["attempt_id"])["items"][0]["item_id"]
+    att.save_response(db_path, attempt_id=started["attempt_id"], attempt_item_id=item_id,
+                      selected_option_ids=["A"], client_revision=1)
+    closed = threading.Event()
+    release = threading.Event()
+
+    def pause_after_close(*_):
+        closed.set()
+        assert release.wait(timeout=10)
+
+    monkeypatch.setattr(es, "_AFTER_CLOSE_COMMIT_HOOK", pause_after_close, raising=False)
+    close_thread = threading.Thread(
+        target=es.close_exam, kwargs={"db_path": db_path, "unit_code": "son_tay", "actor": "mgr", "exam_id": exam_id},
+    )
+    close_thread.start()
+    assert closed.wait(timeout=10)
+
+    with pytest.raises(TrainingError) as exc_info:
+        att.save_response(db_path, attempt_id=started["attempt_id"], attempt_item_id=item_id,
+                          selected_option_ids=["B"], client_revision=2)
+    assert exc_info.value.code == ErrorCode.EXAM_NOT_OPEN
+    response = att.get_attempt_learner_view(db_path, started["attempt_id"])["items"][0]["response"]
+    assert response == {"selected_option_ids": ["A"], "client_revision": 1}
+
+    release.set()
+    close_thread.join(timeout=10)
+    assert not close_thread.is_alive()
+    assert att.get_attempt(db_path, started["attempt_id"])["status"] == "administratively_submitted"

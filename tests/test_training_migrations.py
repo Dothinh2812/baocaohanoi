@@ -28,7 +28,7 @@ def test_new_db_migrates_cleanly(monkeypatch, tmp_path):
     assert "training_instance_metadata" in tables
     assert "training_schema_migrations" in tables
     assert "training_audit_log" in tables
-    assert migrations.CURRENT_SCHEMA_VERSION == 10
+    assert migrations.CURRENT_SCHEMA_VERSION == 11
     assert migrations.get_schema_version(db_path) == migrations.CURRENT_SCHEMA_VERSION
 
 

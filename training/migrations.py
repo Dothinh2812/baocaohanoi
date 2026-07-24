@@ -12,7 +12,7 @@ import time
 from training import time_policy
 from training.db import write_connection
 
-CURRENT_SCHEMA_VERSION = 10
+CURRENT_SCHEMA_VERSION = 11
 
 
 class UnitCodeMismatchError(Exception):
@@ -751,6 +751,11 @@ def migration_010(conn):
     )
 
 
+def migration_011(conn):
+    """Persist close time so retries retain the original close policy."""
+    conn.execute("ALTER TABLE exam_events ADD COLUMN closed_at_ms INTEGER")
+
+
 _MIGRATIONS = [
     (1, migration_001),
     (2, migration_002),
@@ -762,6 +767,7 @@ _MIGRATIONS = [
     (8, migration_008),
     (9, migration_009),
     (10, migration_010),
+    (11, migration_011),
 ]
 
 

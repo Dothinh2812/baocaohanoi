@@ -423,7 +423,11 @@ def save_response(db_path, *, attempt_id, attempt_item_id, selected_option_ids, 
             raise TrainingError(ErrorCode.VALIDATION_ERROR,
                                 "Phiên bản client phải là số nguyên dương")
         attempt = conn.execute(
-            "SELECT status, deadline_at_ms FROM exam_attempts WHERE id=?",
+            """SELECT a.status, a.deadline_at_ms, ee.status AS exam_status, ee.end_at_ms
+               FROM exam_attempts a
+               JOIN exam_assignments x ON x.id=a.assignment_id
+               JOIN exam_events ee ON ee.id=x.exam_event_id
+               WHERE a.id=?""",
             (attempt_id,),
         ).fetchone()
         if not attempt:
@@ -431,6 +435,9 @@ def save_response(db_path, *, attempt_id, attempt_item_id, selected_option_ids, 
         if attempt["status"] != constants.AttemptStatus.ACTIVE:
             raise TrainingError(ErrorCode.ATTEMPT_ALREADY_COMPLETED,
                                 "Bài làm đã kết thúc", status=409)
+        if attempt["exam_status"] != constants.ExamStatus.OPEN or now >= attempt["end_at_ms"]:
+            raise TrainingError(ErrorCode.EXAM_NOT_OPEN,
+                                "Kỳ thi chưa mở hoặc đã đóng", status=409)
         if now >= attempt["deadline_at_ms"]:
             raise TrainingError(ErrorCode.ATTEMPT_EXPIRED, "Đã hết thời gian làm bài", status=410)
 
@@ -579,9 +586,25 @@ def administratively_submit_attempt(db_path, *, unit_code, actor, attempt_id, en
             ).fetchone()
             conn.rollback()
             return dict(result) if result else None
+        if ended_reason == "exam_closed":
+            exam = conn.execute(
+                """SELECT ee.closed_at_ms, ee.end_at_ms FROM exam_events ee
+                   JOIN exam_assignments x ON x.exam_event_id=ee.id
+                   WHERE x.id=?""",
+                (attempt["assignment_id"],),
+            ).fetchone()
+            if exam and exam["closed_at_ms"] is not None and exam["closed_at_ms"] >= min(
+                attempt["deadline_at_ms"], exam["end_at_ms"],
+            ):
+                ended_reason = "timeout"
+                status = constants.AttemptStatus.TIMED_OUT
+            else:
+                status = constants.AttemptStatus.ADMIN_SUBMITTED
+        else:
+            status = constants.AttemptStatus.ADMIN_SUBMITTED
         result = _complete_active_attempt(
             conn, unit_code=unit_code, actor=actor, attempt=attempt,
-            status=constants.AttemptStatus.ADMIN_SUBMITTED, ended_reason=ended_reason,
+            status=status, ended_reason=ended_reason,
             action="administratively_submit_attempt",
         )
         conn.commit()
