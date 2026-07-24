@@ -405,7 +405,7 @@ def save_response(db_path, *, attempt_id, attempt_item_id, selected_option_ids, 
         if attempt["status"] != constants.AttemptStatus.ACTIVE:
             raise TrainingError(ErrorCode.ATTEMPT_ALREADY_COMPLETED,
                                 "Bài làm đã kết thúc", status=409)
-        if now > attempt["deadline_at_ms"]:
+        if now >= attempt["deadline_at_ms"]:
             raise TrainingError(ErrorCode.ATTEMPT_EXPIRED, "Đã hết thời gian làm bài", status=410)
 
         item = conn.execute(
@@ -494,7 +494,7 @@ def submit_attempt(db_path, *, unit_code, actor, attempt_id):
             "SELECT * FROM exam_results WHERE attempt_id=?", (attempt_id,)
         ).fetchone()
         if existing_result:
-            if attempt["ended_reason"] == "exam_closed":
+            if attempt["status"] == constants.AttemptStatus.ADMIN_SUBMITTED:
                 raise TrainingError(ErrorCode.ATTEMPT_ALREADY_COMPLETED,
                                     "Kỳ thi đã đóng", status=409)
             conn.rollback()

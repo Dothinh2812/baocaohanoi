@@ -83,7 +83,7 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
         else:
             attempts.administratively_submit_attempt(
                 db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id,
-                ended_reason="finalize_recovery",
+                ended_reason="exam_closed",
             )
 
     conn = write_connection(db_path)

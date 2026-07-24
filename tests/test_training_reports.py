@@ -97,6 +97,24 @@ def test_finalize_preserves_timeout_status_for_expired_active_attempt(monkeypatc
     assert attempt["ended_reason"] == "timeout"
 
 
+def test_finalize_recovers_active_closed_exam_with_exam_closed_reason(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = attempts.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_events SET status='closed' WHERE id=?", (exam_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+    reports.finalize_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    attempt = attempts.get_attempt(db_path, started["attempt_id"])
+    assert attempt["status"] == "administratively_submitted"
+    assert attempt["ended_reason"] == "exam_closed"
+
+
 @pytest.mark.parametrize("operation", ["close", "finalize"])
 def test_unknown_exam_transitions_raise_not_found(monkeypatch, tmp_path, operation):
     db_path = _setup(monkeypatch, tmp_path)

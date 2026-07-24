@@ -656,3 +656,39 @@ def test_closed_exam_blocks_start_autosave_and_learner_submit(monkeypatch, tmp_p
     assert autosave_error.value.code == ErrorCode.ATTEMPT_ALREADY_COMPLETED
     assert submit_error.value.code == ErrorCode.ATTEMPT_ALREADY_COMPLETED
     assert start_error.value.code == ErrorCode.EXAM_NOT_OPEN
+
+
+def test_learner_submit_rejects_every_administratively_submitted_attempt(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    att.administratively_submit_attempt(
+        db_path, unit_code="son_tay", actor="mgr", attempt_id=started["attempt_id"],
+        ended_reason="recovery",
+    )
+
+    with pytest.raises(TrainingError) as exc_info:
+        att.submit_attempt(db_path, unit_code="son_tay", actor="learner1", attempt_id=started["attempt_id"])
+
+    assert exc_info.value.code == ErrorCode.ATTEMPT_ALREADY_COMPLETED
+
+
+def test_autosave_rejects_response_at_exact_deadline(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    _, assignment_id = _make_open_exam_with_assignment(db_path)
+    started = att.start_attempt(db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id)
+    item_id = att.get_attempt_learner_view(db_path, started["attempt_id"])["items"][0]["item_id"]
+    deadline = 1_000_000
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_attempts SET deadline_at_ms=? WHERE id=?", (deadline, started["attempt_id"]))
+        conn.commit()
+    finally:
+        conn.close()
+    monkeypatch.setattr(time_policy, "utc_now_ms", lambda: deadline)
+
+    with pytest.raises(TrainingError) as exc_info:
+        att.save_response(db_path, attempt_id=started["attempt_id"], attempt_item_id=item_id,
+                          selected_option_ids=["B"], client_revision=1)
+
+    assert exc_info.value.code == ErrorCode.ATTEMPT_EXPIRED
