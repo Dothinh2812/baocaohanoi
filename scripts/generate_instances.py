@@ -137,6 +137,10 @@ def render_env(unit, *, app_dir=APP_DIR, secret_key=None):
         "DASHV4_LOG_DIR": log_dir,
         "DASHV4_PID_FILE": f"/tmp/dashv4-{unit.code}.pid",
         "DASHV4_SESSION_COOKIE_SECURE": "true",
+        "DASHV4_TRAINING_DB_PATH": f"{runtime_dir}/training.db",
+        "DASHV4_TRAINING_FILES_DIR": f"{runtime_dir}/training_files",
+        "DASHV4_TRAINING_EXPORT_DIR": f"{runtime_dir}/training_export",
+        "DASHV4_TRAINING_AI_ENABLED": "false",
     }
     if unit.tiep_thi_db_path:
         values["DASH_TIEP_THI_DB_PATH"] = unit.tiep_thi_db_path

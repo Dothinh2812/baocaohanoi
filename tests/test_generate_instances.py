@@ -207,3 +207,37 @@ def test_render_env_file_omits_tiep_thi_db_path_when_unconfigured():
     content = generate_instances.render_env(unit)
 
     assert "DASH_TIEP_THI_DB_PATH" not in content
+
+
+def test_render_env_file_contains_training_paths_and_ai_disabled_default():
+    unit = generate_instances.UnitConfig(
+        code="son_tay",
+        slug="son-tay",
+        name="TTVT Sơn Tây",
+        port=5011,
+        hostname="son-tay.example.vn",
+        db_path="/runtime/son_tay/sqlite_history/report_history.db",
+    )
+
+    content = generate_instances.render_env(unit)
+
+    assert "DASHV4_TRAINING_DB_PATH=/home/vtst/dashv4/runtime_app/son_tay/training.db" in content
+    assert "DASHV4_TRAINING_FILES_DIR=/home/vtst/dashv4/runtime_app/son_tay/training_files" in content
+    assert "DASHV4_TRAINING_EXPORT_DIR=/home/vtst/dashv4/runtime_app/son_tay/training_export" in content
+    assert "DASHV4_TRAINING_AI_ENABLED=false" in content
+
+
+def test_render_env_file_does_not_contain_api_key():
+    unit = generate_instances.UnitConfig(
+        code="son_tay",
+        slug="son-tay",
+        name="TTVT Sơn Tây",
+        port=5011,
+        hostname="son-tay.example.vn",
+        db_path="/runtime/son_tay/sqlite_history/report_history.db",
+    )
+
+    content = generate_instances.render_env(unit)
+
+    assert "API_KEY" not in content.upper()
+    assert "SECRET" not in content.replace("DASHV4_SECRET_KEY", "")

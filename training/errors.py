@@ -1,0 +1,41 @@
+"""Mã lỗi ổn định và exception module đào tạo."""
+
+
+class ErrorCode:
+    ASSIGNMENT_NOT_FOUND = "ASSIGNMENT_NOT_FOUND"
+    ATTEMPT_ALREADY_ACTIVE = "ATTEMPT_ALREADY_ACTIVE"
+    ATTEMPT_ALREADY_COMPLETED = "ATTEMPT_ALREADY_COMPLETED"
+    ATTEMPT_EXPIRED = "ATTEMPT_EXPIRED"
+    EXAM_NOT_OPEN = "EXAM_NOT_OPEN"
+    QUESTION_SUPPLY_INSUFFICIENT = "QUESTION_SUPPLY_INSUFFICIENT"
+    VERSION_CONFLICT = "VERSION_CONFLICT"
+    DOCUMENT_HAS_BLOCKING_ISSUES = "DOCUMENT_HAS_BLOCKING_ISSUES"
+    FINALIZATION_ALREADY_COMPLETED = "FINALIZATION_ALREADY_COMPLETED"
+    PERMISSION_SCOPE_DENIED = "PERMISSION_SCOPE_DENIED"
+    NOT_FOUND = "NOT_FOUND"
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    CONFLICT = "CONFLICT"
+    PROVIDER_ERROR = "PROVIDER_ERROR"
+
+
+class TrainingError(Exception):
+    def __init__(self, code, message, *, status=400, details=None):
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.status = status
+        self.details = details or {}
+
+    def to_envelope(self):
+        return {
+            "error": {
+                "code": self.code,
+                "message": self.message,
+                "details": self.details,
+            }
+        }
+
+
+def training_error_response(err):
+    """Trả (body_dict, http_status) cho một TrainingError."""
+    return err.to_envelope(), err.status
