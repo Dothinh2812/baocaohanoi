@@ -125,27 +125,23 @@ function matches(el, selector) {
   return el.tagName === selector.toUpperCase();
 }
 
-function makeExamListPayload() {
-  return {
-    items: [
-      { id: 'exam-1', code: 'EX01', title: 'Kỳ thi mẫu', status: 'closed', finalized_at_ms: 1700000000000, target_audience_code: 'nvkt', start_at_ms: 1699900000000, end_at_ms: 1700000000000, duration_seconds: 600, pass_score_percent: 80 },
-      { id: 'exam-2', code: 'EX02', title: 'Kỳ thi Draft', status: 'draft', finalized_at_ms: null, target_audience_code: 'nvkt', start_at_ms: 1699900000000, end_at_ms: 1700000000000, duration_seconds: 600, pass_score_percent: 80 },
-    ],
-    total: 2,
-    page: 1,
-    page_size: 25,
-  };
+function makeClosedFinalizedExam() {
+  return { id: 'exam-1', code: 'EX01', title: 'Kỳ thi mẫu', status: 'closed', finalized_at_ms: 1700000000000, target_audience_code: 'nvkt', start_at_ms: 1699900000000, end_at_ms: 1700000000000, duration_seconds: 600, pass_score_percent: 80 };
 }
 
-function makeExamDetail() {
-  return {
-    id: 'exam-1', code: 'EX01', title: 'Kỳ thi mẫu', status: 'closed',
-    finalized_at_ms: 1700000000000, finalized_by: 'mgr',
-    template: { code: 'T1', title: 'Mẫu đề' }, target_audience_code: 'nvkt',
-    start_at_ms: 1699900000000, end_at_ms: 1700000000000,
-    duration_seconds: 600, pass_score_percent: 80, reveal_answers_after_finalize: 1,
-    assignment_summary: { total: 5, assigned: 0, completed: 4, expired: 1, in_progress: 0, cancelled: 0 },
-  };
+function makeClosedUnfinalizedExam() {
+  return { id: 'exam-2', code: 'EX02', title: 'Kỳ thi Draft', status: 'closed', finalized_at_ms: null, target_audience_code: 'nvkt', start_at_ms: 1699900000000, end_at_ms: 1700000000000, duration_seconds: 600, pass_score_percent: 80 };
+}
+
+function makeExamListPayload(items) {
+  return { items: items || [makeClosedFinalizedExam(), makeClosedUnfinalizedExam()], total: (items || [makeClosedFinalizedExam(), makeClosedUnfinalizedExam()]).length, page: 1, page_size: 25 };
+}
+
+function makeExamDetail(examId) {
+  if (examId === 'exam-2') {
+    return { id: 'exam-2', code: 'EX02', title: 'Kỳ thi Draft', status: 'closed', finalized_at_ms: null, finalized_by: null, template: { code: 'T1', title: 'Mẫu đề' }, target_audience_code: 'nvkt', start_at_ms: 1699900000000, end_at_ms: 1700000000000, duration_seconds: 600, pass_score_percent: 80, reveal_answers_after_finalize: 1, assignment_summary: { total: 3, assigned: 0, completed: 2, expired: 1, in_progress: 0, cancelled: 0 } };
+  }
+  return { id: 'exam-1', code: 'EX01', title: 'Kỳ thi mẫu', status: 'closed', finalized_at_ms: 1700000000000, finalized_by: 'mgr', template: { code: 'T1', title: 'Mẫu đề' }, target_audience_code: 'nvkt', start_at_ms: 1699900000000, end_at_ms: 1700000000000, duration_seconds: 600, pass_score_percent: 80, reveal_answers_after_finalize: 1, assignment_summary: { total: 5, assigned: 0, completed: 4, expired: 1, in_progress: 0, cancelled: 0 } };
 }
 
 function makeReportPayload() {
@@ -213,15 +209,12 @@ async function loadReportPanel(mockFetchJson) {
   return registry;
 }
 
-// ---- Test 1: empty state when no finalized exams ----
+// ---- Test 1: empty state when no exams returned ----
 {
-  const fetchCalls = [];
   const registry = await loadReportPanel(async (url) => {
-    fetchCalls.push(url);
     return { items: [], total: 0, page: 1, page_size: 25 };
   });
 
-  // Trigger panel-show
   const panel = registry['training-report'];
   const listeners = panel._listeners['training:panel-show'] || [];
   listeners.forEach((fn) => fn.call(panel));
@@ -239,11 +232,11 @@ async function loadReportPanel(mockFetchJson) {
   check(emptyEl && String(emptyEl.textContent).indexOf('Chưa có') >= 0,
     'empty state should contain "Chưa có", got "' + (emptyEl ? emptyEl.textContent : '') + '"');
 
-  if (ok) console.log('ok   [report panel shows empty state when no finalized exams]');
-  else { console.error('FAIL [report panel shows empty state when no finalized exams]'); process.exit(1); }
+  if (ok) console.log('ok   [report panel shows empty state when no exams]');
+  else { console.error('FAIL [report panel shows empty state when no exams]'); process.exit(1); }
 }
 
-// ---- Test 2: renders exam cards from server data ----
+// ---- Test 2: renders both closed exams (finalized + unfinalized) from server data ----
 {
   const registry = await loadReportPanel(async (url) => {
     return makeExamListPayload();
@@ -262,23 +255,25 @@ async function loadReportPanel(mockFetchJson) {
     if (!condition) { ok = false; console.error('  FAIL: ' + msg); }
   }
 
-  check(cards.length === 1, 'should render 1 finalized exam card (draft filtered out), got ' + cards.length);
+  check(cards.length === 2, 'should render 2 closed exam cards (both finalized + unfinalized), got ' + cards.length);
   check(cards[0] && String(cards[0].textContent).indexOf('EX01') >= 0,
-    'card should contain exam code "EX01"');
+    'first card should contain exam code "EX01"');
   check(cards[0] && String(cards[0].textContent).indexOf('Kỳ thi mẫu') >= 0,
-    'card should contain exam title');
+    'first card should contain exam title');
+  check(cards[1] && String(cards[1].textContent).indexOf('EX02') >= 0,
+    'second card should contain exam code "EX02"');
 
-  if (ok) console.log('ok   [report panel renders exam cards from server data]');
-  else { console.error('FAIL [report panel renders exam cards from server data]'); process.exit(1); }
+  if (ok) console.log('ok   [report panel renders both closed exam cards from server data]');
+  else { console.error('FAIL [report panel renders both closed exam cards from server data]'); process.exit(1); }
 }
 
-// ---- Test 3: report detail renders summary cards and individual table ----
+// ---- Test 3: closed/unfinalized card shows finalize button ----
 {
   const registry = await loadReportPanel(async (url) => {
-    if (url.includes('/report') && !url.includes('page=')) return makeReportPayload();
-    if (url.includes('/exam-1/report')) return makeReportPayload();
+    if (url.includes('/exam-2/report')) { const e = new Error('Not Found'); e.status = 404; throw e; }
+    if (url.includes('/exam-2')) return makeExamDetail('exam-2');
     if (url.includes('page=')) return makeExamListPayload();
-    return makeExamDetail();
+    return makeExamDetail('exam-1');
   });
 
   const panel = registry['training-report'];
@@ -286,7 +281,51 @@ async function loadReportPanel(mockFetchJson) {
   listeners.forEach((fn) => fn.call(panel));
   await new Promise((r) => setTimeout(r, 50));
 
-  // Click on the first exam card to load report detail
+  const listBody = registry['report-list'];
+  const cards = listBody.querySelectorAll('.training-report-exam-card');
+  const unfinalizedCard = cards.length >= 2 ? cards[1] : null;
+
+  let ok = true;
+  function check(condition, msg) {
+    if (!condition) { ok = false; console.error('  FAIL: ' + msg); }
+  }
+
+  check(unfinalizedCard !== null, 'should have second (unfinalized) card');
+
+  if (unfinalizedCard) {
+    (unfinalizedCard._listeners.click || []).forEach((fn) => fn.call(unfinalizedCard));
+    await new Promise((r) => setTimeout(r, 50));
+  }
+
+  const detail = registry['report-detail'];
+  const finalizeBtn = detail.querySelector('button');
+  const actionBtns = detail.querySelectorAll('.training-action');
+
+  check(actionBtns.length >= 1, 'should render action buttons, got ' + actionBtns.length);
+
+  const hasFinalizeBtn = actionBtns.some((b) => String(b.textContent).indexOf('Chốt báo cáo') >= 0);
+  check(hasFinalizeBtn, 'should render finalize button with "Chốt báo cáo" text');
+
+  const noReportEl = detail.querySelector('.training-report-empty');
+  check(noReportEl !== null, 'should render "not finalized" empty state for unfinalized exam');
+
+  if (ok) console.log('ok   [closed unfinalized exam renders finalize button]');
+  else { console.error('FAIL [closed unfinalized exam renders finalize button]'); process.exit(1); }
+}
+
+// ---- Test 4: finalized exam renders report snapshot + export button ----
+{
+  const registry = await loadReportPanel(async (url) => {
+    if (url.includes('/exam-1/report')) return makeReportPayload();
+    if (url.includes('page=')) return makeExamListPayload([makeClosedFinalizedExam()]);
+    return makeExamDetail('exam-1');
+  });
+
+  const panel = registry['training-report'];
+  const listeners = panel._listeners['training:panel-show'] || [];
+  listeners.forEach((fn) => fn.call(panel));
+  await new Promise((r) => setTimeout(r, 50));
+
   const listBody = registry['report-list'];
   const cards = listBody.querySelectorAll('.training-report-exam-card');
   if (cards.length > 0) {
@@ -298,7 +337,7 @@ async function loadReportPanel(mockFetchJson) {
   const summaryCards = detail.querySelectorAll('.training-report-summary-card');
   const table = detail.querySelector('.training-report-table');
   const actionBtns = detail.querySelectorAll('.training-action');
-  const exportBtn = actionBtns.length > 1 ? actionBtns[actionBtns.length - 1] : null;
+  const exportBtn = actionBtns.length > 0 ? actionBtns[actionBtns.length - 1] : null;
 
   let ok = true;
   function check(condition, msg) {
@@ -319,8 +358,8 @@ async function loadReportPanel(mockFetchJson) {
       'export button should contain "Excel"');
   }
 
-  if (ok) console.log('ok   [report detail renders summary cards and individual table]');
-  else { console.error('FAIL [report detail renders summary cards and individual table]'); process.exit(1); }
+  if (ok) console.log('ok   [finalized exam renders report summary and export button]');
+  else { console.error('FAIL [finalized exam renders report summary and export button]'); process.exit(1); }
 }
 
 console.log('OK: report panel tests passed.');

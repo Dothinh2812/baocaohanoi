@@ -92,9 +92,7 @@
     function renderList(payload) {
         clear(listBody);
         clear(pagination);
-        var items = (payload.items || []).filter(function (e) {
-            return e.finalized_at_ms;
-        });
+        var items = payload.items || [];
         if (!items.length) {
             var empty = document.createElement('div');
             empty.className = 'training-report-empty';
@@ -102,7 +100,7 @@
             icon.className = 'fas fa-chart-bar';
             empty.appendChild(icon);
             var msg = document.createElement('p');
-            msg.textContent = 'Chưa có kỳ thi nào đã chốt báo cáo.';
+            msg.textContent = 'Chưa có kỳ thi nào đã đóng.';
             empty.appendChild(msg);
             listBody.appendChild(empty);
             return;
@@ -121,18 +119,22 @@
             var titleEl = document.createElement('strong');
             titleEl.textContent = e.code + ' — ' + e.title;
             info.appendChild(titleEl);
-            var meta = document.createElement('span');
-            meta.textContent = 'Chốt: ' + TrainingUI.formatTime(e.finalized_at_ms);
-            info.appendChild(meta);
+            if (e.finalized_at_ms) {
+                var meta = document.createElement('span');
+                meta.textContent = 'Chốt lúc: ' + TrainingUI.formatTime(e.finalized_at_ms);
+                info.appendChild(meta);
+            }
             card.appendChild(info);
             card.appendChild(statusBadge(e.status, e.finalized_at_ms));
             listBody.appendChild(card);
         });
-        renderPagination(items);
+        renderPagination(payload);
     }
 
-    function renderPagination(items) {
-        var totalPages = Math.max(1, Math.ceil(items.length / listPageSize));
+    function renderPagination(payload) {
+        var total = payload.total || 0;
+        var pageSize = payload.page_size || listPageSize;
+        var totalPages = Math.max(1, Math.ceil(total / pageSize));
         if (totalPages <= 1) return;
         var prev = document.createElement('button');
         prev.type = 'button';
