@@ -571,7 +571,9 @@ def submit_attempt(db_path, *, unit_code, actor, attempt_id):
         conn.close()
 
 
-def administratively_submit_attempt(db_path, *, unit_code, actor, attempt_id, ended_reason="exam_closed"):
+def administratively_submit_attempt(
+    db_path, *, unit_code, actor, attempt_id, ended_reason="exam_closed", return_outcome=False,
+):
     """Kết thúc attempt active theo thao tác quản trị, idempotently."""
     conn = write_connection(db_path)
     try:
@@ -585,7 +587,8 @@ def administratively_submit_attempt(db_path, *, unit_code, actor, attempt_id, en
                 "SELECT * FROM exam_results WHERE attempt_id=?", (attempt_id,)
             ).fetchone()
             conn.rollback()
-            return dict(result) if result else None
+            result = dict(result) if result else None
+            return {"transitioned": False, "result": result} if return_outcome else result
         if ended_reason == "exam_closed":
             exam = conn.execute(
                 """SELECT ee.closed_at_ms, ee.end_at_ms FROM exam_events ee
@@ -608,7 +611,8 @@ def administratively_submit_attempt(db_path, *, unit_code, actor, attempt_id, en
             action="administratively_submit_attempt",
         )
         conn.commit()
-        return dict(result)
+        result = dict(result)
+        return {"transitioned": True, "result": result} if return_outcome else result
     except TrainingError:
         if conn.in_transaction:
             conn.rollback()

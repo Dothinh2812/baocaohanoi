@@ -247,6 +247,42 @@ def test_close_and_finalize_isolate_corrupt_attempt_recovery(monkeypatch, tmp_pa
         conn.close()
 
 
+def test_recovery_marks_competing_terminal_transition_as_already_completed(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+    attempt_id = attempts.start_attempt(
+        db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id,
+    )["attempt_id"]
+    original_submit = attempts.administratively_submit_attempt
+
+    def competing_submit(*args, **kwargs):
+        outcome_requested = kwargs.pop("return_outcome", False)
+        original_submit(*args, **kwargs)
+        if outcome_requested:
+            kwargs["return_outcome"] = True
+        return original_submit(*args, **kwargs)
+
+    monkeypatch.setattr(attempts, "administratively_submit_attempt", competing_submit)
+
+    summary = exams._administratively_finish_active_attempts(
+        db_path, unit_code="son_tay", actor="recovery", exam_id=exam_id,
+    )
+
+    assert summary == {
+        "processed_attempt_ids": [],
+        "already_completed_ids": [attempt_id],
+        "failed_attempts": [],
+    }
+    conn = training_db.read_connection(db_path)
+    try:
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log "
+            "WHERE action='administratively_submit_attempt' AND entity_id=?", (attempt_id,)
+        ).fetchone()["c"] == 1
+    finally:
+        conn.close()
+
+
 @pytest.mark.parametrize("operation", ["close", "finalize"])
 def test_unknown_exam_transitions_raise_not_found(monkeypatch, tmp_path, operation):
     db_path = _setup(monkeypatch, tmp_path)

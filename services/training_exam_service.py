@@ -342,11 +342,14 @@ def _administratively_finish_active_attempts(db_path, *, unit_code, actor, exam_
             summary["already_completed_ids"].append(attempt_id)
             continue
         try:
-            attempts.administratively_submit_attempt(
+            outcome = attempts.administratively_submit_attempt(
                 db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id,
-                ended_reason=ended_reason,
+                ended_reason=ended_reason, return_outcome=True,
             )
-            summary["processed_attempt_ids"].append(attempt_id)
+            if outcome["transitioned"]:
+                summary["processed_attempt_ids"].append(attempt_id)
+            else:
+                summary["already_completed_ids"].append(attempt_id)
         except TrainingError as exc:
             summary["failed_attempts"].append({
                 "attempt_id": attempt_id,
