@@ -97,6 +97,27 @@ def _role_client(monkeypatch, tmp_path, *, username, roles=(), dashboard_role=No
         yield client, db_path
 
 
+def test_close_route_serializes_recovery_summary(monkeypatch, tmp_path):
+    from blueprints import training_routes
+
+    for client in _client(monkeypatch, tmp_path):
+        db_path = training_routes.config.TRAINING_DB_PATH
+        exam_id, assignment_id = _make_open_exam_with_assignment(db_path)
+        attempt = attempts.start_attempt(
+            db_path, unit_code="son_tay", actor="learner1", assignment_id=assignment_id,
+        )
+        response = client.post(
+            f"/api/training/exams/{exam_id}/close", headers={"X-CSRF-Token": "csrf"},
+        )
+
+    assert response.status_code == 200
+    assert response.get_json()["recovery_summary"] == {
+        "processed_attempt_ids": [attempt["attempt_id"]],
+        "already_completed_ids": [],
+        "failed_attempts": [],
+    }
+
+
 def test_operator_can_create_paste_text_knowledge(monkeypatch, tmp_path):
     for client in _client(monkeypatch, tmp_path):
         response = client.post(

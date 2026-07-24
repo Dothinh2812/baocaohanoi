@@ -313,25 +313,46 @@ def close_exam(db_path, *, unit_code, actor, exam_id):
         conn.close()
     if _AFTER_CLOSE_COMMIT_HOOK:
         _AFTER_CLOSE_COMMIT_HOOK(exam_id)
-    _administratively_finish_active_attempts(db_path, unit_code=unit_code, actor=actor, exam_id=exam_id)
+    return _administratively_finish_active_attempts(
+        db_path, unit_code=unit_code, actor=actor, exam_id=exam_id,
+    )
 
 
 def _administratively_finish_active_attempts(db_path, *, unit_code, actor, exam_id, ended_reason="exam_closed"):
-    """Enumerate after close; each attempt is finalized in its own short transaction."""
+    """Recover attempts after close; each attempt uses its own transaction."""
     from services import training_attempt_service as attempts
 
     conn = read_connection(db_path)
     try:
-        attempt_ids = [row["id"] for row in conn.execute(
+        attempt_rows = conn.execute(
             """SELECT a.id FROM exam_attempts a JOIN exam_assignments x ON x.id=a.assignment_id
-               WHERE x.exam_event_id=? AND a.status='active'""", (exam_id,)
-        ).fetchall()]
+               WHERE x.exam_event_id=? ORDER BY a.created_at_ms, a.id""", (exam_id,)
+        ).fetchall()
     finally:
         conn.close()
-    for attempt_id in attempt_ids:
-        attempts.administratively_submit_attempt(
-            db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id, ended_reason=ended_reason,
-        )
+    summary = {
+        "processed_attempt_ids": [],
+        "already_completed_ids": [],
+        "failed_attempts": [],
+    }
+    for row in attempt_rows:
+        attempt_id = row["id"]
+        attempt = attempts.get_attempt(db_path, attempt_id)
+        if attempt["status"] != constants.AttemptStatus.ACTIVE:
+            summary["already_completed_ids"].append(attempt_id)
+            continue
+        try:
+            attempts.administratively_submit_attempt(
+                db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id,
+                ended_reason=ended_reason,
+            )
+            summary["processed_attempt_ids"].append(attempt_id)
+        except TrainingError as exc:
+            summary["failed_attempts"].append({
+                "attempt_id": attempt_id,
+                "error_code": exc.code,
+            })
+    return summary
 
 
 def cancel_exam(db_path, *, unit_code, actor, exam_id):

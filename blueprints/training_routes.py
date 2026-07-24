@@ -196,8 +196,14 @@ def transition_exam(exam_id, action):
     if handler is None:
         return jsonify({"error": {"code": "NOT_FOUND", "message": "Thao tác không tồn tại.", "details": {}}}), 404
     try:
-        handler(config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE, actor=session["username"], exam_id=exam_id)
-        return jsonify({"exam_id": exam_id, "action": action})
+        result = handler(
+            config.TRAINING_DB_PATH, unit_code=config.UNIT_CODE,
+            actor=session["username"], exam_id=exam_id,
+        )
+        response = {"exam_id": exam_id, "action": action}
+        if action == "close":
+            response["recovery_summary"] = result
+        return jsonify(response)
     except TrainingError as exc:
         return _error_response(exc)
 

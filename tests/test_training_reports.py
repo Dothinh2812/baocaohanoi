@@ -178,6 +178,75 @@ def test_finalize_recovers_active_closed_exam_with_exam_closed_reason(monkeypatc
     assert attempt["ended_reason"] == "exam_closed"
 
 
+def test_close_and_finalize_isolate_corrupt_attempt_recovery(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    exam_id, first_assignment_id = _make_open_exam_with_assignment(db_path)
+    assignment_ids = [first_assignment_id, *exams.create_assignments(
+        db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id,
+        users=[{"username": "learner2"}, {"username": "learner3"}], audience_code="nvkt",
+    )]
+    attempt_ids = [attempts.start_attempt(
+        db_path, unit_code="son_tay", actor=f"learner{index}", assignment_id=assignment_id,
+    )["attempt_id"] for index, assignment_id in enumerate(assignment_ids, start=1)]
+    corrupt_attempt_id = attempt_ids[1]
+    conn = training_db.write_connection(db_path)
+    try:
+        item = conn.execute(
+            "SELECT id, stem FROM exam_attempt_items WHERE attempt_id=? LIMIT 1", (corrupt_attempt_id,)
+        ).fetchone()
+        original_stem = item["stem"]
+        conn.execute("UPDATE exam_attempt_items SET stem=? WHERE id=?", ("đã bị sửa", item["id"]))
+        conn.commit()
+    finally:
+        conn.close()
+
+    close_summary = exams.close_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    assert set(close_summary["processed_attempt_ids"]) == {attempt_ids[0], attempt_ids[2]}
+    assert close_summary["already_completed_ids"] == []
+    assert close_summary["failed_attempts"] == [{
+        "attempt_id": corrupt_attempt_id, "error_code": ErrorCode.ATTEMPT_SNAPSHOT_INVALID,
+    }]
+    assert attempts.get_attempt(db_path, corrupt_attempt_id)["status"] == "active"
+    assert attempts.get_result(db_path, corrupt_attempt_id) is None
+    with pytest.raises(TrainingError) as exc_info:
+        reports.finalize_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+    assert exc_info.value.code == ErrorCode.ATTEMPT_SNAPSHOT_INVALID
+    assert exc_info.value.details["blocking_attempts"] == [{
+        "attempt_id": corrupt_attempt_id, "error_code": ErrorCode.ATTEMPT_SNAPSHOT_INVALID,
+    }]
+    assert reports.get_report_snapshot(db_path, exam_id) is None
+
+    conn = training_db.write_connection(db_path)
+    try:
+        conn.execute("UPDATE exam_attempt_items SET stem=? WHERE id=?", (original_stem, item["id"]))
+        conn.commit()
+    finally:
+        conn.close()
+
+    report = reports.finalize_exam(db_path, unit_code="son_tay", actor="mgr", exam_id=exam_id)
+
+    assert report["revision"] == 1
+    assert report["recovery_summary"] == {
+        "processed_attempt_ids": [corrupt_attempt_id],
+        "already_completed_ids": [attempt_ids[0], attempt_ids[2]],
+        "failed_attempts": [],
+    }
+    conn = training_db.read_connection(db_path)
+    try:
+        assert conn.execute("SELECT COUNT(*) AS c FROM exam_results").fetchone()["c"] == 3
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log "
+            "WHERE action='administratively_submit_attempt'"
+        ).fetchone()["c"] == 3
+        assert conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log "
+            "WHERE action='attempt_snapshot_invalid' AND entity_id=?", (corrupt_attempt_id,)
+        ).fetchone()["c"] == 1
+    finally:
+        conn.close()
+
+
 @pytest.mark.parametrize("operation", ["close", "finalize"])
 def test_unknown_exam_transitions_raise_not_found(monkeypatch, tmp_path, operation):
     db_path = _setup(monkeypatch, tmp_path)

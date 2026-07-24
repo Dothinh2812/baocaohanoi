@@ -620,10 +620,16 @@ def administratively_submit_attempt(db_path, *, unit_code, actor, attempt_id, en
 def _complete_active_attempt(conn, *, unit_code, actor, attempt, status, ended_reason, action):
     """CAS terminal transition, immutable-snapshot scoring, result and audit in one transaction."""
     if not _verify_snapshot_checksum_with_conn(conn, attempt["id"]):
-        write_audit(
-            conn, actor=actor, unit_code=unit_code, action="attempt_snapshot_invalid",
-            entity_type="exam_attempt", entity_id=attempt["id"],
-        )
+        already_audited = conn.execute(
+            """SELECT 1 FROM training_audit_log
+               WHERE action='attempt_snapshot_invalid' AND entity_type='exam_attempt' AND entity_id=?""",
+            (attempt["id"],),
+        ).fetchone()
+        if not already_audited:
+            write_audit(
+                conn, actor=actor, unit_code=unit_code, action="attempt_snapshot_invalid",
+                entity_type="exam_attempt", entity_id=attempt["id"],
+            )
         conn.commit()
         raise TrainingError(
             ErrorCode.ATTEMPT_SNAPSHOT_INVALID, "Snapshot bài làm không toàn vẹn", status=409,

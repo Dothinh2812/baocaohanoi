@@ -8,7 +8,6 @@ from training import constants, time_policy
 from training.db import read_connection, write_connection
 from training.errors import ErrorCode, TrainingError
 from repositories.training_repository import gen_id, write_audit
-from services import training_attempt_service as attempts
 from services import training_exam_service as exams
 
 REPORT_SCHEMA_VERSION = "1.0"
@@ -75,21 +74,18 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
             f"Không thể finalize: trạng thái {exam['status']}", status=409,
         )
 
-    conn = read_connection(db_path)
-    try:
-        active_attempt_ids = [row["id"] for row in conn.execute(
-            """SELECT a.id FROM exam_attempts a
-               JOIN exam_assignments x ON x.id=a.assignment_id
-               WHERE x.exam_event_id=? AND a.status='active'""",
-            (exam_id,),
-        ).fetchall()]
-    finally:
-        conn.close()
-
-    for attempt_id in active_attempt_ids:
-        attempts.administratively_submit_attempt(
-            db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id,
-            ended_reason="exam_closed",
+    recovery_summary = exams._administratively_finish_active_attempts(
+        db_path, unit_code=unit_code, actor=actor, exam_id=exam_id,
+    )
+    if recovery_summary["failed_attempts"]:
+        raise TrainingError(
+            recovery_summary["failed_attempts"][0]["error_code"],
+            "Không thể chốt báo cáo khi còn bài làm lỗi toàn vẹn",
+            status=409,
+            details={
+                "blocking_attempts": recovery_summary["failed_attempts"],
+                "recovery_summary": recovery_summary,
+            },
         )
 
     conn = write_connection(db_path)
@@ -115,7 +111,11 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
         ).fetchone()
         if existing:
             conn.rollback()
-            return {"revision": existing["revision"], "payload": json.loads(existing["payload_json"])}
+            return {
+                "revision": existing["revision"],
+                "payload": json.loads(existing["payload_json"]),
+                "recovery_summary": recovery_summary,
+            }
         now = time_policy.utc_now_ms()
         conn.execute(
             """INSERT INTO exam_report_snapshots
@@ -132,7 +132,7 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
         write_audit(conn, actor=actor, unit_code=unit_code, action="finalize_exam",
                     entity_type="exam_event", entity_id=exam_id)
         conn.commit()
-        return {"revision": 1, "payload": payload}
+        return {"revision": 1, "payload": payload, "recovery_summary": recovery_summary}
     finally:
         conn.close()
 
