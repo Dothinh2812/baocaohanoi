@@ -29,6 +29,11 @@ def has_module_role(db_path, username, required_role):
     return required_role in roles or ADMIN_ROLE in roles
 
 
+def module_roles(db_path, username):
+    """Trả các role module đã cấp cho người dùng."""
+    return _user_roles(db_path, username) if username else set()
+
+
 def require_module_role(db_path, username, required_role):
     """Raise TrainingError(PERMISSION_SCOPE_DENIED) nếu không có quyền."""
     if not has_module_role(db_path, username, required_role):

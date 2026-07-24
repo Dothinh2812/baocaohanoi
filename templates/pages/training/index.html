@@ -1,9 +1,48 @@
 {% extends 'base.html' %}
 {% block title %}Đào tạo & sát hạch{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/training.css') }}">
+<meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+{% endblock %}
 {% block content %}
-<div class="content-container">
-  <h2><i class="fas fa-graduation-cap"></i> Đào tạo & sát hạch</h2>
-  <p>Kho tri thức, ngân hàng câu hỏi, kỳ thi và báo cáo được quản lý theo từng TTVT.</p>
-  <p>Module MVP sử dụng đề cố định, một lượt làm bài cho mỗi assignment và chấm single-choice.</p>
+<div class="content-container training-workspace">
+  <div class="dashboard-header">
+    <h2 class="dashboard-title"><i class="fas fa-graduation-cap"></i> Đào tạo & sát hạch</h2>
+    <p class="dashboard-subtitle">Không gian làm việc theo vai trò trong module đào tạo.</p>
+  </div>
+
+  <div class="training-workspace-grid">
+    <nav class="training-workspace-nav" aria-label="Chức năng đào tạo">
+      <a class="training-nav-item active" href="#training-overview"><i class="fas fa-chart-pie"></i> Tổng quan</a>
+      {% if 'editor' in module_roles or 'admin' in module_roles %}
+      <a class="training-nav-item" href="#training-pending"><i class="fas fa-book"></i> Kho tri thức</a>
+      <a class="training-nav-item" href="#training-pending"><i class="fas fa-list-check"></i> Ngân hàng câu hỏi</a>
+      {% endif %}
+      {% if 'exam_manager' in module_roles or 'admin' in module_roles %}
+      <a class="training-nav-item" href="#training-pending"><i class="fas fa-copy"></i> Mẫu đề</a>
+      <a class="training-nav-item" href="#training-pending"><i class="fas fa-clipboard-list"></i> Kỳ thi</a>
+      <a class="training-nav-item" href="#training-pending"><i class="fas fa-chart-bar"></i> Báo cáo</a>
+      {% endif %}
+      {% if 'learner' in module_roles or 'admin' in module_roles %}
+      <a class="training-nav-item" href="#training-pending"><i class="fas fa-pen-to-square"></i> Bài thi của tôi</a>
+      <a class="training-nav-item" href="#training-pending"><i class="fas fa-square-poll-vertical"></i> Kết quả của tôi</a>
+      {% endif %}
+    </nav>
+
+    <section class="training-workspace-panel" id="training-overview">
+      <h3><i class="fas fa-graduation-cap"></i> Không gian đào tạo</h3>
+      <p>Chọn một chức năng phù hợp với vai trò của bạn để bắt đầu.</p>
+      <div class="training-pending" id="training-pending">
+        <i class="fas fa-hourglass-half"></i>
+        <div>
+          <strong>Sắp triển khai</strong>
+          <p>Các màn hình nghiệp vụ sẽ được bổ sung theo từng đợt.</p>
+        </div>
+      </div>
+    </section>
+  </div>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/training-ui.js') }}"></script>
 {% endblock %}

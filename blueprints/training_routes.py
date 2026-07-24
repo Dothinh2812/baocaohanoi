@@ -7,7 +7,7 @@ import config
 from app_helpers import add_no_cache_headers, csrf_protect
 from auth import get_user_by_username
 from training.errors import TrainingError
-from training.permissions import has_module_role
+from training.permissions import has_module_role, module_roles
 from services import training_attempt_service as attempts
 from services import training_exam_service as exams
 from services import training_report_service as reports
@@ -46,9 +46,14 @@ def _attempt_owned_by_current_user(attempt_id):
 
 @training_bp.route("/dao-tao-sat-hach")
 def page_index():
+    current_user = get_user_by_username(session.get("username"))
+    roles = module_roles(config.TRAINING_DB_PATH, session.get("username"))
+    if current_user and current_user.get("role") == "admin":
+        roles.update({"learner", "editor", "exam_manager", "admin"})
     return render_template(
         "pages/training/index.html",
-        current_user=get_user_by_username(session.get("username")),
+        current_user=current_user,
+        module_roles=roles,
         active_page="training",
     )
 
