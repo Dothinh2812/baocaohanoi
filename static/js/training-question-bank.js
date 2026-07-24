@@ -208,14 +208,16 @@
                 });
             }));
         }
-        controls.appendChild(actionButton('Từ chối', function () {
-            var comment = window.prompt('Nhận xét từ chối (không bắt buộc):', '');
-            if (comment !== null) {
-                TrainingUI.confirm('Từ chối câu hỏi này?').then(function (confirmed) {
-                    if (confirmed) runReviewAction(question, 'reject', { comment: comment });
-                });
-            }
-        }));
+        if (question.review_status !== 'rejected') {
+            controls.appendChild(actionButton('Từ chối', function () {
+                var comment = window.prompt('Nhận xét từ chối (không bắt buộc):', '');
+                if (comment !== null) {
+                    TrainingUI.confirm('Từ chối câu hỏi này?').then(function (confirmed) {
+                        if (confirmed) runReviewAction(question, 'reject', { comment: comment });
+                    });
+                }
+            }));
+        }
         if (question.review_status === 'approved') {
             controls.appendChild(actionButton('Phát hành', function () {
                 TrainingUI.confirm('Phát hành câu hỏi này? Câu đã phát hành không được sửa trực tiếp.').then(function (confirmed) {
