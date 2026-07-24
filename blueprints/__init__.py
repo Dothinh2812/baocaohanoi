@@ -7,6 +7,7 @@ from .quangchudong_routes import quangchudong_bp
 from .retention_routes import retention_bp
 from .sa_outage_routes import sa_outage_bp
 from .statistics_routes import statistics_bp
+from .training_routes import training_bp
 
 __all__ = [
     'auth_bp',
@@ -18,4 +19,5 @@ __all__ = [
     'retention_bp',
     'sa_outage_bp',
     'statistics_bp',
+    'training_bp',
 ]

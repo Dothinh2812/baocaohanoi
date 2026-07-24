@@ -202,6 +202,19 @@ def get_attempt(db_path, attempt_id):
         conn.close()
 
 
+def attempt_owner_username(db_path, attempt_id):
+    conn = read_connection(db_path)
+    try:
+        row = conn.execute(
+            """SELECT x.username FROM exam_attempts a
+               JOIN exam_assignments x ON x.id=a.assignment_id WHERE a.id=?""",
+            (attempt_id,),
+        ).fetchone()
+        return row["username"] if row else None
+    finally:
+        conn.close()
+
+
 def get_attempt_learner_view(db_path, attempt_id):
     """Learner DTO: không có correct/explanation/evidence/scoring."""
     conn = read_connection(db_path)

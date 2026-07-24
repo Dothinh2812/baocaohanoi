@@ -18,6 +18,7 @@ from blueprints import (
     retention_bp,
     sa_outage_bp,
     statistics_bp,
+    training_bp,
 )
 from config import PUBLIC_ENDPOINTS
 from route_policy import get_disabled_feature
@@ -40,6 +41,7 @@ app.register_blueprint(quality_bp)
 app.register_blueprint(retention_bp)
 app.register_blueprint(sa_outage_bp)
 app.register_blueprint(statistics_bp)
+app.register_blueprint(training_bp)
 
 
 @app.before_request

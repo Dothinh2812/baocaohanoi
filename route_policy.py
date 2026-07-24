@@ -31,6 +31,7 @@ PAGE_ACTIVE_KEYS = {
     'quangchudong.page_quangchudong_nvkt': 'quangchudong',
     'retention.page_giahan': 'giahan',
     'sa_outage.page_su_co_sa': 'su_co_sa',
+    'training.page_index': 'training',
 }
 
 

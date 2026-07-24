@@ -219,6 +219,15 @@
         </a>
         {% endif %}
 
+        {% if is_endpoint_enabled('training.page_index') %}
+        <a href="{{ url_for('training.page_index') }}"
+            class="menu-item {% if active_page == 'training' %}active{% endif %}"
+            data-tooltip="Đào tạo & sát hạch">
+            <i class="fas fa-graduation-cap"></i>
+            <span>Đào tạo & sát hạch</span>
+        </a>
+        {% endif %}
+
         {% if is_endpoint_enabled('growth.page_tiepthi') %}
         <a href="{{ url_for('growth.page_tiepthi') }}" class="menu-item {% if active_page == 'tiepthi' %}active{% endif %}"
             data-tooltip="Kết quả Tiếp thị">

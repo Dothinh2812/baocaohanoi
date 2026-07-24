@@ -73,6 +73,7 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
         ).fetchall()]
     finally:
         conn.close()
+
     for attempt_id in active_attempt_ids:
         attempts.submit_attempt(db_path, unit_code=unit_code, actor=actor, attempt_id=attempt_id)
 
@@ -117,5 +118,27 @@ def finalize_exam(db_path, *, unit_code, actor, exam_id):
                     entity_type="exam_event", entity_id=exam_id)
         conn.commit()
         return {"revision": 1, "payload": payload}
+    finally:
+        conn.close()
+
+
+def get_report_snapshot(db_path, exam_id, revision=None):
+    conn = read_connection(db_path)
+    try:
+        if revision is None:
+            row = conn.execute(
+                "SELECT revision, payload_json FROM exam_report_snapshots "
+                "WHERE exam_event_id=? ORDER BY revision DESC LIMIT 1",
+                (exam_id,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT revision, payload_json FROM exam_report_snapshots "
+                "WHERE exam_event_id=? AND revision=?",
+                (exam_id, revision),
+            ).fetchone()
+        if not row:
+            return None
+        return {"revision": row["revision"], "payload": json.loads(row["payload_json"])}
     finally:
         conn.close()
