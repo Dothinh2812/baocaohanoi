@@ -128,3 +128,17 @@ def test_workspace_question_bank_panel_is_only_rendered_for_operators(monkeypatc
     assert 'id="training-question-bank"' in editor_page
     assert 'id="training-question-bank"' not in learner_page
     assert "js/training-question-bank.js" in editor_page
+
+
+def test_question_bank_client_renders_full_detail_and_confirms_all_review_actions():
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "static" / "js" / "training-question-bank.js").read_text(encoding="utf-8")
+
+    for field in (
+        "question.stimulus", "question.language", "question.max_score", "question.scoring_policy",
+        "question.created_by", "question.created_at_ms", "question.publication.approved_by",
+        "question.publication.approved_at_ms",
+    ):
+        assert field in script
+    for prompt in ("Duyệt câu hỏi này?", "Từ chối câu hỏi này?", "Phát hành câu hỏi này?"):
+        assert prompt in script

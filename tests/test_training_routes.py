@@ -271,6 +271,35 @@ def test_manager_can_reject_approve_and_publish_question(monkeypatch, tmp_path):
     assert [review["action"] for review in detail.get_json()["review_history"]] == ["reject", "approve"]
 
 
+def test_question_review_routes_reject_invalid_and_repeated_published_transitions(monkeypatch, tmp_path):
+    for client in _client(monkeypatch, tmp_path):
+        imported = client.post(
+            "/api/training/questions/import", headers={"X-CSRF-Token": "csrf"}, json=QUESTION_BATCH,
+        )
+        version_id = imported.get_json()["version_ids"][0]
+        approved = client.post(
+            f"/api/training/questions/{version_id}/approve", headers={"X-CSRF-Token": "csrf"},
+        )
+        duplicate_approve = client.post(
+            f"/api/training/questions/{version_id}/approve", headers={"X-CSRF-Token": "csrf"},
+        )
+        published = client.post(
+            f"/api/training/questions/{version_id}/publish", headers={"X-CSRF-Token": "csrf"},
+        )
+        repeated_publish = client.post(
+            f"/api/training/questions/{version_id}/publish", headers={"X-CSRF-Token": "csrf"},
+        )
+        published_reject = client.post(
+            f"/api/training/questions/{version_id}/reject", headers={"X-CSRF-Token": "csrf"}, json={},
+        )
+
+    assert approved.status_code == 200
+    assert published.status_code == 200
+    for response in (duplicate_approve, repeated_publish, published_reject):
+        assert response.status_code == 409
+        assert response.get_json()["error"]["code"] == "CONFLICT"
+
+
 def test_autosave_route_rejects_item_from_another_attempt(monkeypatch, tmp_path):
     for client, attempt_id, _, foreign_item_id in _learner_client_with_attempt(
         monkeypatch, tmp_path, second_attempt=True,

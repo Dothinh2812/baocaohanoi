@@ -119,6 +119,47 @@ def test_publish_blocked_when_not_approved(monkeypatch, tmp_path):
     assert "approved" in exc.value.message.lower() or "review" in exc.value.message.lower()
 
 
+def test_question_review_rejects_published_and_duplicate_review_states(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_id = import_question_batch(
+        db_path, unit_code="son_tay", actor="alice", batch=VALID_BATCH,
+    )["version_ids"][0]
+    add_review_action(db_path, unit_code="son_tay", actor="manager", version_id=version_id, action="approve")
+
+    with pytest.raises(TrainingError) as duplicate_approve:
+        add_review_action(db_path, unit_code="son_tay", actor="manager", version_id=version_id, action="approve")
+
+    publish_question_version(db_path, unit_code="son_tay", actor="manager", version_id=version_id)
+    for action in ("approve", "reject"):
+        with pytest.raises(TrainingError) as published_review:
+            add_review_action(db_path, unit_code="son_tay", actor="manager", version_id=version_id, action=action)
+        assert published_review.value.code == "CONFLICT"
+
+    assert duplicate_approve.value.code == "CONFLICT"
+
+
+def test_repeated_publish_is_conflict_and_does_not_duplicate_audit(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    version_id = import_question_batch(
+        db_path, unit_code="son_tay", actor="alice", batch=VALID_BATCH,
+    )["version_ids"][0]
+    add_review_action(db_path, unit_code="son_tay", actor="manager", version_id=version_id, action="approve")
+    publish_question_version(db_path, unit_code="son_tay", actor="manager", version_id=version_id)
+
+    with pytest.raises(TrainingError) as repeated:
+        publish_question_version(db_path, unit_code="son_tay", actor="manager", version_id=version_id)
+
+    conn = training_db.read_connection(db_path)
+    try:
+        audit_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM training_audit_log WHERE action='publish' AND entity_id=?", (version_id,),
+        ).fetchone()["c"]
+    finally:
+        conn.close()
+    assert repeated.value.code == "CONFLICT"
+    assert audit_count == 1
+
+
 def test_publish_blocked_by_duplicate_normalized_stem(monkeypatch, tmp_path):
     db_path = _setup(monkeypatch, tmp_path)
     r1 = import_question_batch(db_path, unit_code="son_tay", actor="alice",
@@ -194,6 +235,11 @@ def test_question_bank_detail_is_explicit_management_dto(monkeypatch, tmp_path):
 
     assert detail["correct_option_ids"] == ["B"]
     assert detail["distractor_rationales"] == {"A": "Sai"}
+    assert detail["max_score"] == 1.0
+    assert detail["scoring_policy"] is None
+    assert detail["language"] == "vi"
+    assert detail["created_by"] == "alice"
+    assert detail["created_at_ms"]
     assert detail["classification"] == {
         "domain_codes": [], "topic_codes": ["test_topic"], "audience_codes": [], "indicator_codes": [],
     }
