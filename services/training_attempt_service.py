@@ -126,7 +126,7 @@ def _ordered_snapshot_inputs(conn, template_id, random_seed, algorithm_version,
         (template_id,),
     ).fetchall())
     if shuffle_questions:
-        _snapshot_rng(random_seed, algorithm_version, "questions").shuffle(items)
+        _shuffle_snapshot_values(items, _snapshot_rng(random_seed, algorithm_version, "questions"))
 
     ordered_items = []
     for item in items:
@@ -136,7 +136,9 @@ def _ordered_snapshot_inputs(conn, template_id, random_seed, algorithm_version,
             (item["id"],),
         ).fetchall()]
         if shuffle_options:
-            _snapshot_rng(random_seed, algorithm_version, f"options:{item['id']}").shuffle(options)
+            _shuffle_snapshot_values(
+                options, _snapshot_rng(random_seed, algorithm_version, f"options:{item['id']}"),
+            )
         ordered_items.append((item, options))
     return ordered_items
 
@@ -199,6 +201,14 @@ def _snapshot_rng(random_seed, algorithm_version, scope):
     """Tạo stream cục bộ ổn định cho từng phần snapshot."""
     material = f"{algorithm_version}:{random_seed}:{scope}".encode("utf-8")
     return random.Random(int.from_bytes(hashlib.sha256(material).digest(), "big"))
+
+
+def _shuffle_snapshot_values(values, rng):
+    """Xáo trộn ổn định và đảm bảo cờ shuffle tạo thứ tự mới khi có thể."""
+    original = list(values)
+    rng.shuffle(values)
+    if len(values) > 1 and values == original:
+        values.append(values.pop(0))
 
 
 def _reproduce_snapshot_order(db_path, attempt_id):
