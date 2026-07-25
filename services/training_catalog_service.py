@@ -47,6 +47,31 @@ def seed_defaults(db_path, unit_code):
         conn.close()
 
 
+def ensure_topic(db_path, unit_code, actor, code, name):
+    """Tạo topic nếu chưa có và ghi audit, không đổi topic lịch sử."""
+    code = (code or "").strip()
+    name = (name or "").strip()
+    if not code or not name:
+        raise ValueError("code và name của topic là bắt buộc")
+    conn = write_connection(db_path)
+    try:
+        created = conn.execute(
+            "INSERT INTO training_topics (code, name) VALUES (?, ?) "
+            "ON CONFLICT(code) DO NOTHING",
+            (code, name),
+        ).rowcount == 1
+        if created:
+            write_audit(
+                conn, actor=actor, unit_code=unit_code, action="create_topic",
+                entity_type="training_topic", entity_id=code,
+                after={"code": code, "name": name},
+            )
+        conn.commit()
+        return created
+    finally:
+        conn.close()
+
+
 def list_domains(db_path):
     conn = read_connection(db_path)
     try:

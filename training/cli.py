@@ -49,6 +49,19 @@ def cmd_db_migrate(args):
     return 0
 
 
+def cmd_catalog_topic_add(args):
+    """Tạo topic catalog có audit để classification knowledge-import dùng được."""
+    from training.db import TRAINING_DB_PATH, UNIT_CODE
+    from services.training_catalog_service import ensure_topic
+
+    db_path = args.db_path or TRAINING_DB_PATH
+    unit_code = args.unit_code or UNIT_CODE
+    _require_role(db_path, args.actor, "editor")
+    created = ensure_topic(db_path, unit_code, args.actor, args.code, args.name)
+    print(f"topic={args.code} status={'created' if created else 'already_exists'}")
+    return 0
+
+
 # ---- provider/worker ----
 
 def _get_provider(provider_name):
@@ -479,6 +492,7 @@ def build_parser():
     sub = parser.add_subparsers(dest="command", required=True)
 
     _add_db_migrate(sub)
+    _add_catalog_topic_add(sub)
     _add_worker(sub)
     _add_knowledge_import(sub)
     _add_knowledge_list(sub)
@@ -506,6 +520,15 @@ def _add_db_migrate(sub):
     p = sub.add_parser("db-migrate", help="Chạy schema migration")
     _add_common_db(p)
     p.set_defaults(func=cmd_db_migrate)
+
+
+def _add_catalog_topic_add(sub):
+    p = sub.add_parser("catalog-topic-add", help="Tạo topic catalog có audit")
+    _add_common_db(p)
+    p.add_argument("--code", required=True)
+    p.add_argument("--name", required=True)
+    p.add_argument("--actor", required=True)
+    p.set_defaults(func=cmd_catalog_topic_add)
 
 
 def _add_worker(sub):
