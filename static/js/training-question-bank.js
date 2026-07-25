@@ -11,6 +11,7 @@
     var errors = document.getElementById('question-bank-errors');
     var textarea = document.getElementById('question-batch-json');
     var batchErrors = document.getElementById('question-batch-errors');
+    var clearFiltersButton = document.getElementById('question-bank-clear-filters');
     var canReview = panel.dataset.canReview === 'true';
     var page = 1;
     var pageSize = 25;
@@ -56,6 +57,13 @@
         values.set('page', String(page));
         values.set('page_size', String(pageSize));
         return values;
+    }
+
+    function resetFilters() {
+        Array.prototype.forEach.call(filters.elements, function (input) {
+            if (input.name) input.value = '';
+        });
+        page = 1;
     }
 
     function statusLabel(status) {
@@ -192,6 +200,9 @@
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {})
         }).then(function () {
             TrainingUI.toast('Đã cập nhật câu hỏi.', 'success');
+            // Sau phát hành, luôn quay lại danh sách đầy đủ. Nhờ vậy không
+            // để lại bộ lọc "Đã phát hành" khiến các câu nháp tưởng như mất.
+            if (action === 'publish') resetFilters();
             loadList();
             loadDetail(question.id);
         }).catch(function (error) { renderErrors(errors, error); });
@@ -254,6 +265,12 @@
     }
 
     filters.addEventListener('submit', function (event) { event.preventDefault(); page = 1; loadList(); });
+    if (clearFiltersButton) {
+        clearFiltersButton.addEventListener('click', function () {
+            resetFilters();
+            loadList();
+        });
+    }
     if (textarea) {
         document.getElementById('question-batch-validate').addEventListener('click', function () {
             sendBatch('/api/training/questions/validate', function () { TrainingUI.toast('JSON hợp lệ.', 'success'); });

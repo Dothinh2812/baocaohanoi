@@ -81,6 +81,7 @@ function resetDom() {
   panel.dataset.canReview = 'true';
   const filters = make('question-bank-filters');
   filters.elements = [];
+  make('question-bank-clear-filters', 'button');
   list = make('question-bank-list');
   make('question-bank-pagination');
   detail = make('question-bank-detail');
@@ -219,6 +220,35 @@ for (const testCase of CASES) {
   } else {
     console.log(`ok   [${testCase.review}] -> [${got.join(', ')}]`);
   }
+}
+
+// Bộ lọc "Đã phát hành" dễ làm người vận hành tưởng những câu nháp đã mất.
+// Nút xóa lọc phải thực sự đưa toàn bộ input về rỗng trước khi tải lại list.
+resetDom();
+registry['question-bank-filters'].elements = [
+  { name: 'status', value: 'published' },
+  { name: 'topic', value: 'brcd_repair' },
+];
+const clearWindow = buildWindow();
+globalThis.window = clearWindow;
+globalThis.TrainingUI = clearWindow.TrainingUI;
+globalThis.document = {
+  getElementById: (id) => registry[id] || null,
+  createElement: (tag) => new El(tag),
+  createTextNode: (text) => {
+    const node = new El('#text');
+    node.textContent = text === null || text === undefined ? '' : String(text);
+    return node;
+  },
+};
+(0, eval)(fs.readFileSync(scriptPath, 'utf8'));
+registry['question-bank-clear-filters'].click();
+await flush();
+if (registry['question-bank-filters'].elements.some((input) => input.value !== '')) {
+  failed += 1;
+  console.error('FAIL: nút xóa lọc không trả bộ lọc câu hỏi về trạng thái tất cả.');
+} else {
+  console.log('ok   [clear filters] -> all question filters reset');
 }
 
 if (failed > 0) {
