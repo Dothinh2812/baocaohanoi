@@ -159,3 +159,24 @@ class TestZipBombProtection:
         from services.training_file_ingestion import _MAX_ZIP_ENTRIES
         with pytest.raises(FileValidationError, match="zip bomb|entry"):
             validate_docx_file(p, max_entries=5)
+
+
+class TestDocxDependencyMissing:
+    def test_extract_docx_text_without_docx_raises_clear_error(self, tmp_path, monkeypatch):
+        from docx import Document
+        p = str(tmp_path / "ok.docx")
+        doc = Document()
+        doc.add_paragraph("Test content")
+        doc.save(p)
+
+        import builtins
+        real_import = builtins.__import__
+
+        def _patched_import(name, *args, **kwargs):
+            if name == "docx":
+                raise ImportError("No module named 'docx'")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", _patched_import)
+        with pytest.raises(FileValidationError, match="python-docx.*pip install"):
+            extract_docx_text(p)
