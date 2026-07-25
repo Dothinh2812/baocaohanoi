@@ -9,17 +9,194 @@
 - Route/API dùng RBAC module server-side theo `training_user_roles` và audience mapping; mọi write tiếp tục cần session, quyền và CSRF.
 - Mốc integrity hiện tại: migration v11, fixed template bất biến, attempt/report snapshot checksum, close recovery có summary và report chỉ được tạo khi recovery không còn lỗi.
 
-## Migration và worker
+## Cài đặt dependencies
+
+Module đào tạo dùng thêm package ngoài runtime chính. Cài vào đúng venv production/dev:
+
+```bash
+venv/bin/python3 -m pip install -r requirements-training.txt
+```
+
+Package trong `requirements-training.txt` (đã pin version):
+
+| Package | Phiên bản | Dùng cho | Import |
+|---------|-----------|----------|--------|
+| `jsonschema` | 4.26.0 | Validate JSON Schema Draft 2020-12 | Luôn (schema validation) |
+| `openai` | 2.29.0 | Provider AI Structured Outputs | Lazy (chỉ khi `--provider openai`) |
+| `python-docx` | 1.2.0 | Đọc file DOCX | Lazy (chỉ khi import DOCX) |
+
+- **`jsonschema`** cần thiết cho toàn bộ module; nếu thiếu sẽ lỗi khi validate question batch.
+- **`openai`** lazy import: app/CLI không-AI vẫn chạy khi thiếu SDK. Lỗi rõ ràng khi thiếu: `openai SDK chưa cài đặt; chạy: pip install openai`.
+- **`python-docx`** lazy import: CLI nhận `--file *.docx` sẽ lỗi rõ ràng khi thiếu. TXT và paste không cần python-docx.
+- Không thay đổi package toàn hệ thống; chỉ cài vào venv đang dùng.
+- Không đưa API key mẫu thật vào docs/log/test.
+
+## Cấu hình AI environment
+
+OpenAI provider chỉ hoạt động khi **cả hai** điều kiện thỏa:
+
+```bash
+export OPENAI_API_KEY='sk-...'          # từ secret store, KHÔNG ghi vào DB/log
+export DASHV4_TRAINING_AI_ENABLED=1     # bật tính năng AI
+```
+
+Các env var cấu hình thêm (không bắt buộc):
+
+| Env var | Mặc định | Mô tả |
+|---------|----------|-------|
+| `DASHV4_TRAINING_AI_MODEL` | `gpt-4o-mini` | Model OpenAI |
+| `DASHV4_TRAINING_GENERATION_TIMEOUT_SECONDS` | `120` | Timeout mỗi API call |
+| `DASHV4_TRAINING_LEASE_SECONDS` | `300` | Lease worker claim job |
+
+Fake provider (`--provider fake`) không cần key hay env AI; dùng cho kiểm thử.
+
+## Migration và schema
 
 ```bash
 venv/bin/python3 -m training.cli db-migrate
-venv/bin/python3 -m training.cli worker --once --provider fake
 ```
 
-- Chạy `db-migrate` trước khi đưa instance vào vận hành; migration hiện có đến v11. v10 sửa lại `exam_template_items` và đồng bộ tổng số câu cache của template; v11 lưu `exam_events.closed_at_ms` để retry recovery giữ nguyên chính sách phân loại tại thời điểm đóng.
-- Queue AI dùng lease/heartbeat/retry để worker chết có thể được claim lại sau khi lease hết hạn. Worker là process riêng, không chạy tác vụ AI dài trong Gunicorn.
+- Chạy `db-migrate` trước khi đưa instance vào vận hành; migration hiện có đến v11.
+- v10 sửa lại `exam_template_items` và đồng bộ tổng số câu cache của template.
+- v11 lưu `exam_events.closed_at_ms` để retry recovery giữ nguyên chính sách phân loại tại thời điểm đóng.
 
-Production AI chỉ được bật khi `DASHV4_TRAINING_AI_ENABLED=true`, provider/key hợp lệ được quản lý ngoài source và worker riêng chạy cùng environment file instance. Fake provider là đường kiểm thử; chưa có xác nhận bật hoặc nghiệm thu production OpenAI.
+## Luồng CLI Knowledge Base + AI sinh câu hỏi
+
+Luồng đầy đủ từ nhập tài liệu đến xuất câu hỏi sẵn sàng thi:
+
+### Bước 1 — Import tài liệu vào kho tri thức
+
+```bash
+# Import DOCX
+python3 -m training.cli knowledge-import \
+  --file c1_1.docx \
+  --title "C1.1 Chất lượng sửa chữa thuê bao BRCĐ" \
+  --domain quality --topics brcd_repair \
+  --audiences nvkt,to_truong,b2a \
+  --actor thinhdx.hni
+
+# Import TXT
+python3 -m training.cli knowledge-import \
+  --file c1_1.txt \
+  --title "C1.1 Chất lượng sửa chữa thuê bao BRCĐ" \
+  --domain quality --topics brcd_repair \
+  --audiences nvkt,to_truong,b2a \
+  --actor thinhdx.hni
+
+# Paste text trực tiếp
+python3 -m training.cli knowledge-import \
+  --paste-text "Nội dung tài liệu..." \
+  --title "C1.1 ..." \
+  --domain quality --topics brcd_repair \
+  --audiences nvkt,to_truong,b2a \
+  --actor thinhdx.hni
+```
+
+- Validate: extension, MIME signature, zip bomb, max bytes.
+- Idempotent theo `content_sha256`: trùng nội dung trả conflict có hướng dẫn; dùng `--force` để tạo version mới.
+- Output: `document_id`, `document_version_id`, extraction revision, block count.
+
+### Bước 2 — Kiểm tra tài liệu đã import
+
+```bash
+# Liệt kê tài liệu
+python3 -m training.cli knowledge-list --domain quality
+
+# Xem chi tiết version (blocks, classification)
+python3 -m training.cli knowledge-show --document-version-id <id>
+
+# Kiểm tra issues (blocking issues phải resolve trước khi generate)
+python3 -m training.cli knowledge-issues --document-version-id <id>
+```
+
+### Bước 3 — Tạo generation job
+
+```bash
+python3 -m training.cli generate-create \
+  --document-version-ids <ver_id_1>,<ver_id_2> \
+  --audiences nvkt \
+  --count 15 \
+  --actor thinhdx.hni
+```
+
+- `--document-version-ids`: CSV document version IDs (bắt buộc).
+- `--audiences`: CSV audience codes (bắt buộc).
+- `--count`: số câu muốn sinh (bắt buộc).
+- `--idempotency-key`: tuỳ chọn, tự tạo nếu bỏ trống.
+- **Không có** `--selection-id`, `--provider`, `--model` ở lệnh này.
+- Provider (fake/openai) chỉ chọn ở bước worker (bước 4).
+
+### Bước 4 — Chạy worker sinh câu hỏi
+
+```bash
+# Fake provider (không cần API key, dùng cho kiểm thử)
+python3 -m training.cli worker --provider fake --once
+
+# OpenAI (cần OPENAI_API_KEY + DASHV4_TRAINING_AI_ENABLED=1)
+python3 -m training.cli worker --provider openai --once
+
+# Worker liên tục (không --once)
+python3 -m training.cli worker --provider fake --poll-interval 5
+```
+
+- `--provider`: `fake` (mặc định) hoặc `openai`.
+- `--once`: chạy 1 job rồi thoát; bỏ qua để worker chạy liên tục.
+- `--worker-id`: tuỳ chọn, mặc định `cli-<pid>`.
+- Worker claim job, resolve snapshot blocks, gọi provider, import draft câu hỏi.
+
+### Bước 5 — Kiểm tra kết quả
+
+```bash
+# Liệt kê jobs
+python3 -m training.cli generate-list
+
+# Xem chi tiết job
+python3 -m training.cli generate-show --job-id <id>
+
+# Hủy job đang chờ
+python3 -m training.cli generate-cancel --job-id <id> --actor thinhdx.hni
+```
+
+### Bước 6 — Review và publish câu hỏi
+
+```bash
+# Liệt kê câu hỏi draft
+python3 -m training.cli questions-list --status draft --topic brcd_repair
+
+# Xem chi tiết câu hỏi (stem, options, correct, evidence)
+python3 -m training.cli questions-show --version-id <id>
+
+# Approve (CAS, cần quyền editor)
+python3 -m training.cli questions-approve --version-id <id> --actor thinhdx.hni
+
+# Reject (cần comment)
+python3 -m training.cli questions-reject --version-id <id> --actor thinhdx.hni \
+  --comment "Evidence không chính xác"
+
+# Publish (CAS, câu phải ở trạng thái approved)
+python3 -m training.cli questions-publish --version-id <id> --actor thinhdx.hni
+```
+
+- State machine: `draft → approved → published`.
+- Approve/publish dùng CAS (`BEGIN IMMEDIATE` + status check) chống concurrent transition.
+- Sau publish, câu hỏi sẵn sàng dùng trong UI tạo mẫu đề, kỳ thi và giao bài.
+
+### Bước 7 — Tạo kỳ thi và thi (UI hiện có)
+
+Sau khi publish câu hỏi, dùng UI hiện có:
+1. Tạo fixed template từ câu hỏi đã publish.
+2. Tạo kỳ thi gán template.
+3. Giao bài cho học viên.
+4. Học viên làm bài, submit.
+5. Close → finalize → xem report → export Excel.
+
+## Worker AI
+
+- Queue AI dùng lease/heartbeat/retry để worker chết có thể được claim lại sau khi lease hết hạn.
+- Worker là process riêng, không chạy tác vụ AI dài trong Gunicorn.
+- OpenAI provider: lazy import SDK; thiếu SDK trả lỗi rõ ràng, không crash app.
+
+Production AI chỉ được bật khi `DASHV4_TRAINING_AI_ENABLED=1`, provider/key hợp lệ được quản lý ngoài source và worker riêng chạy cùng environment file instance. Fake provider là đường kiểm thử; chưa có xác nhận bật hoặc nghiệm thu production OpenAI.
 
 ## Backup và restore
 

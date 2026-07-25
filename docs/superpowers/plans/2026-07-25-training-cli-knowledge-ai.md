@@ -43,13 +43,13 @@ Lệnh cần có:
 ```bash
 python3 -m training.cli knowledge-import --file c1_1.docx \
   --title "C1.1 Chất lượng sửa chữa thuê bao BRCĐ" \
-  --domain quality --topic brcd_repair \
+  --domain quality --topics brcd_repair \
   --audiences nvkt,to_truong,b2a --actor thinhdx.hni
 
 python3 -m training.cli knowledge-import --paste-file c1_1.txt ...
 python3 -m training.cli knowledge-list
-python3 -m training.cli knowledge-show --document-version <id>
-python3 -m training.cli knowledge-issues --document-version <id>
+python3 -m training.cli knowledge-show --document-version-id <id>
+python3 -m training.cli knowledge-issues --document-version-id <id>
 ```
 
 Yêu cầu:
@@ -66,12 +66,14 @@ Yêu cầu:
 
 ```bash
 python3 -m training.cli generate-create \
-  --document-version <id> --domain quality --topic brcd_repair \
-  --audience nvkt --count 15 --difficulty mixed --actor thinhdx.hni
+  --document-version-ids <ver_id_1>,<ver_id_2> \
+  --audiences nvkt \
+  --count 15 \
+  --actor thinhdx.hni
 
-python3 -m training.cli generation-list
-python3 -m training.cli generation-show --job <id>
-python3 -m training.cli generation-cancel --job <id> --actor thinhdx.hni
+python3 -m training.cli generate-list
+python3 -m training.cli generate-show --job-id <id>
+python3 -m training.cli generate-cancel --job-id <id> --actor thinhdx.hni
 ```
 
 Yêu cầu:
@@ -85,11 +87,15 @@ Yêu cầu:
 ## Pha 3 - Worker và OpenAI adapter production
 
 ```bash
-export OPENAI_API_KEY='...'
+# Bắt buộc: API key từ secret store, KHÔNG ghi vào DB/log/commit
+export OPENAI_API_KEY='sk-...'
 export DASHV4_TRAINING_AI_ENABLED=1
-export DASHV4_TRAINING_AI_PROVIDER=openai
-export DASHV4_TRAINING_AI_MODEL=gpt-5.6-terra
 
+# Tuỳ chọn: model, timeout
+export DASHV4_TRAINING_AI_MODEL=gpt-4o-mini
+export DASHV4_TRAINING_GENERATION_TIMEOUT_SECONDS=120
+
+# Provider chọn ở worker, KHÔNG phải env var
 python3 -m training.cli worker --provider openai --once
 python3 -m training.cli worker --provider openai --poll-interval 5
 ```
