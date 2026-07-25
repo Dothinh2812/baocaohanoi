@@ -230,44 +230,6 @@
 {% endblock %}
 {% block extra_js %}
 <script src="{{ url_for('static', filename='js/training-ui.js') }}"></script>
-<script>
-  (function () {
-    'use strict';
-    var panels = document.querySelectorAll('.training-workspace-grid > .training-workspace-panel');
-    function hasWorkspacePanel(panelId) {
-      return Array.prototype.some.call(panels, function (panel) { return panel.id === panelId; });
-    }
-    function showPanel(panelId) {
-      if (!hasWorkspacePanel(panelId)) return;
-      panels.forEach(function (p) { p.hidden = (p.id !== panelId); });
-      document.querySelectorAll('.training-workspace-nav a[data-panel]').forEach(function (link) {
-        link.classList.toggle('active', link.getAttribute('data-panel') === panelId);
-      });
-      var shown = document.getElementById(panelId);
-      if (shown && typeof CustomEvent === 'function') {
-        shown.dispatchEvent(new CustomEvent('training:panel-show'));
-      }
-    }
-    document.querySelectorAll('.training-workspace-nav a[data-panel]').forEach(function (link) {
-      link.addEventListener('click', function (event) {
-        event.preventDefault();
-        var target = link.getAttribute('data-panel');
-        if (window.history && window.history.pushState) {
-          window.history.pushState(null, '', '#' + target);
-        } else {
-          window.location.hash = target;
-        }
-        showPanel(target);
-      });
-    });
-    window.addEventListener('hashchange', function () {
-      var hash = (window.location.hash || '').replace('#', '');
-      if (hash && hasWorkspacePanel(hash)) showPanel(hash);
-    });
-    var initial = (window.location.hash || '').replace('#', '');
-    if (initial && hasWorkspacePanel(initial)) { showPanel(initial); }
-  })();
-</script>
 {% if 'editor' in module_roles or 'exam_manager' in module_roles or 'admin' in module_roles %}
 <script src="{{ url_for('static', filename='js/training-question-bank.js') }}"></script>
 {% endif %}

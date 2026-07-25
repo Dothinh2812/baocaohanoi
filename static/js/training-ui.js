@@ -100,6 +100,48 @@
         }).format(date);
     }
 
+    // Giữ điều hướng workspace trong file JS ngoài. Một số môi trường áp CSP
+    // chặn script inline; khi đó menu Mẫu đề/Kỳ thi đổi hash nhưng panel vẫn
+    // hidden nếu điều hướng chỉ nằm trong template.
+    function initWorkspaceNavigation() {
+        var panels = document.querySelectorAll('.training-workspace-grid > .training-workspace-panel');
+        if (!panels.length) return;
+
+        function hasWorkspacePanel(panelId) {
+            return Array.prototype.some.call(panels, function (panel) { return panel.id === panelId; });
+        }
+        function showPanel(panelId) {
+            if (!hasWorkspacePanel(panelId)) return;
+            panels.forEach(function (panel) { panel.hidden = (panel.id !== panelId); });
+            document.querySelectorAll('.training-workspace-nav a[data-panel]').forEach(function (link) {
+                link.classList.toggle('active', link.getAttribute('data-panel') === panelId);
+            });
+            var shown = document.getElementById(panelId);
+            if (shown && typeof CustomEvent === 'function') {
+                shown.dispatchEvent(new CustomEvent('training:panel-show'));
+            }
+        }
+
+        document.querySelectorAll('.training-workspace-nav a[data-panel]').forEach(function (link) {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                var target = link.getAttribute('data-panel');
+                if (window.history && window.history.pushState) {
+                    window.history.pushState(null, '', '#' + target);
+                } else {
+                    window.location.hash = target;
+                }
+                showPanel(target);
+            });
+        });
+        window.addEventListener('hashchange', function () {
+            var hash = (window.location.hash || '').replace('#', '');
+            if (hash && hasWorkspacePanel(hash)) showPanel(hash);
+        });
+        var initial = (window.location.hash || '').replace('#', '');
+        if (initial && hasWorkspacePanel(initial)) showPanel(initial);
+    }
+
     window.TrainingUI = {
         csrfToken: csrfToken,
         withCsrf: withCsrf,
@@ -111,4 +153,5 @@
         formatTime: formatTime,
         noStoreOptions: noStoreOptions
     };
+    initWorkspaceNavigation();
 }(window, document));
