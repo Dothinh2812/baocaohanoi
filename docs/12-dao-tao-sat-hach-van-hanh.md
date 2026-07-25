@@ -107,6 +107,11 @@ python3 -m training.cli knowledge-show --document-version-id <id>
 
 # Kiểm tra issues (blocking issues phải resolve trước khi generate)
 python3 -m training.cli knowledge-issues --document-version-id <id>
+
+# Tạo extraction revision mới khi tài liệu dài/chunk chưa phù hợp.
+# Revision cũ vẫn bất biến để evidence lịch sử không thay đổi.
+python3 -m training.cli knowledge-reprocess \
+  --document-version-id <id> --actor <editor_username>
 ```
 
 ### Bước 3 — Tạo generation job

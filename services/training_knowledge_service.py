@@ -6,35 +6,109 @@ Block ID ổn định trong (document_version_id, extraction_revision).
 
 import hashlib
 import json
+import re
 
 from training import constants, time_policy
 from training.db import read_connection, write_connection
 from repositories.training_repository import gen_id, write_audit
 
-BLOCK_SEPARATOR = "\n\n"
+# Giới hạn block để provider nhận toàn bộ evidence thay vì cắt mất phần cuối
+# của một đoạn rất dài. Mỗi block vẫn giữ offset vào content gốc.
+BLOCK_MAX_CHARS = 1200
 
 
 def _sha256(text):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def _split_blocks(content_text):
-    """Chia text thành blocks theo đoạn (double newline). Trả list of (content, start, end)."""
-    blocks = []
-    pos = 0
-    for chunk in content_text.split(BLOCK_SEPARATOR):
-        chunk_stripped = chunk.strip()
-        if chunk_stripped:
-            start = content_text.find(chunk_stripped, pos)
-            if start < 0:
-                start = pos
-            end = start + len(chunk_stripped)
-            blocks.append((chunk_stripped, start, end))
-            pos = end
+def _trim_span(text, start, end):
+    """Trim whitespace ở biên nhưng giữ offset chính xác trong text gốc."""
+    while start < end and text[start].isspace():
+        start += 1
+    while end > start and text[end - 1].isspace():
+        end -= 1
+    return start, end
+
+
+def _paragraph_spans(content_text):
+    """Trả span các đoạn, chấp nhận LF/CRLF và cả tài liệu không có dòng trống."""
+    spans = []
+    cursor = 0
+    paragraph_start = None
+    for line in content_text.splitlines(keepends=True):
+        line_start = cursor
+        cursor += len(line)
+        if line.strip():
+            if paragraph_start is None:
+                paragraph_start = line_start
+            continue
+        if paragraph_start is not None:
+            start, end = _trim_span(content_text, paragraph_start, line_start)
+            if start < end:
+                spans.append((start, end))
+            paragraph_start = None
+    if paragraph_start is not None:
+        start, end = _trim_span(content_text, paragraph_start, len(content_text))
+        if start < end:
+            spans.append((start, end))
+    return spans
+
+
+def _split_long_span(content_text, start, end, max_chars):
+    """Cắt đoạn dài theo newline/câu/khoảng trắng gần giới hạn, không mất text."""
+    spans = []
+    while end - start > max_chars:
+        limit = start + max_chars
+        candidates = [
+            content_text.rfind("\n", start + max_chars // 2, limit + 1),
+            max(content_text.rfind(mark, start + max_chars // 2, limit + 1)
+                for mark in (". ", "; ", ": ", "? ", "! ")),
+            content_text.rfind(" ", start + max_chars // 2, limit + 1),
+        ]
+        cut = max(candidates)
+        if cut <= start:
+            cut = limit
         else:
-            pos += len(BLOCK_SEPARATOR)
-    if not blocks and content_text.strip():
-        blocks.append((content_text.strip(), 0, len(content_text.strip())))
+            cut += 1
+        piece_start, piece_end = _trim_span(content_text, start, cut)
+        if piece_start < piece_end:
+            spans.append((piece_start, piece_end))
+        start = cut
+        while start < end and content_text[start].isspace():
+            start += 1
+    start, end = _trim_span(content_text, start, end)
+    if start < end:
+        spans.append((start, end))
+    return spans
+
+
+def _split_blocks(content_text, max_chars=BLOCK_MAX_CHARS):
+    """Chia tài liệu dài theo đoạn/dòng, mỗi block không vượt ``max_chars``.
+
+    Content/offset/hash đều lấy từ chuỗi gốc; extraction revision cũ không bị sửa.
+    """
+    if max_chars < 100:
+        raise ValueError("max_chars phải >= 100")
+    blocks = []
+    current_start = None
+    current_end = None
+    for para_start, para_end in _paragraph_spans(content_text):
+        if para_end - para_start > max_chars:
+            if current_start is not None:
+                blocks.append((content_text[current_start:current_end], current_start, current_end))
+                current_start = current_end = None
+            for start, end in _split_long_span(content_text, para_start, para_end, max_chars):
+                blocks.append((content_text[start:end], start, end))
+            continue
+        if current_start is None:
+            current_start, current_end = para_start, para_end
+        elif para_end - current_start <= max_chars:
+            current_end = para_end
+        else:
+            blocks.append((content_text[current_start:current_end], current_start, current_end))
+            current_start, current_end = para_start, para_end
+    if current_start is not None:
+        blocks.append((content_text[current_start:current_end], current_start, current_end))
     return blocks
 
 
@@ -65,8 +139,10 @@ def create_document(
             (version_id, doc_id, 1, content_text, _sha256(content_text),
              constants.DocumentReviewStatus.DRAFT, now, actor),
         )
-        _insert_version_mappings(conn, version_id, classification, audience_codes)
-        _insert_blocks(conn, version_id, 1, content_text, classification, now)
+        classification_with_code = dict(classification)
+        classification_with_code["document_code"] = document_code
+        _insert_version_mappings(conn, version_id, classification_with_code, audience_codes)
+        _insert_blocks(conn, version_id, 1, content_text, classification_with_code, now)
         write_audit(conn, actor=actor, unit_code=unit_code, action="create_document",
                     entity_type="knowledge_document", entity_id=doc_id,
                     after={"document_code": document_code, "title": title})

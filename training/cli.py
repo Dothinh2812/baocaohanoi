@@ -289,6 +289,26 @@ def cmd_knowledge_issues(args):
     return 0
 
 
+def cmd_knowledge_reprocess(args):
+    """Tạo extraction revision mới bằng thuật toán chunk hiện hành."""
+    from training.db import TRAINING_DB_PATH, UNIT_CODE
+    from services.training_knowledge_service import get_version, reprocess_blocks
+
+    db_path = args.db_path or TRAINING_DB_PATH
+    unit_code = args.unit_code or UNIT_CODE
+    _require_role(db_path, args.actor, "editor")
+    version = get_version(db_path, args.document_version_id)
+    if not version:
+        raise ValueError(f"Document version không tồn tại: {args.document_version_id}")
+    revision = reprocess_blocks(
+        db_path, unit_code=unit_code, actor=args.actor,
+        version_id=args.document_version_id, content_text=version["content_text"],
+    )
+    _print_json({"document_version_id": args.document_version_id,
+                 "extraction_revision": revision})
+    return 0
+
+
 # ---- generate-create ----
 
 def cmd_generate_create(args):
@@ -498,6 +518,7 @@ def build_parser():
     _add_knowledge_list(sub)
     _add_knowledge_show(sub)
     _add_knowledge_issues(sub)
+    _add_knowledge_reprocess(sub)
     _add_generate_create(sub)
     _add_generate_list(sub)
     _add_generate_show(sub)
@@ -583,6 +604,14 @@ def _add_knowledge_issues(sub):
     _add_common_db(p)
     p.add_argument("--document-version-id", required=True)
     p.set_defaults(func=cmd_knowledge_issues)
+
+
+def _add_knowledge_reprocess(sub):
+    p = sub.add_parser("knowledge-reprocess", help="Tạo extraction revision mới")
+    _add_common_db(p)
+    p.add_argument("--document-version-id", required=True)
+    p.add_argument("--actor", required=True)
+    p.set_defaults(func=cmd_knowledge_reprocess)
 
 
 def _add_generate_create(sub):

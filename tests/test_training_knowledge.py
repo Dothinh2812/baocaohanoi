@@ -74,10 +74,31 @@ def test_blocks_have_stable_ids(monkeypatch, tmp_path):
         (doc["version_id"],),
     ).fetchall()]
     conn.close()
-    assert len(blocks) >= 2
+    assert len(blocks) >= 1
+    assert all(block["block_id"].startswith("C1.1-B") for block in blocks)
     for b in blocks:
         assert b["block_id"]
         assert b["content"]
+
+
+def test_long_document_blocks_are_bounded_and_keep_exact_offsets(monkeypatch, tmp_path):
+    db_path = _setup(monkeypatch, tmp_path)
+    long_text = "Dòng quy định rất dài. " * 250
+    doc = ks.create_document(
+        db_path, unit_code="son_tay", actor="alice",
+        document_code="C1.1", title="Long", content_text=long_text,
+        classification={}, audience_codes=[],
+    )
+    conn = training_db.read_connection(db_path)
+    blocks = [dict(row) for row in conn.execute(
+        "SELECT block_id, char_start, char_end, content FROM knowledge_blocks "
+        "WHERE document_version_id=? ORDER BY char_start", (doc["version_id"],)
+    ).fetchall()]
+    conn.close()
+    assert len(blocks) > 1
+    assert all(len(block["content"]) <= ks.BLOCK_MAX_CHARS for block in blocks)
+    assert all(long_text[block["char_start"]:block["char_end"]] == block["content"]
+               for block in blocks)
 
 
 def test_extraction_revision_increments_on_reprocess(monkeypatch, tmp_path):

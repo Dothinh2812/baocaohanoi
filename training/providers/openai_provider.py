@@ -39,6 +39,10 @@ def _get_timeout():
     return int(os.getenv("DASHV4_TRAINING_GENERATION_TIMEOUT_SECONDS", "120"))
 
 
+def _get_max_prompt_chars():
+    return int(os.getenv("DASHV4_TRAINING_MAX_PROMPT_CHARS", "50000"))
+
+
 class OpenAIProvider(BaseProvider):
     name = "openai"
 
@@ -97,9 +101,16 @@ class OpenAIProvider(BaseProvider):
                     f"  - document_version_id={doc_ver['document_version_id']}, "
                     f"block_id={blk['block_id']}, "
                     f"extraction_revision={blk['extraction_revision']}, "
-                    f"content={blk['content'][:500]}"
+                    f"content={blk['content']}"
                 )
         blocks_text = "\n".join(block_summaries) if block_summaries else "(không có blocks)"
+        if len(blocks_text) > _get_max_prompt_chars():
+            raise OpenAIProviderError(
+                ErrorCode.VALIDATION_ERROR,
+                "Selection blocks vượt DASHV4_TRAINING_MAX_PROMPT_CHARS; "
+                "hãy chọn ít document/block hơn cho một generation job",
+                status=400,
+            )
         audiences = ", ".join(snapshot.get("target_audience_codes", []))
         source_ids = ", ".join(snapshot["allowed_document_version_ids"])
 
