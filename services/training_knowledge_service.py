@@ -228,6 +228,62 @@ def list_blocks(db_path, version_id, extraction_revision=None):
         conn.close()
 
 
+def resolve_generation_snapshot(db_path, document_version_ids, audience_codes):
+    """Resolve selection snapshot: blocks + classification/audience cho provider.
+
+    Trả dict: {document_versions: [{id, blocks: [{block_id, content, ...}],
+              classification, audiences}], allowed_block_ids: set,
+              allowed_document_version_ids: set}.
+
+    Provider chỉ nhận blocks từ snapshot này; evidence ngoài selection bị reject.
+    """
+    conn = read_connection(db_path)
+    try:
+        snapshot = {"document_versions": [], "allowed_block_ids": set(),
+                    "allowed_document_version_ids": set()}
+        for version_id in document_version_ids:
+            ver = conn.execute(
+                "SELECT id, content_sha256 FROM knowledge_document_versions WHERE id=?",
+                (version_id,),
+            ).fetchone()
+            if not ver:
+                continue
+            rev = conn.execute(
+                "SELECT COALESCE(MAX(extraction_revision), 0) AS m "
+                "FROM knowledge_blocks WHERE document_version_id=?",
+                (version_id,),
+            ).fetchone()["m"]
+            blocks = conn.execute(
+                "SELECT id, block_id, extraction_revision, char_start, char_end, "
+                "content, content_sha256, domain_code, category_code "
+                "FROM knowledge_blocks "
+                "WHERE document_version_id=? AND extraction_revision=? ORDER BY block_id",
+                (version_id, rev),
+            ).fetchall()
+            block_list = [dict(b) for b in blocks]
+            topics = [r["topic_code"] for r in conn.execute(
+                "SELECT topic_code FROM knowledge_document_topics "
+                "WHERE document_version_id=?", (version_id,),
+            ).fetchall()]
+            audiences = [r["audience_code"] for r in conn.execute(
+                "SELECT audience_code FROM knowledge_document_audiences "
+                "WHERE document_version_id=?", (version_id,),
+            ).fetchall()]
+            snapshot["document_versions"].append({
+                "document_version_id": version_id,
+                "blocks": block_list,
+                "topic_codes": topics,
+                "audience_codes": audiences,
+            })
+            snapshot["allowed_document_version_ids"].add(version_id)
+            for b in block_list:
+                snapshot["allowed_block_ids"].add(b["block_id"])
+        snapshot["target_audience_codes"] = list(audience_codes)
+        return snapshot
+    finally:
+        conn.close()
+
+
 def create_issue(db_path, *, unit_code, actor, version_id, severity, issue_type,
                  description, block_id=None):
     now = time_policy.utc_now_ms()
@@ -295,8 +351,6 @@ def list_documents(db_path, *, domain_code=None, status=None, page=1, page_size=
     try:
         where = []
         params = []
-        if domain_code:
-            where.append("d.review_status = d.review_status")
         if status:
             where.append("d.review_status = ?")
             params.append(status)
@@ -312,6 +366,20 @@ def list_documents(db_path, *, domain_code=None, status=None, page=1, page_size=
         ).fetchall()
         return {"items": [dict(r) for r in rows], "page": page,
                 "page_size": page_size, "total": total}
+    finally:
+        conn.close()
+
+
+def find_version_by_checksum(db_path, content_sha256):
+    """Tìm version đã có theo content checksum (idempotency check)."""
+    conn = read_connection(db_path)
+    try:
+        row = conn.execute(
+            "SELECT id, document_id, version_number FROM knowledge_document_versions "
+            "WHERE content_sha256=? ORDER BY version_number DESC LIMIT 1",
+            (content_sha256,),
+        ).fetchone()
+        return dict(row) if row else None
     finally:
         conn.close()
 

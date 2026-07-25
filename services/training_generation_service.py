@@ -239,3 +239,59 @@ def get_job(db_path, job_id):
         return dict(row) if row else None
     finally:
         conn.close()
+
+
+def list_jobs(db_path, *, status=None, actor=None, page=1, page_size=25):
+    """Paginated list of generation jobs (non-sensitive columns only)."""
+    page = max(1, page)
+    page_size = max(1, min(page_size, 100))
+    conn = read_connection(db_path)
+    try:
+        where = []
+        params = []
+        if status:
+            where.append("status = ?")
+            params.append(status)
+        if actor:
+            where.append("created_by = ?")
+            params.append(actor)
+        clause = ("WHERE " + " AND ".join(where)) if where else ""
+        total = conn.execute(
+            f"SELECT COUNT(*) AS c FROM ai_generation_jobs {clause}", params
+        ).fetchone()["c"]
+        offset = (page - 1) * page_size
+        rows = conn.execute(
+            f"""SELECT id, status, requested_count, created_by, created_at_ms,
+                       claimed_by, retry_count, error_code, completed_at_ms
+                FROM ai_generation_jobs {clause}
+                ORDER BY created_at_ms DESC LIMIT ? OFFSET ?""",
+            params + [page_size, offset],
+        ).fetchall()
+        return {"items": [dict(r) for r in rows], "page": page,
+                "page_size": page_size, "total": total}
+    finally:
+        conn.close()
+
+
+def get_job_detail(db_path, job_id):
+    """Full job DTO including batch metadata (provider/model/usage)."""
+    conn = read_connection(db_path)
+    try:
+        job = conn.execute(
+            "SELECT * FROM ai_generation_jobs WHERE id=?", (job_id,)
+        ).fetchone()
+        if not job:
+            return None
+        result = dict(job)
+        batch = conn.execute(
+            "SELECT schema_version, provider, model, prompt_version, usage_json, "
+            "created_at_ms FROM ai_generation_batches WHERE job_id=?",
+            (job_id,),
+        ).fetchone()
+        if batch:
+            result["batch_meta"] = dict(batch)
+        else:
+            result["batch_meta"] = None
+        return result
+    finally:
+        conn.close()
