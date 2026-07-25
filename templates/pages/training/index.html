@@ -234,7 +234,11 @@
   (function () {
     'use strict';
     var panels = document.querySelectorAll('.training-workspace-grid > .training-workspace-panel');
+    function hasWorkspacePanel(panelId) {
+      return Array.prototype.some.call(panels, function (panel) { return panel.id === panelId; });
+    }
     function showPanel(panelId) {
+      if (!hasWorkspacePanel(panelId)) return;
       panels.forEach(function (p) { p.hidden = (p.id !== panelId); });
       document.querySelectorAll('.training-workspace-nav a[data-panel]').forEach(function (link) {
         link.classList.toggle('active', link.getAttribute('data-panel') === panelId);
@@ -258,10 +262,10 @@
     });
     window.addEventListener('hashchange', function () {
       var hash = (window.location.hash || '').replace('#', '');
-      if (hash && document.getElementById(hash)) showPanel(hash);
+      if (hash && hasWorkspacePanel(hash)) showPanel(hash);
     });
     var initial = (window.location.hash || '').replace('#', '');
-    if (initial && document.getElementById(initial)) { showPanel(initial); }
+    if (initial && hasWorkspacePanel(initial)) { showPanel(initial); }
   })();
 </script>
 {% if 'editor' in module_roles or 'exam_manager' in module_roles or 'admin' in module_roles %}

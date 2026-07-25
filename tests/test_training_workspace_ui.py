@@ -193,3 +193,12 @@ def test_workspace_placeholder_navigation_keeps_a_real_panel_visible(monkeypatch
         nav = page.split(label)[0].rsplit('<a', 1)[-1]
         assert 'href="#training-overview"' in nav
         assert 'data-panel="training-overview"' in nav
+
+
+def test_workspace_navigation_rejects_hashes_for_nested_placeholder_elements():
+    root = Path(__file__).resolve().parents[1]
+    page = (root / "templates" / "pages" / "training" / "index.html").read_text(encoding="utf-8")
+
+    assert "function hasWorkspacePanel(panelId)" in page
+    assert "if (!hasWorkspacePanel(panelId)) return;" in page
+    assert "hasWorkspacePanel(hash)" in page
