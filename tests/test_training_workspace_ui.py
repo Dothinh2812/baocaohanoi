@@ -179,3 +179,17 @@ def test_workspace_nav_points_template_and_exam_panels_to_real_ids(monkeypatch, 
     # Mẫu đề nav must no longer fall back to the shared placeholder.
     templates_nav = page.split('Mẫu đề')[0].rsplit('<a', 1)[-1]
     assert "#training-pending" not in templates_nav
+
+
+def test_workspace_placeholder_navigation_keeps_a_real_panel_visible(monkeypatch, tmp_path):
+    for client in _workspace_client(
+        monkeypatch, tmp_path, username="dashboard-admin", dashboard_role="admin",
+    ):
+        page = client.get("/dao-tao-sat-hach").get_data(as_text=True)
+
+    # Kho tri thức/Kết quả chưa có panel riêng. Không được để hash trỏ đến
+    # phần tử lồng trong overview vì showPanel sẽ ẩn mọi panel cấp workspace.
+    for label in ("Kho tri thức", "Kết quả của tôi"):
+        nav = page.split(label)[0].rsplit('<a', 1)[-1]
+        assert 'href="#training-overview"' in nav
+        assert 'data-panel="training-overview"' in nav

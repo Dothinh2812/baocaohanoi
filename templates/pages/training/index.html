@@ -15,7 +15,7 @@
     <nav class="training-workspace-nav" aria-label="Chức năng đào tạo">
       <a class="training-nav-item active" href="#training-overview" data-panel="training-overview"><i class="fas fa-chart-pie"></i> Tổng quan</a>
       {% if 'editor' in module_roles or 'admin' in module_roles %}
-      <a class="training-nav-item" href="#training-pending"><i class="fas fa-book"></i> Kho tri thức</a>
+      <a class="training-nav-item" href="#training-overview" data-panel="training-overview"><i class="fas fa-book"></i> Kho tri thức</a>
       <a class="training-nav-item" href="#training-question-bank" data-panel="training-overview"><i class="fas fa-list-check"></i> Ngân hàng câu hỏi</a>
       {% endif %}
       {% if 'exam_manager' in module_roles or 'admin' in module_roles %}
@@ -26,7 +26,7 @@
       {% endif %}
       {% if 'learner' in module_roles or 'admin' in module_roles %}
       <a class="training-nav-item" href="#training-my-exams" data-panel="training-my-exams"><i class="fas fa-pen-to-square"></i> Bài thi của tôi</a>
-      <a class="training-nav-item" href="#training-pending"><i class="fas fa-square-poll-vertical"></i> Kết quả của tôi</a>
+      <a class="training-nav-item" href="#training-overview" data-panel="training-overview"><i class="fas fa-square-poll-vertical"></i> Kết quả của tôi</a>
       {% endif %}
     </nav>
 
